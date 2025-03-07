@@ -129,7 +129,7 @@ export default function Settings() {
 
     if (user) {
       const userDocRef = doc(db, "Users", user.uid);
-      setDoc(userDocRef, { isLightTheme: isLightMode }, { merge: true });
+      setDoc(userDocRef, { isLightTheme: !isLightMode }, { merge: true });
       if (isLightMode) {
         localStorage.setItem("theme", "light");
         document.body.classList.remove("dark-mode");

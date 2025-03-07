@@ -1,5 +1,5 @@
 import { db } from "./firebaseConfig.js";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut } from "firebase/auth";
 
 const auth = getAuth();
