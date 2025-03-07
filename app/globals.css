@@ -10,7 +10,7 @@
   }
 }
 
-.light-mode {
+.body {
   font-family: Arial, Helvetica, sans-serif;
   font-size: 14px;
   max-width: 1100px;
@@ -19,30 +19,35 @@
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+.light-mode {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+}
+
 .dark-mode {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  max-width: 1100px;
+  margin: 40px auto;
   background: rgb(60, 60, 60);
   color: white;
 }
-
 .navbar {
   background-color: rgb(204, 204, 204);
   color: black;
   transition: background-color 0.3s ease, color 0.3s ease, border 0.3s ease;
 }
 
+.light-mode .navbar {
+  background-color: rgb(204, 204, 204);
+  border: rgb(230, 230, 230);
+  color: black;
+}
+
 .dark-mode .navbar {
   background-color: rgb(35, 35, 35);
   border: rgb(230, 230, 230);
   color: white;
-}
-
-.calendar {
-  background: rgb(255, 255, 255);
-  background-color: rgb(255, 255, 255);
-}
-
-.dark-mode .calendar {
-  background-color: rgb(60, 60, 60);
 }
 
 @layer base {

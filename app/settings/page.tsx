@@ -20,7 +20,7 @@ export default function Settings() {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState("/default.png");
 
-  const [isLightMode, setIsLightMode] = useState(false);
+    const [isLightMode, setIsLightMode] = localStorage.getItem("theme") === "light" ? useState(false) : useState(true);
   const [newPassword, setNewPassword] = useState("");
 
   useEffect(() => {
@@ -123,17 +123,19 @@ export default function Settings() {
     }
   };
 
-  const toggleTheme = async () => {
+  const toggleTheme = () => {
     setIsLightMode(!isLightMode);
     const user = auth.currentUser;
 
     if (user) {
       const userDocRef = doc(db, "Users", user.uid);
-      await setDoc(userDocRef, { isLightTheme: isLightMode }, { merge: true });
+      setDoc(userDocRef, { isLightTheme: isLightMode }, { merge: true });
       if (isLightMode) {
         localStorage.setItem("theme", "light");
         document.body.classList.remove("dark-mode");
+        document.body.classList.add("light-mode");
       } else {
+        document.body.classList.remove("light-mode");
         localStorage.setItem("theme", "dark");
         document.body.classList.add("dark-mode");
       }
