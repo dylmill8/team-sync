@@ -6,6 +6,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../../utils/firebaseConfig.js";
 import { viewDocument } from "../../utils/firebaseHelper.js";
+import NavBar from "@/components/ui/navigation-bar";
 
 interface EventData {
   name: string;
@@ -102,7 +103,7 @@ export default function Profile() {
               }
             }
 
-            if (eventData.end.seconds < Math.floor(Date.now() / 1000)) {              
+            if (eventData.end !== undefined && eventData.end.seconds < Math.floor(Date.now() / 1000)) {              
               newEventList.push({
                 title: eventData.name,
                 allDay: eventData.allDay,
@@ -239,6 +240,7 @@ export default function Profile() {
           )}
         </div>
       )}
+      <NavBar />
     </div>
   );
 }
