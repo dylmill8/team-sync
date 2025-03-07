@@ -104,7 +104,11 @@ export default function Register() {
       alert(`Email Registered: ${email}, username: ${username}`);
       router.push("/profile"); // Redirect to profile page
     } catch (e) {
-      console.error("Error adding document: ", e);
+      if (e.code) {
+        alert(`Error: ${e.message}`);
+      } else {
+        alert("Error adding document:");
+      }
     }
   };
   return (
