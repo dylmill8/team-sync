@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../utils/firebaseConfig.js";
 import { viewDocument } from "../../utils/firebaseHelper.js";
+import NavBar from "@/components/ui/navigation-bar";
 
 export default function Profile() {
   const router = useRouter();
@@ -98,6 +99,7 @@ export default function Profile() {
       >
         Go to Settings
       </button>
+      <NavBar />
     </div>
   );
 }
