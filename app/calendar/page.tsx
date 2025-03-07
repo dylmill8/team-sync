@@ -185,9 +185,17 @@ export default function Calendar() {
           eventDidMount={(info) => {
             if (info.event.extendedProps.description && info.view.type !== 'dayGridMonth') {
               const descEl = document.createElement('div');
+
+              let desc;
+              if (info.event.extendedProps.description) {
+                desc = info.event.extendedProps.description;
+              } else {
+                desc = 'None';
+              }
+
               descEl.innerHTML = `
                 <strong>Location:</strong> ${info.event.extendedProps.location || 'N/A'}<br/>
-                <strong>Description:</strong> ${info.event.extendedProps.description}<br/>
+                <strong>Description:</strong> ${desc}<br/>
                 <strong>RSVP Status:</strong> ${info.event.extendedProps.RSVPStatus}<br/>
                 <strong>Workout:</strong> ${info.event.extendedProps.workout}
                 ... <strong>and more</strong>
@@ -207,13 +215,21 @@ export default function Calendar() {
             }
           }}
           eventMouseEnter={(info) => {
-            if (info.event.extendedProps.description && info.view.type === 'dayGridMonth') {
+            if (info.view.type === 'dayGridMonth') {
               const rect = info.el.getBoundingClientRect();
               const tooltipEl = document.createElement('div');
               tooltipEl.classList.add('my-event-tooltip');
+
+              let desc;
+              if (info.event.extendedProps.description) {
+                desc = info.event.extendedProps.description;
+              } else {
+                desc = 'None';
+              }
+
               tooltipEl.innerHTML = `
                 <strong>Location:</strong> ${info.event.extendedProps.location || 'N/A'}<br/>
-                <strong>Description:</strong> ${info.event.extendedProps.description}<br/>
+                <strong>Description:</strong> ${desc}<br/>
                 <strong>RSVP Status:</strong> ${info.event.extendedProps.RSVPStatus}<br/>
                 <strong>Workout:</strong> ${info.event.extendedProps.workout}
                 ... <strong>and more</strong>
