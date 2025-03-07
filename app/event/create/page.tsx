@@ -104,9 +104,7 @@ export default function CreateEvent() {
           : Timestamp.fromDate(new Date(endDate)),
         location,
         owner: uid,
-        RSVP_yes: [],
-        RSVP_maybe: [],
-        RSVP_no: [],
+        RSVP: {},
         workouts: [],
       });
 
