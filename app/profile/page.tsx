@@ -103,7 +103,7 @@ export default function Profile() {
               }
             }
 
-            if (eventData.end.seconds < Math.floor(Date.now() / 1000)) {              
+            if (eventData.end !== undefined && eventData.end.seconds < Math.floor(Date.now() / 1000)) {              
               newEventList.push({
                 title: eventData.name,
                 allDay: eventData.allDay,
