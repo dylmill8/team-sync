@@ -35,7 +35,7 @@ const NavBarItem = ({ href, icon, active }: { href: string; icon: string; active
 
     return (
         <Link href={href}>
-            <Button variant={active ? "default" : "ghost"} className="justify-center flex flex-col items-center w-[4vw] h-[4vw] max-w-[400] max-h-[400] relative">
+            <Button variant={active ? "default" : "ghost"} className="justify-center flex flex-col items-center w-[4vw] h-[4vh] max-w-[400] max-h-[400] relative">
                 {/* Use iconSrc */}
                 <Image src={iconSrc} alt="Icon" objectFit="contain" fill className="flex object-contain w-[6vw] h-[6vh]" />
             </Button>
