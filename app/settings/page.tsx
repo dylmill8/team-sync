@@ -19,7 +19,8 @@ export default function Settings() {
   const [image, setImage] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState("/default.png");
-  const [isLightMode, setIsLightMode] = useState(false);
+
+    const [isLightMode, setIsLightMode] = localStorage.getItem("theme") === "light" ? useState(false) : useState(true);
   const [newPassword, setNewPassword] = useState("");
 
   useEffect(() => {
@@ -123,8 +124,7 @@ export default function Settings() {
   };
 
   const toggleTheme = () => {
-    setIsLightMode(!isLightMode)
-    //console.log("toggled theme");
+    setIsLightMode(!isLightMode);
     const user = auth.currentUser;
 
     if (user) {
@@ -135,6 +135,7 @@ export default function Settings() {
         document.body.classList.remove("dark-mode");
         document.body.classList.add("light-mode");
       } else {
+        document.body.classList.remove("light-mode");
         localStorage.setItem("theme", "dark");
         document.body.classList.remove("light-mode");
         document.body.classList.add("dark-mode");
@@ -380,13 +381,8 @@ export default function Settings() {
       >
         Delete Account
       </button>
-      <div
-        style={{
-          paddingBottom: "100px",
-        }}
-      ></div>
-      <NavBar />
 
+      <NavBar />
     </div>
   );
 }

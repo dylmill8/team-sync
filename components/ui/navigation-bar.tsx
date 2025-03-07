@@ -41,5 +41,4 @@ const NavBarItem = ({ href, icon, active }: { href: string; icon: string; active
         </Link>
     );
 };
-
 export default NavBar;
