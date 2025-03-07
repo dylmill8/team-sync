@@ -222,6 +222,7 @@ export default function Calendar() {
                 <br/>
               `;
               tooltipEl.style.position = 'fixed';
+              tooltipEl.style.color = 'black';
               tooltipEl.style.fontSize = '0.8em';
               tooltipEl.style.left = `${rect.left}px`;
               tooltipEl.style.top = `${rect.bottom}px`;
