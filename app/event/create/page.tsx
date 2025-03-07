@@ -15,21 +15,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { db } from "@/utils/firebaseConfig";
-import {
-  collection,
-  addDoc,
-  Timestamp,
-  doc,
-  updateDoc,
-  arrayUnion,
-  getDoc,
-  DocumentReference,
-} from "firebase/firestore";
-import { getAuth } from "firebase/auth";
-import { firebaseApp } from "@/utils/firebaseConfig";
+import { db } from "../../../utils/firebaseConfig";
+import { collection, addDoc, Timestamp } from "firebase/firestore";
 
 export default function CreateEvent() {
   const router = useRouter();
@@ -41,9 +30,6 @@ export default function CreateEvent() {
   const [endDate, setEndDate] = useState("");
   const [location, setLocation] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const auth = getAuth(firebaseApp);
-  const uid = auth.currentUser?.uid;
 
   const cancelButton = () => {
     router.push("/calendar");
@@ -103,31 +89,7 @@ export default function CreateEvent() {
           ? Timestamp.fromDate(localEndDate)
           : Timestamp.fromDate(new Date(endDate)),
         location,
-        owner: uid,
-        RSVP_yes: [],
-        RSVP_maybe: [],
-        RSVP_no: [],
-        workouts: [],
       });
-
-      if (uid) {
-        const userDocRef = doc(db, "Users", uid);
-
-        // check if events array exists
-        const docSnap = await getDoc(userDocRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (!("events" in data)) {
-            await updateDoc(userDocRef, {
-              events: [],
-            });
-          }
-        }
-
-        await updateDoc(userDocRef, {
-          events: arrayUnion(doc(db, "Event", docref.id)),
-        });
-      }
 
       alert("Event successfulling created!");
       router.push(`/event/view?docId=${docref.id}`);
@@ -214,14 +176,14 @@ export default function CreateEvent() {
         <CardFooter>
           <Button
             onClick={cancelButton}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-all mx-3 my-0"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-all"
           >
             Cancel
           </Button>
           <Button
             onClick={eventCreation}
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-all mx-3 my-0"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-all"
           >
             Create Event
           </Button>

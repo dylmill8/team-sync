@@ -30,7 +30,6 @@ const NavBar = () => {
 const NavBarItem = ({ href, icon, active }: { href: string; icon: string; active: boolean }) => {
     const isDarkMode = localStorage.getItem("theme") === "dark";
 
-    // Dynamically change the icon based on the theme
     const iconSrc = isDarkMode ? icon.replace(".png", "-White.png") : icon;
 
     return (

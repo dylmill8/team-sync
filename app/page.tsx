@@ -7,14 +7,12 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { setDocument, viewDocument } from "../utils/firebaseHelper.js"
 import { db } from "../utils/firebaseConfig"; 
 import { collection, query, where, getDocs } from "firebase/firestore";
-import { useRouter } from "next/navigation"; //TJ added
 
 
 export default function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const router = useRouter(); //TJ added
 
   const auth = getAuth();
 
@@ -114,12 +112,14 @@ export default function Home() {
             />
             Log in
           </a>
-          <button //TJ replaced link with button
-            onClick={() => router.push(`/registration?email=${encodeURIComponent(email)}`)}
+          <Link
             className="rounded-full border border-solid border-black/[.08] dark:border-black/[.70] text-black transition-colors flex items-center justify-center hover:bg-[#222222] hover:text-[#ffffff] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
+            href="/RegisterSample"
+            //target="_blank"
+            rel="noopener noreferrer"
           >
             Sign up
-          </button>
+          </Link>
         </div>
 
         <div className="flex text-[rgb(200,0,0)] gap-4 items-center flex-col sm:flex-row">

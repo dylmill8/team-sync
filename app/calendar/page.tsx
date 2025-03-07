@@ -49,6 +49,7 @@ export default function Calendar() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      
       if (user) {
         const uid = user.uid;
         

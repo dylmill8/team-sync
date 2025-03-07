@@ -137,6 +137,7 @@ export default function Settings() {
       } else {
         document.body.classList.remove("light-mode");
         localStorage.setItem("theme", "dark");
+        document.body.classList.remove("light-mode");
         document.body.classList.add("dark-mode");
       }
       console.log("Theme updated!" + localStorage.getItem("theme"));

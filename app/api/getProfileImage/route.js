@@ -13,11 +13,10 @@ export async function GET(req) {
     const uploadDir = path.join(process.cwd(), "public/uploads");
     const files = fs.readdirSync(uploadDir);
 
-    let userFile = files.find((file) => file.startsWith(userId));
-    let defaultFile = files.find((file) => file.startsWith("default"));
-    if (!userFile) {
-      return NextResponse.json({ file: defaultFile }, { status: 200 });
+    const userFile = files.find((file) => file.startsWith(userId));
 
+    if (!userFile) {
+      return NextResponse.json({ error: "No profile image found" }, { status: 404 });
     }
 
     return NextResponse.json({ file: userFile }, { status: 200 });

@@ -134,6 +134,7 @@ export default function ModifyEvent() {
   };
 
   // handle navigation when buttons are pressed
+
   const handleBack = () => {
     router.push(`/event/view?docId=${docId}`);
   };
@@ -268,29 +269,18 @@ export default function ModifyEvent() {
               ></Input>
             </div>
           </form>
-
-          <div className="mb-1 pt-2 flex justify-center items-center">
-            <Button
-              onClick={() => {
-                router.push(`/workout/create?docId=${docId}`);
-              }}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold mt-1 mx-2 mb-0 rounded transition-all"
-            >
-              Add Workout
-            </Button>
-          </div>
         </CardContent>
 
         <CardFooter>
           <Button
             onClick={handleBack}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-all"
           >
             Back
           </Button>
           <Button
             onClick={handleSave}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-all"
           >
             Save
           </Button>

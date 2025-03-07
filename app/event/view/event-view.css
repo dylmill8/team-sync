@@ -4,11 +4,21 @@
     padding: 0;
 }
 
-.all-day-div {
-    display: flex;
-    align-items: center;
+body {
+    margin: 5%;
 }
 
-.all-day-checkbox {
-    transform: scale(1.2);
+.event-info-div {
+    display: flex;
+    flex-direction: column;
 }
+
+label {
+    margin: 0.5%;
+}
+
+button {
+    margin-left: 3%;
+    margin-right: 3%;
+}
+

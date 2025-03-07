@@ -4,6 +4,15 @@
     padding: 0;
 }
 
+body {
+    margin: 5%;
+}
+
+button {
+    margin-left: 3%;
+    margin-right: 3%;
+}
+
 .all-day-div {
     display: flex;
     align-items: center;

@@ -6,12 +6,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDocs, query, where } from "firebase/firestore";
+import { collection, addDoc } from "firebase/firestore";
 import { db } from "../../../utils/firebaseConfig"; 
 import { useRouter, useSearchParams } from "next/navigation";
-import { doc, updateDoc, arrayUnion, addDoc, collection } from "firebase/firestore";
+
+interface Exercise {
+    name: string;
+    reps: string;
+    sets: string;
+    time: string;
+  }
 
 export default function Workout() {
     const [workoutName, setWorkoutName] = useState("Workout Name");
+    const [description, setDescription] = useState("Workout Description");
     const [exercises, setExercises] = useState<string[]>([]);
 
     const router = useRouter();
@@ -19,53 +27,27 @@ export default function Workout() {
 
     /* Save Workout Button */
     const handleSaveWorkout = async () => {
-        if (!docId) {
-            alert("Error: Missing event ID.");
-            return;
-        }
         try {
-            const workoutRef = await addDoc(collection(db, "Workouts"), {
+            await addDoc(collection(db, "Workouts"), {
                 name: workoutName,
-                exercises: exercises.filter(ex => ex.trim() !== ""), // Remove empty exercises
-                eventId: docId, // Include the event's docId
+                description: description,
+                exercises: exercises,
             });
 
             alert("Workout saved successfully!");
-
-            const eventRef = doc(db, "Event", docId);
-
-            // Step 3: Update event's workouts array by adding the new workout ID
-            await updateDoc(eventRef, {
-                workouts: arrayUnion(workoutRef.id),
-            });
-            router.push(`/event/view?docId=${docId}`);
-
+            //router.push(`/workout/view?docId=${eventDocRef.id}`);
         } catch (error) {
+            console.error("Error saving workout", error);
             alert("There was an error saving the workout.");
         }
     };
 
     /* Handling changing fields */
-    const handleWorkoutNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleWorkoutNameChange = (e) => {
         setWorkoutName(e.target.value);
     };
-
-    const handleExerciseChange = (index: number, value: string) => {
-        const updatedExercises = [...exercises];
-        updatedExercises[index] = value;
-        setExercises(updatedExercises);
-    };
-
-    const addExercise = () => {
-        if (exercises.length < 10) {
-            setExercises([...exercises, ""]);
-        }
-    };
-
-    const removeExercise = (index: number) => {
-        if (exercises.length > 1) {
-            setExercises(exercises.filter((_, i) => i !== index));
-        }
+    const handleDescriptionChange = (e) => {
+        setDescription(e.target.value);
     };
 
     return (
@@ -84,43 +66,22 @@ export default function Workout() {
                 </div>
             </CardHeader>
             <CardContent>
-                {/* Exercise Fields */}
-                {exercises.map((exercise, index) => (
-                    <div key={index} className="flex items-center gap-2 mt-2">
-                        <Input
-                            type="text"
-                            placeholder={`Exercise ${index + 1}`}
-                            value={exercise}
-                            onChange={(e) => handleExerciseChange(index, e.target.value)}
-                            className="flex-grow bg-gray-100 p-2 rounded-md"
-                        />
-                        <Button
-                            onClick={() => removeExercise(index)}
-                            className="bg-red-500 text-white px-2 py-1 rounded"
-                            disabled={exercises.length === 1} // Disable if only one exercise
-                        >
-                            Remove
-                        </Button>
-                    </div>
-                ))}
 
-                {/* Buttons */}
-                <div className="mt-4 flex justify-between">
-                    <Button
-                        onClick={addExercise}
-                        disabled={exercises.length >= 10}
-                        className="bg-green-500 text-white px-4 py-2 rounded"
-                    >
-                        Add Exercise
-                    </Button>
-                    <Button
-                        onClick={handleSaveWorkout}
-                        className="bg-blue-600 text-white px-4 py-2 rounded"
-                    >
-                        Save Workout
-                    </Button>
+                {/* Workout Description */}
+                <div className="mb-4">
+                        <Textarea
+                            placeholder="Description"
+                            onChange={handleDescriptionChange}
+                            className="w-full h-24 bg-gray-100 p-2 rounded-md"
+                        />
                 </div>
+
+                {/* Exercise */}
+                
             </CardContent>
+            <Button onClick={handleSaveWorkout} className="mt-4 w-full bg-blue-600 text-white py-2 rounded">
+                    Save Workout
+                </Button>
         </Card>
     </div>
     );
