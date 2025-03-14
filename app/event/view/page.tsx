@@ -107,7 +107,7 @@ export default function ViewEvent() {
 
   return (
     <div className="flex items-center justify-center">
-      <Card className="w-full max-w-md p-6 shadow-lg bg-white rounded-xl">
+      <Card className="mt-4 w-full max-w-md p-6 shadow-lg bg-white rounded-xl">
         <CardHeader>
           <CardTitle className="text-2xl font-semibold">
             {data?.name || "Error loading event name."}
