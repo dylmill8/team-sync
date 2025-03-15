@@ -185,6 +185,23 @@ export default function Profile() {
       >
         Go to Settings
       </button>
+
+      <button
+        onClick={() => router.push("/friends")}
+        style={{
+          marginTop: "20px",
+          padding: "10px 20px",
+          backgroundColor: "#0070f3",
+          color: "#fff",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+          width: "80%",
+        }}
+      >
+        Friends List
+      </button>
+
       <button
         type="submit"
         style={{
