@@ -1,84 +1,88 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { getFirestore, doc, getDoc, DocumentReference } from "firebase/firestore";
 import { auth, db } from "../../utils/firebaseConfig.js";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { viewDocument } from "../../utils/firebaseHelper.js";
 import NavBar from "@/components/ui/navigation-bar";
 
 export default function Friends() {
     const [userId, setUserId] = useState("");
-    const [friendIds, setFriendIds] = useState<string[]>([]);
-    const [friendData, setFriendData] = useState({ email: "", username: "" });
+    const [friendRefs, setFriendRefs] = useState<DocumentReference[]>([]);
+    const [friendData, setFriendData] = useState<{ id: "", email: ""; username: "" }[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
-                console.log("User is logged in:", user.uid);
                 setUserId(user.uid);
 
-            if (!user.uid) { // debugging
-                console.error("User UID is undefined!");
-                return;
-            }
-
                 try {
-                    console.log("auth.currentUser:", auth.currentUser);
                     const userData = await viewDocument("Users", user.uid);
-                    setFriendIds(userData?.friends || []);
+                    if (userData?.friends) {
+                        const friendRefsFixed = userData.friends.map((friendPath: string) => {
+                            if (typeof friendPath === "string") {
+                                const friendId = friendPath.split("/").pop(); // Extracts just the UID
+                                return doc(db, "Users", friendId); // Converts to Firestore reference
+                            }
+                            return friendPath;
+                        });
+
+                        setFriendRefs(friendRefsFixed);
+                    } else {
+                        setFriendRefs([]);
+                    }
                 } catch (error) {
                     console.error("Error fetching user data:", error);
                 }
             } else {
-                console.error("No user logged in2");
+                console.error("No user logged in");
             }
             setLoading(false);
         });
 
-        return () => unsubscribe(); // Cleanup listener on unmount
+        return () => unsubscribe();
     }, []);
 
     useEffect(() => {
+        if (friendRefs.length === 0) {
+            console.log("No friend references to fetch.");
+            return;
+        }
+
         const fetchFriends = async () => {
             try {
-                const user = auth.currentUser; // ✅ Get logged-in user
-                if (!user) {
-                    console.error("No user logged in2");
-                    setLoading(false);
-                    return;
-                }
-
-                const uid = user.uid;
-                setUserId(uid);
-                const userData = viewDocument("Users", userId);
-                if (!userData) {
-                    console.error("No user logged in3");
-                    return;
-                }
-
                 const db = getFirestore();
-                const userDocRef = doc(db, "Users", userId);
-                const userDocSnap = await getDoc(userDocRef);
+                console.log("Fetching friend details for:", friendRefs);
 
-                if (userDocSnap.exists()) {
-                    const userData = userDocSnap.data();
-                    setFriendIds(userData.friends || []);
-                } else {
-                    console.error("User document not found");
-                }
+                const friendDetails = await Promise.all(
+                    friendRefs.map(async (friendRef) => {
+                        if (!friendRef || typeof friendRef === "string") {
+                            console.error("friendRef is invalid:", friendRef);
+                            return null;
+                        }
+
+                        const friendSnap = await getDoc(friendRef);
+                        if (friendSnap.exists()) {
+                            return { id: friendRef.id, ...friendSnap.data() };
+                        } else {
+                            console.warn("Friend document not found:", friendRef.id);
+                            return null;
+                        }
+                    })
+                );
+
+                setFriendData(friendDetails.filter(Boolean)); // Remove null values
             } catch (error) {
-                console.error("Error fetching friends:", error);
-            } finally {
-                setLoading(false);
+                console.error("Error fetching friend details:", error);
             }
         };
 
         fetchFriends();
-    }, []);
+    }, [friendRefs]);
 
-    return(
+    return (
         <div style={{
             maxWidth: "600px",
             margin: "40px auto",
@@ -87,15 +91,18 @@ export default function Friends() {
             borderRadius: "8px",
             boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
             textAlign: "center",
-          }}>
+        }}>
             <h1 style={{ fontSize: "24px", marginBottom: "15px" }}>Friends</h1>  
 
             {loading ? (
                 <p>Loading...</p>
-            ) : friendIds.length > 0 ? (
-                <ul>
-                    {friendIds.map((id) => (
-                        <li key={id}>{id}</li>
+            ) : friendData.length > 0 ? (
+                <ul className="justify-center flex flex-col gap-y-2">
+                    {friendData.map(friend => (
+                        <button className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
+                        key={friend.id}>
+                            {friend.username} ({friend.email})
+                        </button>
                     ))}
                 </ul>
             ) : (
