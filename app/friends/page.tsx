@@ -11,7 +11,10 @@ export default function Friends() {
     const [userId, setUserId] = useState("");
     const [friendRefs, setFriendRefs] = useState<DocumentReference[]>([]);
     const [friendData, setFriendData] = useState<{ id: "", email: ""; username: "" }[]>([]);
+    const [incomingFriendRequests, setIncomingFriendRequests] = useState<DocumentReference[]>([]);
+    const [incomingFriendRequestsData, setIncomingFriendRequestsData] = useState<{ id: ""; email: ""; username: "" }[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showFriendRequests, setShowFriendRequests] = useState(false);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -32,6 +35,15 @@ export default function Friends() {
                         setFriendRefs(friendRefsFixed);
                     } else {
                         setFriendRefs([]);
+                    }
+
+                    if (userData?.incomingFriendRequests) {
+                        const requestRefsFixed = userData.incomingFriendRequests.map((requestPath: string) =>
+                            typeof requestPath === "string" ? doc(db, "Users", requestPath.split("/").pop()) : requestPath
+                        );
+                        setIncomingFriendRequests(requestRefsFixed);
+                    } else {
+                        setIncomingFriendRequests([]);
                     }
                 } catch (error) {
                     console.error("Error fetching user data:", error);
@@ -82,6 +94,42 @@ export default function Friends() {
         fetchFriends();
     }, [friendRefs]);
 
+    useEffect(() => {
+        if (incomingFriendRequests.length === 0) {
+            console.log("No incoming friend requests.");
+            return;
+        }
+    
+        const fetchIncomingRequests = async () => {
+            try {
+                console.log("Fetching incoming friend request details for:", incomingFriendRequests);
+    
+                const requestDetails = await Promise.all(
+                    incomingFriendRequests.map(async (requestRef) => {
+                        if (!requestRef || typeof requestRef === "string") {
+                            console.error("requestRef is invalid:", requestRef);
+                            return null;
+                        }
+    
+                        const requestSnap = await getDoc(requestRef);
+                        if (requestSnap.exists()) {
+                            return { id: requestRef.id, ...requestSnap.data() };
+                        } else {
+                            console.warn("Friend request document not found:", requestRef.id);
+                            return null;
+                        }
+                    })
+                );
+    
+                setIncomingFriendRequestsData(requestDetails.filter(Boolean)); // Remove null values
+            } catch (error) {
+                console.error("Error fetching incoming friend requests:", error);
+            }
+        };
+    
+        fetchIncomingRequests();
+    }, [incomingFriendRequests]);
+
     return (
         <div style={{
             maxWidth: "600px",
@@ -94,20 +142,65 @@ export default function Friends() {
         }}>
             <h1 style={{ fontSize: "24px", marginBottom: "15px" }}>Friends</h1>  
 
-            {loading ? (
-                <p>Loading...</p>
-            ) : friendData.length > 0 ? (
-                <ul className="justify-center flex flex-col gap-y-2">
-                    {friendData.map(friend => (
-                        <button className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-                        key={friend.id}>
-                            {friend.username} ({friend.email})
-                        </button>
-                    ))}
-                </ul>
-            ) : (
-                <p>You don't have any friends yet - try adding other users from their profile pages!</p>
-            )}
+            <div className="justify-center flex flex-col gap-y-2">
+                <div className="justify-center flex flex-col p-4 border border-gray-300 rounded-lg shadow-md flex flex-col items-center">
+                    <button
+                        type="submit"
+                        onClick={() => setShowFriendRequests(!showFriendRequests)}
+                        className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
+                    >
+                        {showFriendRequests ? "Hide Incoming Friend Requests ▲" : "Show Incoming Friend Requests ▼"}
+                    </button>
+                    <div>
+                        {showFriendRequests ? (
+                            <>
+                                {loading ? (
+                                    <p>Loading...</p>
+                                ) : incomingFriendRequestsData.length > 0 ? (
+                                    <ul className="flex flex-col gap-y-4">
+                                        {incomingFriendRequestsData.map(friend => (
+                                            <div key={friend.id} className="flex flex-row items-center justify-between gap-x-4 w-full">
+                                                <li className="text-sm sm:text-base px-4 sm:px-5 flex-grow text-left">
+                                                    {friend.username} ({friend.email})
+                                                </li>
+                                                <div className="flex gap-x-2">
+                                                    <button className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-8 w-8">
+                                                        ✅
+                                                    </button>
+                                                    <button className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-8 w-8">
+                                                        ❌
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </ul>
+
+                                ) : (
+                                    <p>You don't have any incoming friend requests.</p>
+                                )}
+                            </>
+                        ) : null}
+                    </div>
+                </div>
+
+                <div className="justify-center flex flex-col p-4 border border-gray-300 rounded-lg shadow-md flex flex-col items-center gap-y-5">
+                    <ul className="underline">My Friends</ul>
+                    {loading ? (
+                        <p>Loading...</p>
+                    ) : friendData.length > 0 ? (
+                        <ul className="justify-center flex flex-col gap-y-2">
+                            {friendData.map(friend => (
+                                <button className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 sm:min-w-44"
+                                key={friend.id}>
+                                    {friend.username} ({friend.email})
+                                </button>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p>You don't have any friends yet - try adding other users from their profile pages!</p>
+                    )}
+                </div>
+            </div>
 
             <NavBar />
         </div>
