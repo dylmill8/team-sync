@@ -179,7 +179,7 @@ export default function Friends() {
                         onClick={() => setShowFriendRequests(!showFriendRequests)}
                         className="border rounded-full border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44 bg-blue-300"
                     >
-                        {showFriendRequests ? "Hide Incoming Friend Requests ▲" : "Show Incoming Friend Requests ▼"}
+                        {showFriendRequests ? "Hide Incoming Friend Requests (" + incomingFriendRequestsData.length + ") ▲" : "Show Incoming Friend Requests (" + incomingFriendRequestsData.length + ") ▼"}
                     </button>
                     <div>
                         {showFriendRequests ? (
