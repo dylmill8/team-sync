@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getFirestore, doc, getDoc, DocumentReference } from "firebase/firestore";
+import { getFirestore, doc, getDoc, DocumentReference, updateDoc, arrayRemove, arrayUnion } from "firebase/firestore";
 import { auth, db } from "../../utils/firebaseConfig.js";
 import { onAuthStateChanged } from "firebase/auth";
 import { viewDocument } from "../../utils/firebaseHelper.js";
@@ -15,6 +15,32 @@ export default function Friends() {
     const [incomingFriendRequestsData, setIncomingFriendRequestsData] = useState<{ id: ""; email: ""; username: "" }[]>([]);
     const [loading, setLoading] = useState(true);
     const [showFriendRequests, setShowFriendRequests] = useState(false);
+
+    const handleFriendRequest = async (friendRef: DocumentReference, isAccepted: boolean) => {
+        if (!userId) return;
+    
+        try {
+            const userDocRef = doc(db, "Users", userId);
+    
+            setIncomingFriendRequestsData((prev) => prev.filter(friend => friend.id !== friendRef.id));
+    
+            await updateDoc(userDocRef, {
+                incomingFriendRequests: arrayRemove(friendRef)
+            });
+
+            if (isAccepted) {
+                await updateDoc(userDocRef, {
+                    friends: arrayUnion(friendRef)
+                });
+    
+                setFriendRefs(prev => [...prev, friendRef]);
+            }
+    
+            console.log(`Friend request ${isAccepted ? "accepted" : "denied"} for`, friendRef.id);
+        } catch (error) {
+            console.error("Error updating friend request:", error);
+        }
+    };
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -147,7 +173,7 @@ export default function Friends() {
                     <button
                         type="submit"
                         onClick={() => setShowFriendRequests(!showFriendRequests)}
-                        className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
+                        className="border rounded-full border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44 bg-blue-300"
                     >
                         {showFriendRequests ? "Hide Incoming Friend Requests ▲" : "Show Incoming Friend Requests ▼"}
                     </button>
@@ -157,17 +183,24 @@ export default function Friends() {
                                 {loading ? (
                                     <p>Loading...</p>
                                 ) : incomingFriendRequestsData.length > 0 ? (
-                                    <ul className="flex flex-col gap-y-4">
+                                    <ul className="flex flex-col gap-y-4 mt-4">
                                         {incomingFriendRequestsData.map(friend => (
-                                            <div key={friend.id} className="flex flex-row items-center justify-between gap-x-4 w-full">
-                                                <li className="text-sm sm:text-base px-4 sm:px-5 flex-grow text-left">
+                                            <div key={friend.id} className="flex flex-row items-center justify-between gap-x-6 w-full">
+                                                <button className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 sm:min-w-30"
+                                                key={friend.id}>
                                                     {friend.username} ({friend.email})
-                                                </li>
+                                                </button>
                                                 <div className="flex gap-x-2">
-                                                    <button className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-8 w-8">
+                                                    {/* Button: Accept friend req */}
+                                                    <button className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-8 w-8"
+                                                    onClick={() => handleFriendRequest(doc(db, "Users", friend.id), true)}
+                                                    >
                                                         ✅
                                                     </button>
-                                                    <button className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-8 w-8">
+                                                    {/* Button: Deny friend req */}
+                                                    <button className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-8 w-8"
+                                                    onClick={() => handleFriendRequest(doc(db, "Users", friend.id), false)}
+                                                    >
                                                         ❌
                                                     </button>
                                                 </div>
