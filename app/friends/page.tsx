@@ -32,6 +32,10 @@ export default function Friends() {
                 await updateDoc(userDocRef, {
                     friends: arrayUnion(friendRef)
                 });
+
+                await updateDoc(friendRef, {
+                    friends: arrayUnion(userDocRef)
+                });
     
                 setFriendRefs(prev => [...prev, friendRef]);
             }
