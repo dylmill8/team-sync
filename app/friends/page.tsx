@@ -5,6 +5,7 @@ import { getFirestore, doc, getDoc, DocumentReference, updateDoc, arrayRemove, a
 import { auth, db } from "../../utils/firebaseConfig.js";
 import { onAuthStateChanged } from "firebase/auth";
 import { viewDocument } from "../../utils/firebaseHelper.js";
+import { useRouter } from "next/navigation";
 import NavBar from "@/components/ui/navigation-bar";
 
 export default function Friends() {
@@ -15,6 +16,7 @@ export default function Friends() {
     const [incomingFriendRequestsData, setIncomingFriendRequestsData] = useState<{ id: ""; email: ""; username: "" }[]>([]);
     const [loading, setLoading] = useState(true);
     const [showFriendRequests, setShowFriendRequests] = useState(false);
+    const router = useRouter();
 
     const handleFriendRequest = async (friendRef: DocumentReference, isAccepted: boolean) => {
         if (!userId) return;
@@ -45,6 +47,7 @@ export default function Friends() {
             console.error("Error updating friend request:", error);
         }
     };
+
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -191,7 +194,8 @@ export default function Friends() {
                                         {incomingFriendRequestsData.map(friend => (
                                             <div key={friend.id} className="flex flex-row items-center justify-between gap-x-6 w-full">
                                                 <button className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 sm:min-w-30"
-                                                key={friend.id}>
+                                                key={friend.id}
+                                                onClick={() => router.push(`/profile/${friend.id}`)}>
                                                     {friend.username} ({friend.email})
                                                 </button>
                                                 <div className="flex gap-x-2">
@@ -228,7 +232,8 @@ export default function Friends() {
                         <ul className="justify-center flex flex-col gap-y-2">
                             {friendData.map(friend => (
                                 <button className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 sm:min-w-44"
-                                key={friend.id}>
+                                key={friend.id}
+                                onClick={() => router.push(`/profile/${friend.id}`)}>
                                     {friend.username} ({friend.email})
                                 </button>
                             ))}
