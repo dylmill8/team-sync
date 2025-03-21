@@ -7,7 +7,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import NavBar from "@/components/ui/navigation-bar";
 import { firebaseApp } from "@/utils/firebaseConfig";
 import { db } from '@/utils/firebaseConfig';
@@ -15,9 +15,36 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useState, useEffect, useRef } from "react";
 
+interface EventData {
+  name: string;
+  allDay: boolean;
+  start: { seconds: number; };
+  end: { seconds: number; };
+  description: string;
+  location: string;
+  docID: string;
+  owner: string;
+  RSVP: { [key: string]: string; };
+  workouts: string;
+}
+
+interface CalendarEvent {
+  title: string;
+  start: number | undefined;
+  end: number | undefined;
+  allDay: boolean;
+  description: string;
+  location: string;
+  docID: string;
+  owner: string;
+  RSVPStatus: string;
+  workout: string;
+}
+
 export default function Groups() {
-  const router = useRouter();
   const auth = getAuth(firebaseApp);
+  const router = useRouter();
+  const docId = useSearchParams().get("docId");
 
   const [eventList, setEventList] = useState<CalendarEvent[]>([]);
   const calendarRef = useRef<FullCalendar>(null);
