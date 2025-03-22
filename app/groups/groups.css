@@ -2,22 +2,11 @@
     margin: 0;
     padding: 0;
 }
-/*
-body {
-    font-size: 14px;
-    font-style: bold;
-    max-width: 1100px;
-    margin: 40px auto;
-}
-
-button {
-    max-width: 1100px;
-    margin: 40px auto;
-}
-*/
 
 /* TABS COMPONENT */
 .tabs-container {
+  max-width: 1100px;
+  margin: 40px auto;
   flex: auto;
   justify-content: center;
   align-items: center;
@@ -28,6 +17,7 @@ button {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   width: "full";
+  margin: 0 auto;
 }
 
 /* TABS TRIGGER */

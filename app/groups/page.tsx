@@ -220,6 +220,11 @@ export default function Groups() {
                 }}
               />
             </div>
+            <style jsx global>{`
+              .fc .fc-toolbar-title {
+              font-weight: bold;
+              }
+            `}</style>
           </TabsContent>
         </Tabs>
       </div>

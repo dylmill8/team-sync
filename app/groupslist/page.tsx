@@ -1,5 +1,7 @@
 "use client";
 
+import "./groupslist.css";
+
 import NavBar from "@/components/ui/navigation-bar";
 import { useRouter } from "next/navigation";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
