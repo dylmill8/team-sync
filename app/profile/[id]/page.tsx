@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../../../utils/firebaseConfig.js";
 import NavBar from "@/components/ui/navigation-bar";
@@ -164,6 +164,41 @@ export default function Profile() {
     fetchProfileImage();
   }, [profileId]);
 
+  const sendFriendRequest = async () => {
+    try {
+      const currentUserDocRef = doc(db, "Users", userId);
+      const profileUserDocRef = doc(db, "Users", profileId);
+
+      await updateDoc(profileUserDocRef, {
+        incomingFriendRequests: arrayUnion(currentUserDocRef)
+      });
+
+      alert("Friend request sent!");
+    } catch (error) {
+      console.error("Error sending friend request:", error);
+    }
+  };
+
+  const removeFriend = async () => {
+    try {
+      const currentUserDocRef = doc(db, "Users", userId);
+      const profileUserDocRef = doc(db, "Users", profileId);
+
+      await updateDoc(currentUserDocRef, {
+        friends: arrayRemove(profileUserDocRef)
+      });
+
+      await updateDoc(profileUserDocRef, {
+        friends: arrayRemove(currentUserDocRef)
+      });
+
+      setIsFriend(false);
+      console.log("Friend removed:", profileId);
+    } catch (error) {
+      console.error("Error removing friend:", error);
+    }
+  };
+
   return (
     <div
       style={{
@@ -243,6 +278,7 @@ export default function Profile() {
               width: "80%",
             }}
             className="px-4 py-2 bg-red-500 text-white rounded-md"
+            onClick={removeFriend}
           >
             Remove Friend
           </button>
@@ -259,6 +295,7 @@ export default function Profile() {
               width: "80%",
             }}
             className="px-4 py-2 bg-blue-500 text-white rounded-md"
+            onClick={sendFriendRequest}
           >
             Send Friend Request
           </button>
