@@ -5,7 +5,6 @@ import { useRouter, useParams } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../../../utils/firebaseConfig.js";
-import { viewDocument } from "../../../utils/firebaseHelper.js";
 import NavBar from "@/components/ui/navigation-bar";
 
 interface EventData {
@@ -44,13 +43,25 @@ export default function Profile() {
   const [isToggleOn, setIsToggleOn] = useState(false);
   const [eventList, setEventList] = useState<CalendarEvent[]>([]);
   const [showEvents, setShowEvents] = useState(false);
+  const [isFriend, setIsFriend] = useState(false);
+  const [friendList, setFriendList] = useState<string[]>([]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUserId(user.uid);
         if (!profileId) {
           setProfileId(user.uid);
+        }
+
+        // Fetch the user's friend list
+        const userDocRef = doc(db, "Users", user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          if (userData?.friends) {
+            setFriendList(userData.friends.map((friendRef: any) => friendRef.id));
+          }
         }
       } else {
         router.push("/");
@@ -58,6 +69,10 @@ export default function Profile() {
     });
     return () => unsubscribe();
   }, [profileId]);
+
+  useEffect(() => {
+    setIsFriend(friendList.includes(profileId));
+  }, [friendList, profileId]);
 
   useEffect(() => {
     if (!profileId) return;
@@ -213,6 +228,44 @@ export default function Profile() {
       >
         {userId === profileId ? "Friends List" : "Back to Friends List"}
       </button>
+      {userId !== profileId && (
+        <>
+        {isFriend ? (
+          <button
+            type="submit"
+            style={{
+              marginTop: "20px",
+              padding: "10px 20px",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              width: "80%",
+            }}
+            className="px-4 py-2 bg-red-500 text-white rounded-md"
+          >
+            Remove Friend
+          </button>
+        ) : (
+          <button
+            type="submit"
+            style={{
+              marginTop: "20px",
+              padding: "10px 20px",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              width: "80%",
+            }}
+            className="px-4 py-2 bg-blue-500 text-white rounded-md"
+          >
+            Send Friend Request
+          </button>
+        )}
+        </>
+      )}
+      
 
       <button
         type="submit"
