@@ -7,6 +7,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useRouter, useSearchParams } from "next/navigation";
 import NavBar from "@/components/ui/navigation-bar";
 import { firebaseApp } from "@/utils/firebaseConfig";
@@ -88,13 +89,32 @@ export default function Groups() {
     };
   }, [auth]);
 
+  //! TODO: Fetch, parse, and display group events on calendar
+
   return (
     <>
-      <div className="group-header">
-        {
-        //! TODO: Wrap this in a link to the group info page
-        groupData?.name || 'Loading...'
-        }
+      <div className="group-header-background">
+        <div className="group-header">
+          {
+          //! TODO: Wrap this in a link to the group info page
+          groupData?.name || 'Loading...'
+          }
+          <div className="members-button">
+            {/*<button className="group-join-button">+</button>*/}
+            <Sheet>
+              <SheetTrigger>+</SheetTrigger>
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>Members</SheetTitle>
+                  <SheetDescription>View members of this group</SheetDescription>
+                  {
+                  //! TODO: fetch, parse, sort, and display group members
+                  }
+                </SheetHeader>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
       </div>
       <div className="tabs-container">
         <Tabs defaultValue="chat">
@@ -116,7 +136,8 @@ export default function Groups() {
             Chat...
           </TabsContent>
           <TabsContent value="calendar" className="tabs-content">
-            <div style={{ height: 'calc(80vh)' }}>
+            <NavBar/>
+            <div style={{ height: 'calc(78vh)' }}>
               <FullCalendar
                 ref={calendarRef}
                 themeSystem="standard"

@@ -3,16 +3,32 @@
     padding: 0;
 }
 
+/* Group HEADER BACKGROUND */
+.group-header-background {
+    background-color: rgb(204, 204, 204);
+    height: 5vh;
+}
+
 /* GROUP HEADER */
 .group-header {
     height: 5vh;
     margin: auto;
-    background-color: rgb(204, 204, 204);
     justify-content: center;
     align-items: center;
     display: flex;
     font-size: 30px;
     font-weight: bold;
+    position: relative;
+    max-width: 1100px;
+}
+
+/* MEMBERS BUTTON */
+.members-button {
+    cursor: pointer;
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
 }
 
 /* TABS COMPONENT */

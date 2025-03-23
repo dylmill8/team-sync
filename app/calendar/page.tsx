@@ -128,7 +128,7 @@ export default function Calendar() {
 
   return (
     <div className="calendar">
-      <NavBar />
+      <NavBar/>
       <div style={{ 
         height: 'calc(80vh)',
        }}>
