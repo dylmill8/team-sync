@@ -3,10 +3,22 @@
     padding: 0;
 }
 
+/* GROUP HEADER */
+.group-header {
+    height: 5vh;
+    margin: auto;
+    background-color: rgb(204, 204, 204);
+    justify-content: center;
+    align-items: center;
+    display: flex;
+    font-size: 30px;
+    font-weight: bold;
+}
+
 /* TABS COMPONENT */
 .tabs-container {
   max-width: 1100px;
-  margin: 40px auto;
+  margin: auto;
   flex: auto;
   justify-content: center;
   align-items: center;
@@ -23,6 +35,22 @@
 /* TABS TRIGGER */
 .tabs-trigger {
   z-index: 20;
+  font-size: 18px;
+  font-weight: normal;
+  background-color: #2c3e50;
+  color: #fff;
+  cursor: pointer;
+  border: 1px solid #2c3e50;
+  transition: background-color 0.2s;
+}
+
+.tabs-trigger:hover {
+  background-color: #76818d;
+}
+
+.tabs-trigger.active,
+.tabs-trigger:focus {
+  background-color: #fff;
 }
 
 /* TABS CONTENT */

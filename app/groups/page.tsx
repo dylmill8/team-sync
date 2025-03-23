@@ -44,10 +44,30 @@ interface CalendarEvent {
 export default function Groups() {
   const auth = getAuth(firebaseApp);
   const router = useRouter();
-  const docId = useSearchParams().get("docId");
+  const searchParams = useSearchParams();
+  const docId = searchParams.get("docId");
+  const calendarRef = useRef<FullCalendar>(null);
 
   const [eventList, setEventList] = useState<CalendarEvent[]>([]);
-  const calendarRef = useRef<FullCalendar>(null);
+  const [groupData, setGroupData] = useState<any>(null);
+
+  useEffect(() => {
+    console.log("Fetching events...");
+    async function fetchGroup() {
+      if (!docId) {
+        console.error("Invalid group ID");
+        return;
+      }
+      const groupRef = doc(db, "Groups", docId);
+      const groupDoc = await getDoc(groupRef);
+      if (!groupDoc.exists()) {
+        console.error("Group not found");
+        return;
+      }
+      setGroupData(groupDoc.data());
+    }
+    fetchGroup();
+  }, [docId]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -70,6 +90,12 @@ export default function Groups() {
 
   return (
     <>
+      <div className="group-header">
+        {
+        //! TODO: Wrap this in a link to the group info page
+        groupData?.name || 'Loading...'
+        }
+      </div>
       <div className="tabs-container">
         <Tabs defaultValue="chat">
           <TabsList className="tabs-list">

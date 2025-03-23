@@ -62,7 +62,6 @@ export default function Groups() {
                     {userGroups.map((group, index) => (
                       <li key={index} 
                       onClick={() => {
-                        console.log(group.docID)
                         router.push(`/groups?docId=${group.docID}`)
                       }}
                       className="p-4 border rounded-md shadow-md">
