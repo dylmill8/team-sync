@@ -12,8 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { db } from "@/utils/firebaseConfig";
 import {
@@ -25,6 +25,7 @@ import {
   arrayUnion,
   getDoc,
   DocumentReference,
+  serverTimestamp
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { firebaseApp } from "@/utils/firebaseConfig";
@@ -32,11 +33,19 @@ import { firebaseApp } from "@/utils/firebaseConfig";
 export default function CreateAnnouncement() {
   const router = useRouter();
 
+  const groupId = useSearchParams().get("groupId");
+  const [groupRef, setGroupRef] = useState<DocumentReference | null>(null);
+
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // TODO: implement functionality to retrieve group
+  // get group reference
+  useEffect(() => {
+    if (groupId) {
+      setGroupRef(doc(db, "Groups", groupId));
+    }
+  }, []);
 
   // TODO: implement cancel button that routes user back to the group page
 
@@ -53,13 +62,21 @@ export default function CreateAnnouncement() {
       const docRef = await addDoc(collection(db, "Announcements"), {
         title,
         body,
-        // TODO: add groupRef once groups are being stored in database
+        groupRef,
+        createdAt: serverTimestamp(),
       });
       setTitle("");
       setBody("");
 
+      // update group with new announcement
+      if (groupRef) {
+        await updateDoc(groupRef, {
+          announcements: arrayUnion(docRef),
+        });
+      }
+
       alert("Announcement successfully created!");
-      // TODO: route to group announcement page
+      router.push(`/groups?docId=${groupId}`);
     } catch (e) {
       console.error("there was an error creating a new announcement", e);
       alert("failed to create announcement");
@@ -102,7 +119,10 @@ export default function CreateAnnouncement() {
         </CardContent>
 
         <CardFooter>
-          <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-all mx-3 my-0">
+          <Button
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-all mx-3 my-0"
+            onClick={() => router.push(`/groups?docId=${groupId}`)}
+          >
             Cancel
           </Button>
           <Button
