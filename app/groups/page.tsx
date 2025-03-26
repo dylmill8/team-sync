@@ -7,7 +7,8 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useRouter } from "next/navigation";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { useRouter, useSearchParams } from "next/navigation";
 import NavBar from "@/components/ui/navigation-bar";
 import { firebaseApp } from "@/utils/firebaseConfig";
 import { db } from '@/utils/firebaseConfig';
@@ -15,12 +16,59 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useState, useEffect, useRef } from "react";
 
+interface EventData {
+  name: string;
+  allDay: boolean;
+  start: { seconds: number; };
+  end: { seconds: number; };
+  description: string;
+  location: string;
+  docID: string;
+  owner: string;
+  RSVP: { [key: string]: string; };
+  workouts: string;
+}
+
+interface CalendarEvent {
+  title: string;
+  start: number | undefined;
+  end: number | undefined;
+  allDay: boolean;
+  description: string;
+  location: string;
+  docID: string;
+  owner: string;
+  RSVPStatus: string;
+  workout: string;
+}
+
 export default function Groups() {
-  const router = useRouter();
   const auth = getAuth(firebaseApp);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const docId = searchParams.get("docId");
+  const calendarRef = useRef<FullCalendar>(null);
 
   const [eventList, setEventList] = useState<CalendarEvent[]>([]);
-  const calendarRef = useRef<FullCalendar>(null);
+  const [groupData, setGroupData] = useState<any>(null);
+
+  useEffect(() => {
+    console.log("Fetching events...");
+    async function fetchGroup() {
+      if (!docId) {
+        console.error("Invalid group ID");
+        return;
+      }
+      const groupRef = doc(db, "Groups", docId);
+      const groupDoc = await getDoc(groupRef);
+      if (!groupDoc.exists()) {
+        console.error("Group not found");
+        return;
+      }
+      setGroupData(groupDoc.data());
+    }
+    fetchGroup();
+  }, [docId]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -41,8 +89,33 @@ export default function Groups() {
     };
   }, [auth]);
 
+  //! TODO: Fetch, parse, and display group events on calendar
+
   return (
     <>
+      <div className="group-header-background">
+        <div className="group-header">
+          {
+          //! TODO: Wrap this in a link to the group info page
+          groupData?.name || 'Loading...'
+          }
+          <div className="members-button">
+            {/*<button className="group-join-button">+</button>*/}
+            <Sheet>
+              <SheetTrigger>+</SheetTrigger>
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>Members</SheetTitle>
+                  <SheetDescription>View members of this group</SheetDescription>
+                  {
+                  //! TODO: fetch, parse, sort, and display group members
+                  }
+                </SheetHeader>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
+      </div>
       <div className="tabs-container">
         <Tabs defaultValue="chat">
           <TabsList className="tabs-list">
@@ -63,7 +136,8 @@ export default function Groups() {
             Chat...
           </TabsContent>
           <TabsContent value="calendar" className="tabs-content">
-            <div style={{ height: 'calc(80vh)' }}>
+            <NavBar/>
+            <div style={{ height: 'calc(78vh)' }}>
               <FullCalendar
                 ref={calendarRef}
                 themeSystem="standard"
@@ -193,6 +267,11 @@ export default function Groups() {
                 }}
               />
             </div>
+            <style jsx global>{`
+              .fc .fc-toolbar-title {
+              font-weight: bold;
+              }
+            `}</style>
           </TabsContent>
         </Tabs>
       </div>

@@ -2,22 +2,39 @@
     margin: 0;
     padding: 0;
 }
-/*
-body {
-    font-size: 14px;
-    font-style: bold;
-    max-width: 1100px;
-    margin: 40px auto;
+
+/* Group HEADER BACKGROUND */
+.group-header-background {
+    background-color: rgb(204, 204, 204);
+    height: 5vh;
 }
 
-button {
+/* GROUP HEADER */
+.group-header {
+    height: 5vh;
+    margin: auto;
+    justify-content: center;
+    align-items: center;
+    display: flex;
+    font-size: 30px;
+    font-weight: bold;
+    position: relative;
     max-width: 1100px;
-    margin: 40px auto;
 }
-*/
+
+/* MEMBERS BUTTON */
+.members-button {
+    cursor: pointer;
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+}
 
 /* TABS COMPONENT */
 .tabs-container {
+  max-width: 1100px;
+  margin: auto;
   flex: auto;
   justify-content: center;
   align-items: center;
@@ -28,11 +45,28 @@ button {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   width: "full";
+  margin: 0 auto;
 }
 
 /* TABS TRIGGER */
 .tabs-trigger {
   z-index: 20;
+  font-size: 18px;
+  font-weight: normal;
+  background-color: #2c3e50;
+  color: #fff;
+  cursor: pointer;
+  border: 1px solid #2c3e50;
+  transition: background-color 0.2s;
+}
+
+.tabs-trigger:hover {
+  background-color: #76818d;
+}
+
+.tabs-trigger.active,
+.tabs-trigger:focus {
+  background-color: #fff;
 }
 
 /* TABS CONTENT */
