@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged, updatePassword, deleteUser } from "firebase/auth";
 import { auth } from "../../utils/firebaseConfig.js";
 import { Switch } from "@/components/ui/switch";
-import { doc, setDoc } from "@firebase/firestore";
+import { doc, setDoc, getDoc } from "@firebase/firestore";
 import { db } from "@/utils/firebaseConfig.js";
 import NavBar from "@/components/ui/navigation-bar";
 import { setDocument, viewDocument, logout } from "../../utils/firebaseHelper.js";
@@ -19,8 +19,10 @@ export default function Settings() {
   const [image, setImage] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState("/default.png");
+  const [showAccounts, setShowAccounts] = useState(false);
+  const [otherAccounts, setOtherAccounts] = useState([]);
 
-    const [isLightMode, setIsLightMode] = localStorage.getItem("theme") === "light" ? useState(false) : useState(true);
+  const [isLightMode, setIsLightMode] = localStorage.getItem("theme") === "light" ? useState(false) : useState(true);
   const [newPassword, setNewPassword] = useState("");
 
   useEffect(() => {
@@ -122,6 +124,39 @@ export default function Settings() {
       setUpdating(false);
     }
   };
+
+  useEffect(() => {
+    const fetchOtherAccounts = async () => {
+      if (!userId) return;
+  
+      try {
+        const userDocRef = doc(db, "Users", userId);
+        const userDocSnap = await getDoc(userDocRef);
+  
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+  
+          if (userData.otherAccounts && Array.isArray(userData.otherAccounts)) {
+            // Convert Firestore document references into actual user data
+            const accountPromises = userData.otherAccounts.map(async (accountRef) => {
+              const accountDoc = await getDoc(accountRef); // Resolve reference
+              return accountDoc.exists() ? { id: accountDoc.id, ...accountDoc.data() } : null;
+            });
+  
+            // Wait for all references to resolve & filter out nulls
+            const accountData = (await Promise.all(accountPromises)).filter(Boolean);
+            setOtherAccounts(accountData);
+          } else {
+            setOtherAccounts([]); // Ensure it's always an array
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching other accounts:", error);
+      }
+    };
+  
+    fetchOtherAccounts();
+  }, [userId]);
 
   const toggleTheme = () => {
     setIsLightMode(!isLightMode);
@@ -332,6 +367,54 @@ export default function Settings() {
           Change Password
         </button>
       </form>
+        
+      <div className="mt-[15px] justify-center flex flex-col p-4 border border-gray-300 rounded-lg shadow-md flex flex-col items-center">
+        <button
+            type="submit"
+            onClick={() => setShowAccounts(!showAccounts)}
+            style={{
+              padding: "10px",
+              backgroundColor: "#0070f3",
+              color: "#fff",
+              border: "none",
+              borderRadius: "5px",
+              cursor: "pointer",
+              width: "100%",
+            }}
+        >
+            {showAccounts ? "Hide Other Accounts ▲" : "Show Other Accounts ▼"}
+        </button>
+
+        <div className="flex flex-col items-center justify-center">
+          {showAccounts ? (
+            <div className="flex flex-col w-full">
+              <div className="w-full">
+                <p className="text-center mb-4 mt-4">You can view, switch to, and add other accounts here.</p>
+                {otherAccounts.length > 0 ? (
+                  <ul className="w-full flex flex-col items-center">
+                    {otherAccounts.map((account) => (
+                      <button
+                        className="flex flex-col rounded-full border border-solid transition-colors items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 sm:min-w-44 mb-2"
+                        key={account.id}
+                      >
+                        {account.username} ({account.email})
+                      </button>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No other accounts found.</p>
+                )}
+              </div>
+              <div className="border-t border-gray-300 justify-center mt-4"></div>
+              <div className="w-full flex justify-center mt-4">
+                <button className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 sm:min-w-30">
+                  Add Account
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
 
       <button
         onClick={() => router.push("/profile")}
