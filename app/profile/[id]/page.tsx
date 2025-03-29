@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
+} from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../../../utils/firebaseConfig.js";
 import NavBar from "@/components/ui/navigation-bar";
@@ -10,13 +16,13 @@ import NavBar from "@/components/ui/navigation-bar";
 interface EventData {
   name: string;
   allDay: boolean;
-  start: { seconds: number; };
-  end: { seconds: number; };
+  start: { seconds: number };
+  end: { seconds: number };
   description: string;
   location: string;
   docID: string;
   owner: string;
-  RSVP: { [key: string]: string; };
+  RSVP: { [key: string]: string };
   workouts: string;
 }
 
@@ -60,7 +66,9 @@ export default function Profile() {
         if (userDoc.exists()) {
           const userData = userDoc.data();
           if (userData?.friends) {
-            setFriendList(userData.friends.map((friendRef: any) => friendRef.id));
+            setFriendList(
+              userData.friends.map((friendRef: any) => friendRef.id)
+            );
           }
         }
       } else {
@@ -94,7 +102,7 @@ export default function Profile() {
             // Get the events for the user
             for (let i = 0; i < userData.events.length; i++) {
               const event = userData.events[i];
-              
+
               let eventDoc;
               try {
                 eventDoc = await getDoc(event);
@@ -106,7 +114,7 @@ export default function Profile() {
               }
 
               const eventData = eventDoc.data() as EventData;
-              
+
               // get user RSVP status
               let userRSVPStatus = "None";
               for (const key in eventData.RSVP) {
@@ -118,19 +126,32 @@ export default function Profile() {
 
               let workoutData = "None";
               if (eventData.workouts && eventData.workouts.length > 0) {
-                const workoutDocRef = doc(db, "Workouts", eventData.workouts[0]);
+                const workoutDocRef = doc(
+                  db,
+                  "Workouts",
+                  eventData.workouts[0]
+                );
                 const workoutDoc = await getDoc(workoutDocRef);
                 if (workoutDoc.exists()) {
                   workoutData = workoutDoc.data().exercises[0];
                 }
               }
 
-              if (eventData.end !== undefined && eventData.end.seconds < Math.floor(Date.now() / 1000)) {              
+              if (
+                eventData.end !== undefined &&
+                eventData.end.seconds < Math.floor(Date.now() / 1000)
+              ) {
                 newEventList.push({
                   title: eventData.name,
                   allDay: eventData.allDay,
-                  start: eventData.start == undefined ? undefined : eventData.start.seconds * 1000,
-                  end: eventData.end == undefined ? undefined : eventData.end.seconds * 1000,
+                  start:
+                    eventData.start == undefined
+                      ? undefined
+                      : eventData.start.seconds * 1000,
+                  end:
+                    eventData.end == undefined
+                      ? undefined
+                      : eventData.end.seconds * 1000,
                   description: eventData.description,
                   location: eventData.location,
                   docID: eventDoc.id,
@@ -170,7 +191,7 @@ export default function Profile() {
       const profileUserDocRef = doc(db, "Users", profileId);
 
       await updateDoc(profileUserDocRef, {
-        incomingFriendRequests: arrayUnion(currentUserDocRef)
+        incomingFriendRequests: arrayUnion(currentUserDocRef),
       });
 
       alert("Friend request sent!");
@@ -185,11 +206,11 @@ export default function Profile() {
       const profileUserDocRef = doc(db, "Users", profileId);
 
       await updateDoc(currentUserDocRef, {
-        friends: arrayRemove(profileUserDocRef)
+        friends: arrayRemove(profileUserDocRef),
       });
 
       await updateDoc(profileUserDocRef, {
-        friends: arrayRemove(currentUserDocRef)
+        friends: arrayRemove(currentUserDocRef),
       });
 
       setIsFriend(false);
@@ -226,8 +247,12 @@ export default function Profile() {
         onError={(e) => (e.currentTarget.src = "/default.png")}
       />
       {/*<h2>User ID: {userId}</h2>*/}
-      <p><strong>Email:</strong> {userData.email}</p>
-      <p><strong>Username:</strong> {userData.username}</p>
+      <p>
+        <strong>Email:</strong> {userData.email}
+      </p>
+      <p>
+        <strong>Username:</strong> {userData.username}
+      </p>
       {userId === profileId && (
         <>
           <button
@@ -265,44 +290,59 @@ export default function Profile() {
       </button>
       {userId !== profileId && (
         <>
-        {isFriend ? (
-          <button
-            type="submit"
-            style={{
-              marginTop: "20px",
-              padding: "10px 20px",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              width: "80%",
-            }}
-            className="px-4 py-2 bg-red-500 text-white rounded-md"
-            onClick={removeFriend}
-          >
-            Remove Friend
-          </button>
-        ) : (
-          <button
-            type="submit"
-            style={{
-              marginTop: "20px",
-              padding: "10px 20px",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              width: "80%",
-            }}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md"
-            onClick={sendFriendRequest}
-          >
-            Send Friend Request
-          </button>
-        )}
+          {isFriend ? (
+            <button
+              type="submit"
+              style={{
+                marginTop: "20px",
+                padding: "10px 20px",
+                color: "#fff",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                width: "80%",
+              }}
+              className="px-4 py-2 bg-red-500 text-white rounded-md"
+              onClick={removeFriend}
+            >
+              Remove Friend
+            </button>
+          ) : (
+            <button
+              type="submit"
+              style={{
+                marginTop: "20px",
+                padding: "10px 20px",
+                color: "#fff",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                width: "80%",
+              }}
+              className="px-4 py-2 bg-blue-500 text-white rounded-md"
+              onClick={sendFriendRequest}
+            >
+              Send Friend Request
+            </button>
+          )}
         </>
       )}
-      
+
+      <button
+        style={{
+          marginTop: "20px",
+          padding: "10px 20px",
+          backgroundColor: "#0070f3",
+          color: "#fff",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+          width: "80%",
+        }}
+        onClick={() => router.push("/announcement/viewall")}
+      >
+        View All Announcements
+      </button>
 
       <button
         type="submit"
@@ -327,9 +367,13 @@ export default function Profile() {
           {eventList.length > 0 ? (
             <ul className="space-y-2">
               {eventList.map((event, index) => (
-                <li key={index} 
-                  onClick={() => router.push(`/event/view?docId=${event.docID}`)}
-                  className="p-4 border rounded-md shadow-md">
+                <li
+                  key={index}
+                  onClick={() =>
+                    router.push(`/event/view?docId=${event.docID}`)
+                  }
+                  className="p-4 border rounded-md shadow-md"
+                >
                   <h3 className="text-lg font-semibold">{event.title}</h3>
                   <p className="text-gray-600">{event.description}</p>
                   <p className="text-sm">
@@ -359,6 +403,7 @@ export default function Profile() {
           )}
         </div>
       )}
+
       <NavBar />
     </div>
   );
