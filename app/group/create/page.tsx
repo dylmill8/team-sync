@@ -1,22 +1,48 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { collection, addDoc } from "firebase/firestore";
+import { doc, getDoc, collection, addDoc } from "firebase/firestore";
 import { db } from "../../../utils/firebaseConfig";
 import { useRouter } from "next/navigation";
+import { getAuth } from "firebase/auth";
+import { firebaseApp } from "@/utils/firebaseConfig";
+import { viewDocument } from "../../../utils/firebaseHelper.js";
+import { onAuthStateChanged } from "firebase/auth";
+
 
 export default function CreateGroup() {
   const groupPicInputRef = useRef(null);
   const [groupPicture, setGroupPicture] = useState<File | null>(null);
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
+  const [userData, setUserData] = useState({ email: "", username: "" });
   const router = useRouter();
+  const auth = getAuth(firebaseApp);
+  const userId = auth.currentUser?.uid;
 
-  const handleCreateGroup = async () => {
+  useEffect(() => { // get username and email of owner
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userDoc = await viewDocument("Users", user.uid);
+        if (userDoc) {
+          setUserData({
+            email: userDoc.email || "",
+            username: userDoc.username || "",
+          });
+        }
+      } else {
+        setUserData({ email: "", username: "" });
+      }
+    });
+  
+    return () => unsubscribe();
+  }, [auth]);
+  
+  const handleCreateGroup = async () => { // create group
     if (!groupName.trim()) {
       alert("Group name cannot be blank.");
       return;
@@ -25,43 +51,50 @@ export default function CreateGroup() {
       alert("Group description cannot be blank.");
       return;
     }
+    if (!userId) {
+      alert("You must be logged in to create a group.");
+      return;
+    }
     
     try {
-      const docRef = await addDoc(collection(db, "Groups"), {
-        name: groupName,
-        description: groupDescription,
-      });
+        const docRef = await addDoc(collection(db, "Groups"), {
+          name: groupName,
+          description: groupDescription,
+          owner: userId,
+          members: {
+            [userId]: [userData.username, "leader"], // Store as an array with name and role
+          },
+        });
 
-      if (groupPicture) { // NOT WORKING NEED API CALLS
-        const formData = new FormData();
-        formData.append("image", groupPicture);
-        try {
-          const res = await fetch(`/api/upload?groupId=${docRef.id}`, {
-            method: "POST",
-            body: formData,
-          });
-  
-          if (res.ok) {
-            alert("Upload successful!");
-          } else {
-            const errorData = await res.json();
-            alert(`Upload failed! ${errorData.error || "Unknown error"}`);
-          }
-        } catch (error) {
-          alert("Upload failed! Network error.");
+        if (groupPicture) {
+            const formData = new FormData();
+            formData.append("image", groupPicture);
+            try {
+            const res = await fetch(`/api/upload?groupId=${docRef.id}`, {
+                method: "POST",
+                body: formData,
+            });
+    
+            if (res.ok) {
+                alert("Upload successful!");
+            } else {
+                const errorData = await res.json();
+                alert(`Upload failed! ${errorData.error || "Unknown error"}`);
+            }
+            } catch (error) {
+            alert("Upload failed! Network error.");
+            }
         }
-      }
       
-      setGroupName("");
-      setGroupDescription("");
-      setGroupPicture(null);
-
-      alert("Group Created Successfully");
-      router.push("/groups");
-    } catch (e) {
-      alert("Error creating group");
-    }
-  };
+        setGroupName("");
+        setGroupDescription("");
+        setGroupPicture(null);
+        alert("Group Created Successfully");
+        router.push("/groups");
+        } catch (e) {
+            alert("Error creating group");
+        }
+    };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -83,13 +116,13 @@ export default function CreateGroup() {
 
           <div className="mb-4">
             <Label className="text-sm font-medium">Group Description</Label>
-            <Input 
-              type="text" 
-              placeholder="Enter group description" 
-              value={groupDescription} 
-              onChange={(e) => setGroupDescription(e.target.value)}
-              className="mt-1"
-            />
+              <textarea
+                placeholder="Enter group description"
+                value={groupDescription}
+                onChange={(e) => setGroupDescription(e.target.value)}
+                rows={4} // Sets the minimum number of rows (adjustable)
+                className="mt-1 p-2 w-full border rounded-md resize-none"
+              />
           </div>
 
           <div className="mb-4 flex flex-col items-center">
