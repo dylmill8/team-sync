@@ -30,9 +30,26 @@ import {
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { firebaseApp } from "@/utils/firebaseConfig";
+import { useSearchParams } from "next/navigation";
+
+// interface EventData {
+//   name: string;
+//   allDay: boolean;
+//   start: { seconds: number };
+//   end: { seconds: number };
+//   description: string;
+//   location: string;
+//   docID: string;
+//   ownerType: string;
+//   owner: string;
+//   RSVP: { [key: string]: string };
+//   workouts: string;
+// }
 
 export default function CreateEvent() {
   const router = useRouter();
+  const group = useSearchParams().get("group");
+  const groupId = group ? useSearchParams().get("groupId") : "";
 
   const [eventName, setEventName] = useState("");
   const [description, setDescription] = useState("");
@@ -103,28 +120,49 @@ export default function CreateEvent() {
           ? Timestamp.fromDate(localEndDate)
           : Timestamp.fromDate(new Date(endDate)),
         location,
-        owner: uid,
+        ownerType: group == "true" ? "group" : "user",
+        owner: group == "true" ? groupId : uid,
         RSVP: {},
         workouts: [],
       });
 
-      if (uid) {
-        const userDocRef = doc(db, "Users", uid);
+      if (group == "true") {
+        if (groupId) {
+          const groupDocRef = doc(db, "Groups", groupId);
 
-        // check if events array exists
-        const docSnap = await getDoc(userDocRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (!("events" in data)) {
-            await updateDoc(userDocRef, {
-              events: [],
-            });
+          const docSnap = await getDoc(groupDocRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (!("events" in data)) {
+              await updateDoc(groupDocRef, {
+                events: [],
+              });
+            }
           }
-        }
 
-        await updateDoc(userDocRef, {
-          events: arrayUnion(doc(db, "Event", docref.id)),
-        });
+          await updateDoc(groupDocRef, {
+            events: arrayUnion(doc(db, "Event", docref.id)),
+          });
+        }
+      } else {
+        if (uid) {
+          const userDocRef = doc(db, "Users", uid);
+
+          // check if events array exists
+          const docSnap = await getDoc(userDocRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (!("events" in data)) {
+              await updateDoc(userDocRef, {
+                events: [],
+              });
+            }
+          }
+
+          await updateDoc(userDocRef, {
+            events: arrayUnion(doc(db, "Event", docref.id)),
+          });
+        }
       }
 
       alert("Event successfulling created!");
