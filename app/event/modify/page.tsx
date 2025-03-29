@@ -45,6 +45,7 @@ export default function ModifyEvent() {
     location: "",
   });
   const [loading, setLoading] = useState(true);
+  const [deleteEvent, setDeleteEvent] = useState(false);
 
   // format datetime variable for displaying
   const formatDatetime = (timestamp: Timestamp) => {
@@ -281,19 +282,47 @@ export default function ModifyEvent() {
           </div>
         </CardContent>
 
-        <CardFooter>
-          <Button
-            onClick={handleBack}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all"
-          >
-            Back
-          </Button>
-          <Button
-            onClick={handleSave}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all"
-          >
-            Save
-          </Button>
+        <CardFooter className="flex-col">
+          <div className="flex w-full">
+            <Button
+              onClick={handleBack}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all"
+            >
+              Back
+            </Button>
+            <Button
+              onClick={handleSave}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all"
+            >
+              Save
+            </Button>
+          </div>
+
+          <div className="flex w-full">
+            {!deleteEvent && (
+              <Button
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all"
+                onClick={() => setDeleteEvent(true)}
+              >
+                Delete
+              </Button>
+            )}
+
+            {deleteEvent && (
+              <div className="w-full flex mt-1">
+                <Label className="ml-2 w-full font-bold">Confirm Delete?</Label>
+                <Button
+                  className="w-full bg-gray-100 hover:bg-gray-200 text-black font-bold mb-2 mx-2 mt-0 rounded transition-all"
+                  onClick={() => setDeleteEvent(false)}
+                >
+                  Cancel
+                </Button>
+                <Button className="w-full bg-red-600 hover:bg-red-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all">
+                  Confirm
+                </Button>
+              </div>
+            )}
+          </div>
         </CardFooter>
       </Card>
     </div>

@@ -32,19 +32,19 @@ import { getAuth } from "firebase/auth";
 import { firebaseApp } from "@/utils/firebaseConfig";
 import { useSearchParams } from "next/navigation";
 
-interface EventData {
-  name: string;
-  allDay: boolean;
-  start: { seconds: number };
-  end: { seconds: number };
-  description: string;
-  location: string;
-  docID: string;
-  ownerType: string; // false = user, true = group
-  owner: string[] | string; // string[] if user, string if group
-  RSVP: { [key: string]: string };
-  workouts: string;
-}
+// interface EventData {
+//   name: string;
+//   allDay: boolean;
+//   start: { seconds: number };
+//   end: { seconds: number };
+//   description: string;
+//   location: string;
+//   docID: string;
+//   ownerType: string;
+//   owner: string;
+//   RSVP: { [key: string]: string };
+//   workouts: string;
+// }
 
 export default function CreateEvent() {
   const router = useRouter();
