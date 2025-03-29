@@ -154,7 +154,7 @@ export default function Groups() {
                 customButtons={{
                   createEvent: {
                     text: 'create event',
-                    click: () => router.push('/event/create'),
+                    click: () => router.push(`/event/create?group=true&groupId=${docId}`),
                   },
                   list: {
                     text: 'list',
