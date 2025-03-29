@@ -1,103 +1,30 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../utils/firebaseConfig.js";
-import { viewDocument } from "../../utils/firebaseHelper.js";
 
-export default function Profile() {
+// This page redirects to the user's profile page if no ID is given in the profile page URL.
+
+export default function ProfileIndex() {
   const router = useRouter();
-  const [userId, setUserId] = useState("");
-  const [userData, setUserData] = useState({ email: "", username: "" });
-  const [preview, setPreview] = useState("/default.png");
-  const [isToggleOn, setIsToggleOn] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        setUserId(user.uid);
+        router.push(`/profile/${user.uid}`);
       } else {
         router.push("/");
-        setUserId("testuser");
       }
     });
+
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      const userDoc = await viewDocument("Users", userId);
-      if (userDoc) {
-        setUserData({
-          email: userDoc.email || "",
-          username: userDoc.username || "",
-        });
-        setIsToggleOn(userDoc.toggleSetting || false);
-      }
-    };
-
-    const fetchProfileImage = async () => {
-      try {
-        const res = await fetch(`/api/getProfileImage?userId=${userId}`);
-        const data = await res.json();
-        if (res.ok && data.file) {
-          setPreview(`/uploads/${data.file}?timestamp=${Date.now()}`);
-        }
-      } catch {
-        setPreview("/uploads/testuser.png");
-      }
-    };
-
-    if (userId) {
-      fetchUserData();
-      fetchProfileImage();
-    }
-  }, [userId]);
-
   return (
-    <div
-      style={{
-        maxWidth: "600px",
-        margin: "40px auto",
-        padding: "20px",
-        border: "1px solid #e0e0e0",
-        borderRadius: "8px",
-        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-        textAlign: "center",
-      }}
-    >
-      <h1>Profile Page</h1>
-      <img
-        src={preview}
-        alt="Profile"
-        width="150"
-        style={{
-          display: "block",
-          margin: "0 auto",
-          borderRadius: "50%",
-          objectFit: "cover",
-          border: "3px solid #0070f3",
-        }}
-        onError={(e) => (e.currentTarget.src = "/default.png")}
-      />
-      {/*<h2>User ID: {userId}</h2>*/}
-      <p><strong>Email:</strong> {userData.email}</p>
-      <p><strong>Username:</strong> {userData.username}</p>
-      <button
-        onClick={() => router.push("/settings")}
-        style={{
-          marginTop: "20px",
-          padding: "10px 20px",
-          backgroundColor: "#0070f3",
-          color: "#fff",
-          border: "none",
-          borderRadius: "4px",
-          cursor: "pointer",
-        }}
-      >
-        Go to Settings
-      </button>
+    <div>
+      <h1>Loading...</h1>
     </div>
   );
 }
