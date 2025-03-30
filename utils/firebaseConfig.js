@@ -1,7 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
-
+import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -13,7 +12,6 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
@@ -22,5 +20,15 @@ setPersistence(auth, browserLocalPersistence)
   .then(() => console.log("Auth persistence set to local storage"))
   .catch((error) => console.error("Error setting auth persistence:", error));
 
+// Monitor authentication state changes
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    console.log("User is signed in:", user.uid);
+    // You can add additional logic here when a user signs in.
+  } else {
+    console.log("No user is signed in.");
+    // You can add additional logic here when a user signs out.
+  }
+});
 
-export { firebaseApp, db, auth };
+export { firebaseApp, db, auth , onAuthStateChanged};
