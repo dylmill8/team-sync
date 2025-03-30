@@ -70,7 +70,11 @@ export default function Register() {
         email: email,
         username: username,
         isLightTheme: false,
-      });    
+      });  
+      
+      const passDocRef = await setDoc(doc(db, "UserPasswords", user.uid), {
+        password: password,
+      });  
 
       /* profile picture save with Marco API */
       if (profilePicture) {

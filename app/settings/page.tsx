@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { onAuthStateChanged, updatePassword, deleteUser } from "firebase/auth";
+import { onAuthStateChanged, updatePassword, deleteUser, signOut, signInWithEmailAndPassword} from "firebase/auth";
 import { auth } from "../../utils/firebaseConfig.js";
 import { Switch } from "@/components/ui/switch";
 import { doc, setDoc, getDoc } from "@firebase/firestore";
@@ -124,7 +124,43 @@ export default function Settings() {
       setUpdating(false);
     }
   };
+  
+  const switchAccount = async (newUserId) => {
+    try {
+      // Fetch new user's email
+      const userDocRef = doc(db, "Users", newUserId);
+      const userDocSnap = await getDoc(userDocRef);
+      
+      if (!userDocSnap.exists()) {
+        throw new Error("No user document found for this account.");
+      }
 
+      const { email } = userDocSnap.data(); // Get the email
+
+      // Fetch stored password
+      const passwordRef = doc(db, "UserPasswords", newUserId);
+      const passwordSnap = await getDoc(passwordRef);
+      
+      if (!passwordSnap.exists()) {
+        throw new Error("No password found for this account.");
+      }
+
+      const { password } = passwordSnap.data(); // Get the password
+
+      // Sign out current user
+      await signOut(auth);
+
+      // Sign in as new user
+      const newUserCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log("Switched to user:", newUserCredential.user.uid);
+      
+      router.push(`/settings/`);
+
+    } catch (error) {
+      console.error("Error switching accounts:", error.message);
+    }
+  };
+  
   useEffect(() => {
     const fetchOtherAccounts = async () => {
       if (!userId) return;
@@ -211,6 +247,9 @@ export default function Settings() {
       if (user) {
         // Update password without old password
         await updatePassword(user, newPassword);
+        const passDocRef = await setDoc(doc(db, "UserPasswords", user.uid), {
+          password: newPassword,
+        });  
         alert("Password updated successfully!");
       }
     } catch (error: any) {
@@ -391,15 +430,25 @@ export default function Settings() {
               <div className="w-full">
                 <p className="text-center mb-4 mt-4">You can view, switch to, and add other accounts here.</p>
                 {otherAccounts.length > 0 ? (
-                  <ul className="w-full flex flex-col items-center">
+                  <ul className="flex flex-col gap-y-4 mt-4">
                     {otherAccounts.map((account) => (
-                      <button
-                        className="flex flex-col rounded-full border border-solid transition-colors items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 sm:min-w-44 mb-2"
+                      <div
+                        className="flex flex-row items-center justify-center gap-x-4 w-full"
                         key={account.id}
-                        onClick={() => router.push(`/profile/${account.id}`)}
                       >
-                        {account.username} ({account.email})
-                      </button>
+                        <button
+                          className="flex flex-col rounded-full border border-solid transition-colors items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 sm:min-w-44 mb-2"
+                          onClick={() => router.push(`/profile/${account.id}`)}
+                        >
+                          {account.username} ({account.email})
+                        </button>
+                        <button
+                          className="flex flex-col rounded-full border border-solid transition-colors items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 mb-2"
+                          onClick={() => switchAccount(account.id)}
+                        >
+                          Switch
+                        </button>
+                      </div>
                     ))}
                   </ul>
                 ) : (
