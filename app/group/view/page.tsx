@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { doc, getDoc, DocumentData, updateDoc } from "firebase/firestore";
+import { arrayUnion, doc, getDoc, DocumentData, updateDoc } from "firebase/firestore";
 import { db } from "../../../utils/firebaseConfig";
 import { getAuth } from "firebase/auth";
 import { viewDocument } from "../../../utils/firebaseHelper.js";
@@ -71,16 +71,31 @@ export default function ViewGroup() {
         alert("You are already a member of this group.");
         return;
       }
-      const userDoc = await viewDocument("Users", userId);
-      if (!userDoc || !userDoc.username) {
-        alert("User data not found.");
+      
+      // Get user data
+      const userRef = doc(db, "Users", userId);
+      const userSnap = await getDoc(userRef);
+      if (!userSnap.exists()) {
+        alert("User not found.");
         return;
       }
 
-      // Add user to members map
+      const userData = userSnap.data();
+
+      // Add user to members map of the group
       await updateDoc(groupRef, {
-        [`members.${userId}`]: [userDoc.username, "member"],
+        [`members.${userId}`]: [userData.username, "member"], // User becomes a member
       });
+
+      // Add group reference to the user's groups array
+      await updateDoc(userRef, {
+        groups: arrayUnion(doc(db, "Groups", groupId)), // Adding the group reference to the user's 'groups' array
+      });
+
+      alert("Group joined successfully!");
+
+      
+
       alert("Group joined");
 
       // Redirect after joining

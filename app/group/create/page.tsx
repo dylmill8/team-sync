@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { doc, getDoc, collection, addDoc } from "firebase/firestore";
+import { updateDoc, arrayUnion, doc, getDoc, collection, addDoc } from "firebase/firestore";
 import { db } from "../../../utils/firebaseConfig";
 import { useRouter } from "next/navigation";
 import { getAuth } from "firebase/auth";
@@ -62,9 +62,20 @@ export default function CreateGroup() {
           description: groupDescription,
           owner: userId,
           members: {
-            [userId]: [userData.username, "leader"], // Store as an array with name and role
+            [userId]: [userData.username, "owner"], // Store as an array with name and role
           },
         });
+
+        // Add group to the user's groups array
+        const userDocRef = doc(db, "Users", userId);
+        const userDoc = await getDoc(userDocRef);
+        
+        if (userDoc.exists()) {
+          // Update the user's document with the new group ID
+          await updateDoc(userDocRef, {
+            groups: arrayUnion(doc(db, "Groups", docRef.id)), // Adding the group reference to the user's 'groups' array
+          });
+        }
 
         if (groupPicture) {
             const formData = new FormData();
