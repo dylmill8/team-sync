@@ -28,7 +28,7 @@ import {
   getDoc,
   DocumentReference,
 } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { firebaseApp } from "@/utils/firebaseConfig";
 import { useSearchParams } from "next/navigation";
 
@@ -60,10 +60,24 @@ export default function CreateEvent() {
   const [loading, setLoading] = useState(false);
 
   const auth = getAuth(firebaseApp);
-  const uid = auth.currentUser?.uid;
+  const [uid, setUid] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUid(user.uid);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
 
   const cancelButton = () => {
-    router.push("/calendar");
+    if (group == "true") {
+      router.push(`/groups?docId=${groupId}`);
+    } else {
+      router.push("/calendar");
+    }
   };
 
   const eventCreation = async () => {
@@ -121,10 +135,19 @@ export default function CreateEvent() {
           : Timestamp.fromDate(new Date(endDate)),
         location,
         ownerType: group == "true" ? "group" : "user",
-        owner: group == "true" ? groupId : uid,
+        owner: group == "true" ? groupId : [],
         RSVP: {},
         workouts: [],
       });
+
+      if (group == "false") {
+        const docSnap = await getDoc(docref);
+        if (docSnap.exists()) {
+          await updateDoc(docref, {
+            owner: arrayUnion(uid),
+          });
+        }
+      }
 
       if (group == "true") {
         if (groupId) {
