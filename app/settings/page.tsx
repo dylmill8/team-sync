@@ -396,6 +396,7 @@ export default function Settings() {
                       <button
                         className="flex flex-col rounded-full border border-solid transition-colors items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 sm:min-w-44 mb-2"
                         key={account.id}
+                        onClick={() => router.push(`/profile/${account.id}`)}
                       >
                         {account.username} ({account.email})
                       </button>
@@ -407,7 +408,8 @@ export default function Settings() {
               </div>
               <div className="border-t border-gray-300 justify-center mt-4"></div>
               <div className="w-full flex justify-center mt-4">
-                <button className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 sm:min-w-30">
+                <button className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 sm:min-w-30"
+                onClick={() => router.push(`/?addAccount=true`)}>
                   Add Account
                 </button>
               </div>

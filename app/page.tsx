@@ -1,13 +1,13 @@
 "use client"
 import Image from "next/image";
 import Link from 'next/link';
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import React, { useState } from 'react';
+import { getAuth, signInWithEmailAndPassword, setPersistence, browserSessionPersistence } from "firebase/auth";
+import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { setDocument, viewDocument } from "../utils/firebaseHelper.js"
 import { db } from "../utils/firebaseConfig"; 
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { useRouter } from "next/navigation"; //TJ added
+import { doc, getDoc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { useRouter, useSearchParams } from "next/navigation"; //TJ added
 
 
 export default function Home() {
@@ -15,6 +15,8 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter(); //TJ added
+  const searchParams = useSearchParams();
+  const addAccount = searchParams.get("addAccount") === "true";
 
   const auth = getAuth();
 
@@ -28,6 +30,7 @@ export default function Home() {
 
   const handleLogin = async () => {
     console.log("trying login with EMAIL:" + email + " | PASSWORD:" + password + "\n");
+    //console.log(addAccount + "\n");
     setError("");
 
     if (!email) {
@@ -39,32 +42,83 @@ export default function Home() {
       return;
     }
 
-    // Fetch user data from Firestore
-    const usersRef = collection(db, "Users");
-    const q = query(usersRef, where("email", "==", email));
-    const querySnapshot = await getDocs(q);
+    try {
+      // Fetch user data from Firestore
+      const usersRef = collection(db, "Users");
+      const q = query(usersRef, where("email", "==", email));
+      const querySnapshot = await getDocs(q);
 
-    if (!querySnapshot || querySnapshot.empty) {
-      setError("Account with this email not found.");
-      return;
+      if (querySnapshot.empty) {
+        setError("Account with this email not found.");
+        return;
+      }
+
+      const primaryUser = auth.currentUser;
+      await setPersistence(auth, browserSessionPersistence);
+
+      // Sign in
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      console.log("Successfully logged in!");
+      //console.log("User ID (UID):", user.uid);
+      //console.log("User Email:", user.email);
+
+      if (addAccount) {
+        if (!primaryUser) {
+          setError("Primary user session lost. Please log in again.");
+          return;
+        }
+
+        //console.log("Primary User UID:", primaryUser.uid);
+
+        const primaryUserDocRef = doc(db, "Users", primaryUser.uid);
+        const primaryUserDocSnap = await getDoc(primaryUserDocRef);
+        const secondaryUserDocRef = doc(db, "Users", user.uid);
+        const secondaryUserDocSnap = await getDoc(secondaryUserDocRef);
+
+        if (primaryUserDocSnap.exists()) {
+          const newUserRef = doc(db, "Users", user.uid);
+          const primaryUserRef = doc(db, "Users", primaryUser.uid);
+          const primaryUserData = primaryUserDocSnap.data();
+          //console.log("Primary User UID:", primaryUser.uid);
+          //console.log("New User UID:", user.uid);
+
+          const updatedAccounts = primaryUserData.otherAccounts || [];
+          updatedAccounts.push(newUserRef);
+          await updateDoc(primaryUserDocRef, { otherAccounts: updatedAccounts });
+
+          if (secondaryUserDocSnap.exists()) {
+            const secondaryUserData = secondaryUserDocSnap.data();
+            const updatedSecondaryAccounts = secondaryUserData.otherAccounts || [];
+
+            if (!updatedSecondaryAccounts.some(ref => ref.id === primaryUser.uid)) {
+              updatedSecondaryAccounts.push(primaryUserRef);
+              await updateDoc(secondaryUserDocRef, { otherAccounts: updatedSecondaryAccounts });
+            }
+          } else {
+            console.log("No secondary user document found in Firestore.");
+          }
+
+          //console.log("Added new user reference to otherAccounts:", newUserRef);
+        } else {
+          setError("No user document found in Firestore.");
+          return;
+        }
+
+        // ✅ Redirect back to settings instead of calendar
+        router.push("/settings");
+        return;
+      }
+
+      // If addAccount is not true, just navigate to the calendar
+      router.push("/calendar");
+    } catch (err) {
+      console.log(err.code);
+      console.log(err.message);
+      setError("Invalid email or password.");
     }
+};
 
-    // Sign in
-    signInWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        // Signed in 
-        const user = userCredential.user;
-        console.log("Successfully logged in!");
-        console.log("User ID (UID):", user.uid);
-        console.log("User Email:", user.email);
-        window.location.href = "/calendar"; // Redirect on success
-      })
-      .catch((err) => {
-        console.log(err.code);
-        console.log(err.message);
-        setError("Invalid email or password.");
-      });
-}
 
   return (
     <div className="bg-[rgb(230,230,230)] grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
@@ -112,7 +166,7 @@ export default function Home() {
               width={20}
               height={20}
             />
-            Log in
+            {addAccount ? "Add an Account" : "Log in"}
           </a>
           <button //TJ replaced link with button
             onClick={() => router.push(`/registration?email=${encodeURIComponent(email)}`)}
