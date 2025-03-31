@@ -182,8 +182,12 @@ export default function ViewGroup() {
             <Label className="text-sm font-medium">Number of Members: {numberOfMembers}</Label>
           </div>
           
-          {/* Conditional Join / Leave Button */}
-          {isMember ? (
+          {/* Conditional rendering based on user role */}
+          {data.owner === userId ? (
+            <p className="font-medium text-gray-700">
+            You are the owner of this group.
+            </p>
+          ) : isMember ? (
             <Button
               onClick={handleLeaveGroup}
               className="my-2 w-full bg-red-600 hover:bg-red-700 text-white font-bold rounded transition-all"
@@ -198,10 +202,6 @@ export default function ViewGroup() {
               Join Group
             </Button>
           )}
-
-
-
-
           <Button
             onClick={() => router.push("/groupslist")}
             className="mt-2 w-full bg-gray-500 hover:bg-gray-600 text-white font-bold rounded transition-all"
