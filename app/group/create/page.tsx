@@ -23,6 +23,8 @@ export default function CreateGroup() {
   const router = useRouter();
   const auth = getAuth(firebaseApp);
   const userId = auth.currentUser?.uid;
+  const [isPrivate, setIsPrivate] = useState(false); // Privacy toggle state
+
 
   useEffect(() => { // get username and email of owner
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -61,6 +63,7 @@ export default function CreateGroup() {
           name: groupName,
           description: groupDescription,
           owner: userId,
+          isPrivate, // Store privacy setting in Firestore
           members: {
             [userId]: [userData.username, "owner"], // Store as an array with name and role
           },
@@ -101,7 +104,7 @@ export default function CreateGroup() {
         setGroupDescription("");
         setGroupPicture(null);
         alert("Group Created Successfully");
-        router.push("/groups");
+        router.push(`/group/view?groupId=${docRef.id}`);
         } catch (e) {
             alert("Error creating group");
         }
@@ -136,6 +139,19 @@ export default function CreateGroup() {
               />
           </div>
 
+          {/* Privacy Toggle Switch */}
+          <div className="mb-4 flex items-center">
+            <Label className="text-sm font-medium mr-2">Private Group</Label>
+            <input
+              type="checkbox"
+              checked={isPrivate}
+              onChange={(e) => setIsPrivate(e.target.checked)}
+              className="toggle-checkbox h-5 w-5 cursor-pointer"
+            />
+          </div>
+
+
+
           <div className="mb-4 flex flex-col items-center">
             <Label className="text-sm font-medium">Group Picture</Label>
             <Input 
@@ -159,10 +175,10 @@ export default function CreateGroup() {
           </Button>
           
           <Button 
-            onClick={() => router.push("/")} 
+            onClick={() => router.push("/groupslist")} 
             className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition-all mt-4"
           >
-            Back to Home
+            Back to Groups List
           </Button>
         </CardContent>
       </Card>
