@@ -99,7 +99,7 @@ export default function ViewGroup() {
       alert("Group joined");
 
       // Redirect after joining
-      router.push(`/group/search`);
+      router.push(`/grouplist`);
     } catch (error) {
       alert("Failed to join group.");
     }
@@ -134,6 +134,12 @@ export default function ViewGroup() {
             className="my-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition-all"
           >
             Join Group
+          </Button>
+          <Button
+            onClick={() => router.push("/groupslist")}
+            className="mt-2 w-full bg-gray-500 hover:bg-gray-600 text-white font-bold rounded transition-all"
+          >
+            Back
           </Button>
         </CardContent>
       </Card>
