@@ -9,6 +9,7 @@ import { getAuth } from "firebase/auth";
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../../../utils/firebaseConfig";
 import { useRouter, useSearchParams } from "next/navigation";
+import { arrayRemove } from "firebase/firestore";  
 
 export default function GroupSettings() {
   const auth = getAuth();
@@ -73,15 +74,34 @@ export default function GroupSettings() {
       return;
     }
 
-    if (userId !== groupData.leader) {
+    if (userId !== groupData.owner) {
       alert("You must be the group leader to delete the group.");
       return;
     }
 
     try {
       const groupRef = doc(db, "Groups", groupId);
+
+      //ITERATE THROUGH ALL EVENTS AND DELETE EVENTS
+      if (groupData.events && Array.isArray(groupData.events)) {
+        for (const eventRefPath of groupData.events) {
+          const eventRef = doc(db, eventRefPath.path); // Convert reference path to doc ref
+
+          // Remove event reference from the group
+          await updateDoc(groupRef, {
+            events: arrayRemove(eventRef),
+          });
+
+          // Delete the event document
+          await deleteDoc(eventRef);
+        }
+      }
+
+      //delete group 
       await deleteDoc(groupRef);
+
       alert("Group deleted successfully.");
+
 
       // Redirect to home or groups page
       router.push("/");
