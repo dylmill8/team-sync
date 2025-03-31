@@ -95,7 +95,11 @@ export default function ViewEvent() {
   };
 
   const handleBack = () => {
-    router.push("/calendar");
+    if (data?.ownerType == "group") {
+      router.push(`/groups?docId=${docId}`);
+    } else {
+      router.push("/calendar");
+    }
   };
 
   if (loading) {
