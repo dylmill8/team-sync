@@ -1,20 +1,23 @@
 import { db } from "./firebaseConfig.js";
-import { doc, updateDoc, getDoc } from "firebase/firestore";
+import { doc, updateDoc, getDoc, setDoc } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut } from "firebase/auth";
 
 const auth = getAuth();
 
 async function setDocument(collectionName, docId, data) {
     try {
-        const user = auth.currentUser;
-        //if (!user) {
-        //    throw new Error("User not authenticated. Cannot write document.");
-        //}
+        const docRef = doc(db, collectionName, docId);
+        const docSnap = await getDoc(docRef);
 
-        await updateDoc(doc(db, collectionName, docId), data);
-        console.log("Document successfully written!");
+        if (docSnap.exists()) {
+            await updateDoc(docRef, data);
+            console.log("Document updated successfully!");
+        } else {
+            await setDoc(docRef, data);
+            console.log("Document created successfully!");
+        }
     } catch (error) {
-        console.error("Error writing document: ", error);
+        console.error("Error handling document: ", error);
     }
 }
 
