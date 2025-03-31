@@ -199,8 +199,18 @@ export default function GroupSettings() {
               >
                 Modify Permissions
               </Button>
+              
             )}
+            <Button 
+              onClick={() => router.push("/groupslist")} 
+              className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition-all mt-4"
+            >
+              Back to Groups List
+            </Button>
           </div>
+
+              
+
         </CardContent>
       </Card>
     </div>
