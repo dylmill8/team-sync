@@ -85,14 +85,20 @@ export default function GroupSearch() {
                 type="number"
                 placeholder="Min members"
                 value={minMembers}
-                onChange={(e) => setMinMembers(e.target.value)}
+                onChange={(e) => {
+                  const value = Math.max(0, parseInt(e.target.value, 10) || 0);
+                  setMinMembers(value.toString());
+                }}
                 className="mb-2"
               />
               <Input
                 type="number"
                 placeholder="Min events"
                 value={minEvents}
-                onChange={(e) => setMinEvents(e.target.value)}
+                onChange={(e) => {
+                  const value = Math.max(0, parseInt(e.target.value, 10) || 0);
+                  setMinEvents(value.toString());
+                }}
                 className="mb-2"
               />
               <Button onClick={handleSearch} className="w-full">Apply Filters</Button>
