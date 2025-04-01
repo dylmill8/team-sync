@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { useEffect, useState } from "react"; 
+import { useRouter } from "next/navigation";
 
 const NavBar = () => {
     const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -28,18 +29,18 @@ const NavBar = () => {
 };
 
 const NavBarItem = ({ href, icon, active }: { href: string; icon: string; active: boolean }) => {
+    const router = useRouter();
     const isDarkMode = localStorage.getItem("theme") === "dark";
 
     // Dynamically change the icon based on the theme
     const iconSrc = isDarkMode ? icon.replace(".png", "-White.png") : icon;
 
     return (
-        <Link href={href}>
-            <Button variant={active ? "default" : "ghost"} className="justify-center flex flex-col items-center w-[4vw] h-[4vh] max-w-[400] max-h-[400] relative">
-                {/* Use iconSrc */}
-                <Image src={iconSrc} alt="Icon" objectFit="contain" fill className="flex object-contain w-[6vw] h-[6vh]" />
-            </Button>
-        </Link>
+        <Button variant={active ? "default" : "ghost"} className="justify-center flex flex-col items-center w-[4vw] h-[4vh] max-w-[400] max-h-[400] relative"
+        onClick={() => router.push(href)}>
+            {/* Use iconSrc */}
+            <Image src={iconSrc} alt="Icon" objectFit="contain" fill className="flex object-contain w-[6vw] h-[6vh]" />
+        </Button>
     );
 };
 export default NavBar;

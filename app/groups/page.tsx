@@ -8,6 +8,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
 import NavBar from "@/components/ui/navigation-bar";
 import { firebaseApp } from "@/utils/firebaseConfig";
@@ -130,6 +131,8 @@ export default function Groups() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="announcements" className="tabs-content">
+            {/* add logic for button to display only if user is a team leader */}
+            <Button onClick={() => router.push(`/announcement/create?groupId=${docId}`)}>Create Announcement</Button>
             Announcements...
           </TabsContent>
           <TabsContent value="chat" className="tabs-content">
@@ -151,7 +154,7 @@ export default function Groups() {
                 customButtons={{
                   createEvent: {
                     text: 'create event',
-                    click: () => router.push('/event/create'),
+                    click: () => router.push(`/event/create?group=true&groupId=${docId}`),
                   },
                   list: {
                     text: 'list',

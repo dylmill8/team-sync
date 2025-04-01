@@ -57,6 +57,33 @@ function RSVPStatus({ eventId }) {
     fetchInitialStatus();
   });
 
+  useEffect(() => {
+    const updateStatus = async () => {
+      try {
+        const docRef = doc(db, "Event", eventId);
+        const docSnap = await getDoc(docRef);
+        const data = docSnap.data();
+
+        if (data && uid) {
+          if (data.RSVP[uid]) {
+            setStatus(data.RSVP[uid]);
+          } else {
+            setStatus("maybe");
+            await updateDoc(docRef, {
+              [`RSVP.${uid}`]: "maybe",
+            });
+          }
+        }
+      } catch (e) {
+        console.log(
+          "error: there was an error while fetching data rsvp data for the user",
+          e
+        );
+      }
+    };
+    updateStatus();
+  }, [uid]);
+
   // const fetchUsername = async () => {
   //   try {
   //     const docRef = doc(db, "Users", uid || "uid");
