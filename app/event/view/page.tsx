@@ -96,7 +96,7 @@ export default function ViewEvent() {
 
   const handleBack = () => {
     if (data?.ownerType == "group") {
-      router.push(`/groups?docId=${docId}`);
+      router.push(`/groups?docId=${data?.owner}`);
     } else {
       router.push("/calendar");
     }
