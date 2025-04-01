@@ -33,6 +33,12 @@ export default function ViewGroup() {
     isMember = userId in data.members;
   }
 
+  let isLeader = false;
+  if (userId && data?.members) {
+    const userPermission = data.members[userId]?.[1]; // Assuming [0] is the name, and [1] is the permission
+    isLeader = userPermission === "leader" || userPermission === "owner";
+  }
+
   // Fetch group data
   useEffect(() => {
     const fetchGroup = async () => {
@@ -202,6 +208,16 @@ export default function ViewGroup() {
               Join Group
             </Button>
           )}
+
+          {isLeader && (
+            <Button
+              onClick={() => router.push(`/group/settings?groupId=${groupId}`)}
+              className="my-2 w-full bg-green-600 hover:bg-green-700 text-white font-bold rounded transition-all"
+            >
+              Go to Settings
+            </Button>
+          )}
+
           <Button
             onClick={() => router.push("/groupslist")}
             className="mt-2 w-full bg-gray-500 hover:bg-gray-600 text-white font-bold rounded transition-all"
