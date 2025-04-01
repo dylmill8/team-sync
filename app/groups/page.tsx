@@ -25,6 +25,7 @@ interface EventData {
   description: string;
   location: string;
   docID: string;
+  ownerType: string;
   owner: string;
   RSVP: { [key: string]: string; };
   workouts: string;
@@ -38,6 +39,7 @@ interface CalendarEvent {
   description: string;
   location: string;
   docID: string;
+  ownerType: string;
   owner: string;
   RSVPStatus: string;
   workout: string;
@@ -45,6 +47,7 @@ interface CalendarEvent {
 
 export default function Groups() {
   const auth = getAuth(firebaseApp);
+  const uid = auth.currentUser?.uid;
   const router = useRouter();
   const searchParams = useSearchParams();
   const docId = searchParams.get("docId");
@@ -54,7 +57,6 @@ export default function Groups() {
   const [groupData, setGroupData] = useState<any>(null);
 
   useEffect(() => {
-    console.log("Fetching events...");
     async function fetchGroup() {
       if (!docId) {
         console.error("Invalid group ID");
@@ -69,13 +71,11 @@ export default function Groups() {
       setGroupData(groupDoc.data());
     }
     fetchGroup();
-  }, [docId]);
+  }, [docId, uid]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const uid = user.uid;
-
         if (uid) {
           const userDocRef = doc(db, "Users", uid);
           const userDoc = await getDoc(userDocRef);
@@ -88,9 +88,50 @@ export default function Groups() {
     return () => {
       unsubscribe();
     };
-  }, [auth]);
+  }, [auth, groupData, uid]);
 
-  //! TODO: Fetch, parse, and display group events on calendar
+  async function handleCalendarTabClick() {
+    if (!docId) {
+      console.error("Invalid group ID");
+      return;
+    }
+    const groupRef = doc(db, "Groups", docId);
+    const groupDoc = await getDoc(groupRef);
+    if (!groupDoc.exists()) {
+      console.error("Group not found");
+      return;
+    }
+    const data = groupDoc.data(); // store the fetched data
+    if (Array.isArray(data.events)) {
+      const events = await Promise.all(
+        data.events.map(async (eventRef) => {
+          const eventDoc = await getDoc(eventRef);
+          const eventData = eventDoc.data() as EventData;
+          let userRSVPStatus = "None";
+          for (const key in eventData.RSVP) {
+            if (key === uid) {
+              userRSVPStatus = eventData.RSVP[key];
+              break;
+            }
+          }
+          return {
+            title: eventData.name,
+            start: eventData.start ? eventData.start.seconds * 1000 : undefined,
+            end: eventData.end ? eventData.end.seconds * 1000 : undefined,
+            allDay: eventData.allDay,
+            description: eventData.description,
+            location: eventData.location,
+            docID: eventDoc.id,
+            ownerType: eventData.ownerType,
+            owner: eventData.owner,
+            RSVPStatus: userRSVPStatus,
+            workout: eventData.workouts
+          };
+        })
+      );
+      setEventList(events);
+    }
+  }
 
   return (
     <>
@@ -118,7 +159,11 @@ export default function Groups() {
         </div>
       </div>
       <div className="tabs-container">
-        <Tabs defaultValue="chat">
+        <Tabs defaultValue="chat" onValueChange={(value) => {
+          if (value === "calendar") {
+            handleCalendarTabClick();
+          }
+        }}>
           <TabsList className="tabs-list">
             <TabsTrigger value="announcements" className="tabs-trigger">
               announcements
