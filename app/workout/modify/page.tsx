@@ -76,7 +76,7 @@ export default function ModifyWorkout() {
     try {
       // Create log document
       const logsRef = await addDoc(collection(db, "Logs"), {
-        descriptions: personalLogs.filter((log) => log.trim() !== ""),
+        descriptions: personalLogs,
       });
 
       // Update workout with the new Map field if it doesn't exist
