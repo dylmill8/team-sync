@@ -7,14 +7,14 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
 import NavBar from "@/components/ui/navigation-bar";
 import { firebaseApp } from "@/utils/firebaseConfig";
 import { db } from '@/utils/firebaseConfig';
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, DocumentReference, getDoc } from "firebase/firestore";
 import { useState, useEffect, useRef } from "react";
 
 interface EventData {
@@ -45,6 +45,17 @@ interface CalendarEvent {
   workout: string;
 }
 
+interface GroupData {
+  name: string;
+  description: string;
+  picture: string;
+  privacy: boolean;
+  members: { [key: string]: string; };
+  events: Array<{ id: string; }>;
+  chat: DocumentReference;
+  announcements: DocumentReference;
+}
+
 export default function Groups() {
   const auth = getAuth(firebaseApp);
   const uid = auth.currentUser?.uid;
@@ -54,7 +65,8 @@ export default function Groups() {
   const calendarRef = useRef<FullCalendar>(null);
 
   const [eventList, setEventList] = useState<CalendarEvent[]>([]);
-  const [groupData, setGroupData] = useState<any>(null);
+  const [groupData, setGroupData] = useState<GroupData | null>(null);
+  const [groupMembers, setGroupMembers] = useState<Array<Array<string>>>([]);
 
   useEffect(() => {
     async function fetchGroup() {
@@ -68,11 +80,12 @@ export default function Groups() {
         console.error("Group not found");
         return;
       }
-      setGroupData(groupDoc.data());
+      setGroupData(groupDoc.data() as GroupData);
     }
     fetchGroup();
   }, [docId, uid]);
 
+  //! TODO: maybe remove
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -80,7 +93,7 @@ export default function Groups() {
           const userDocRef = doc(db, "Users", uid);
           const userDoc = await getDoc(userDocRef);
           if (userDoc.exists()) {
-            const userData = userDoc.data();
+            //const userData = userDoc.data();
           }
         }
       }
@@ -89,6 +102,24 @@ export default function Groups() {
       unsubscribe();
     };
   }, [auth, groupData, uid]);
+
+  useEffect(() => {
+    if (groupData?.members) {
+      const values = Object.values(groupData.members);
+      const sortedMembers = values
+        .sort((a, b) => {
+          if (a[1] === 'leader' && b[1] !== 'leader') return -1;
+          if (a[1] !== 'leader' && b[1] === 'leader') return 1;
+          return 0;
+        })
+        .map((item: string) => {
+          const name = item[0];
+          const priority = item[1];
+          return [name, priority];
+        });
+      setGroupMembers(sortedMembers);
+    }
+  }, [groupData?.members]);
 
   async function handleCalendarTabClick() {
     if (!docId) {
@@ -138,7 +169,6 @@ export default function Groups() {
       <div className="group-header-background">
         <div className="group-header" onClick={() => { if (docId) router.push(`/group/view?groupId=${docId}`); }}>
           {
-          //! TODO: Wrap this in a link to the group info page
           groupData?.name || 'Loading...'
           }
           <div className="members-button" onClick={(e) => e.stopPropagation()}>
@@ -146,11 +176,18 @@ export default function Groups() {
               <SheetTrigger>+</SheetTrigger>
               <SheetContent>
                 <SheetHeader>
-                  <SheetTitle>Members</SheetTitle>
-                  <SheetDescription>View members of this group</SheetDescription>
-                  {
-                  //! TODO: fetch, parse, sort, and display group members
-                  }
+                  <SheetTitle style={{fontWeight: 'bold'}}>Members</SheetTitle>
+                    <div style={{ maxHeight: '200px', overflowY: 'auto', listStyle: 'none', padding: 0, margin: 0 }}>
+                      {Array.isArray(groupMembers) ? (
+                        groupMembers.map((member: Array<string>, index: number) => (
+                          <li key={index}>{member[0]}</li>
+                        ))
+                      ) : (
+                        <li style={{fontSize: '0.9em', color: 'grey'}}>
+                          No members found
+                        </li>
+                      )}
+                    </div>
                 </SheetHeader>
               </SheetContent>
             </Sheet>
