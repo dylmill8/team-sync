@@ -85,8 +85,25 @@ export default function ViewEvent() {
 
   const router = useRouter();
 
-  const toWorkout = (workoutName: string) => {
+  const toWorkout = async (workoutName: string) => {
     const workoutId = workoutDict[workoutName];
+
+    if (data?.ownerType == "group") {
+      try {
+        const groupRef = doc(db, "Groups", data?.owner);
+        const groupDoc = await getDoc(groupRef);
+        if (groupDoc.exists()) {
+          const groupData = groupDoc.data();
+
+          if (groupData.members[uid || ""][1] == "leader") {
+            router.push(`/workout/group-view?workoutId=${workoutId}`);
+            return;
+          }
+        }
+      } catch (e) {
+        console.log("there was an error getting the owner group", e);
+      }
+    }
     router.push(`/workout/modify?workoutId=${workoutId}&userId=${uid}`);
   };
 
@@ -96,7 +113,7 @@ export default function ViewEvent() {
 
   const handleBack = () => {
     if (data?.ownerType == "group") {
-      router.push(`/groups?docId=${docId}`);
+      router.push(`/groups?docId=${data?.owner}`);
     } else {
       router.push("/calendar");
     }

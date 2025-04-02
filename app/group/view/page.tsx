@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { arrayUnion, doc, getDoc, DocumentData, updateDoc } from "firebase/firestore";
+import { arrayRemove, arrayUnion, doc, getDoc, DocumentData, updateDoc } from "firebase/firestore";
 import { db } from "../../../utils/firebaseConfig";
 import { getAuth } from "firebase/auth";
 import { viewDocument } from "../../../utils/firebaseHelper.js";
@@ -25,8 +25,19 @@ export default function ViewGroup() {
     }
     return 0;
   };
-
   const numberOfMembers = getNumberOfMembers(data?.members);
+
+  // Check if user is a member already
+  let isMember = false;
+  if (userId && data?.members) {
+    isMember = userId in data.members;
+  }
+
+  let isLeader = false;
+  if (userId && data?.members) {
+    const userPermission = data.members[userId]?.[1]; // Assuming [0] is the name, and [1] is the permission
+    isLeader = userPermission === "leader" || userPermission === "owner";
+  }
 
   // Fetch group data
   useEffect(() => {
@@ -46,6 +57,58 @@ export default function ViewGroup() {
 
     fetchGroup();
   }, [groupId]);
+
+  // Leave group button
+  const handleLeaveGroup = async () => {
+    if (!userId) {
+      alert("You must be logged in to leave a group.");
+      return;
+    }
+    if (!groupId) {
+      alert("Group ID is missing.");
+      return;
+    }
+  
+    try {
+      const groupRef = doc(db, "Groups", groupId);
+      const userRef = doc(db, "Users", userId);
+  
+      // Check if the group exists
+      const groupSnap = await getDoc(groupRef);
+      if (!groupSnap.exists()) {
+        alert("Group not found.");
+        return;
+      }
+  
+      const groupData = groupSnap.data();
+  
+      // Check if user is in the group
+      if (!groupData?.members?.[userId]) {
+        alert("You are not a member of this group.");
+        return;
+      }
+  
+      // Remove the user from the group's members map
+      const updatedMembers = { ...groupData.members };
+      delete updatedMembers[userId];
+  
+      await updateDoc(groupRef, {
+        members: updatedMembers,
+      });
+  
+      // Remove the group from the user's groups array
+      await updateDoc(userRef, {
+        groups: arrayRemove(groupRef),
+      });
+  
+      alert("You have left the group.");
+      router.push("/groupslist"); // Redirect after leaving
+    } catch (error) {
+      alert("Failed to leave group.");
+      console.error("Error leaving group:", error);
+    }
+  };
+
 
   // Join group button
   const handleJoinGroup = async () => {
@@ -93,13 +156,8 @@ export default function ViewGroup() {
       });
 
       alert("Group joined successfully!");
-
-      
-
-      alert("Group joined");
-
       // Redirect after joining
-      router.push(`/group/search`);
+      router.push(`/groupslist`);
     } catch (error) {
       alert("Failed to join group.");
     }
@@ -129,11 +187,42 @@ export default function ViewGroup() {
           <div className="mb-4">
             <Label className="text-sm font-medium">Number of Members: {numberOfMembers}</Label>
           </div>
+          
+          {/* Conditional rendering based on user role */}
+          {data.owner === userId ? (
+            <p className="font-medium text-gray-700">
+            You are the owner of this group.
+            </p>
+          ) : isMember ? (
+            <Button
+              onClick={handleLeaveGroup}
+              className="my-2 w-full bg-red-600 hover:bg-red-700 text-white font-bold rounded transition-all"
+            >
+              Leave Group
+            </Button>
+          ) : (
+            <Button
+              onClick={handleJoinGroup}
+              className="my-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition-all"
+            >
+              Join Group
+            </Button>
+          )}
+
+          {isLeader && (
+            <Button
+              onClick={() => router.push(`/group/settings?groupId=${groupId}`)}
+              className="my-2 w-full bg-green-600 hover:bg-green-700 text-white font-bold rounded transition-all"
+            >
+              Go to Settings
+            </Button>
+          )}
+
           <Button
-            onClick={handleJoinGroup}
-            className="my-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition-all"
+            onClick={() => router.push(`/groups?docId=${groupId}`)}
+            className="mt-2 w-full bg-gray-500 hover:bg-gray-600 text-white font-bold rounded transition-all"
           >
-            Join Group
+            Back
           </Button>
         </CardContent>
       </Card>

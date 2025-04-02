@@ -24,8 +24,11 @@ export default function ModifyWorkout() {
         const workoutDocRef = doc(db, "Workouts", workoutId);
         const workoutDocSnap = await getDoc(workoutDocRef);
         if (workoutDocSnap.exists()) {
+          const workoutData = workoutDocSnap.data();
+          const exerciseList = workoutData.exercises || [];
           setWorkout(workoutDocSnap.data());
           setExercises(workoutDocSnap.data().exercises || []);
+          setPersonalLogs(new Array(exerciseList.length).fill("")); // Initialize personalLogs with empty strings
         }
       }
     };
@@ -76,7 +79,7 @@ export default function ModifyWorkout() {
     try {
       // Create log document
       const logsRef = await addDoc(collection(db, "Logs"), {
-        descriptions: personalLogs.filter((log) => log.trim() !== ""),
+        descriptions: personalLogs,
       });
 
       // Update workout with the new Map field if it doesn't exist

@@ -328,22 +328,24 @@ export default function Profile() {
         </>
       )}
 
-      <button
-        style={{
-          marginTop: "20px",
-          padding: "10px 20px",
-          backgroundColor: "#0070f3",
-          color: "#fff",
-          border: "none",
-          borderRadius: "4px",
-          cursor: "pointer",
-          width: "80%",
-        }}
-        onClick={() => router.push("/announcement/viewall")}
-      >
-        View All Announcements
-      </button>
-
+      {userId == profileId && (
+        <button
+          style={{
+            marginTop: "20px",
+            padding: "10px 20px",
+            backgroundColor: "#0070f3",
+            color: "#fff",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+            width: "80%",
+          }}
+          onClick={() => router.push("/announcement/viewall")}
+        >
+          View All Announcements
+        </button>
+      )}
+      
       <button
         type="submit"
         style={{

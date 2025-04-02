@@ -9,6 +9,9 @@ import { getAuth } from "firebase/auth";
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../../../utils/firebaseConfig";
 import { useRouter, useSearchParams } from "next/navigation";
+import { arrayRemove } from "firebase/firestore";  
+import { Label } from "@/components/ui/label"; 
+
 
 export default function GroupSettings() {
   const auth = getAuth();
@@ -20,6 +23,8 @@ export default function GroupSettings() {
   const [loading, setLoading] = useState(true);
   const groupId = useSearchParams().get("groupId");
   const router = useRouter();
+  const [isPrivate, setIsPrivate] = useState(false); // Track privacy setting
+
 
   // Fetch the group data
   useEffect(() => {
@@ -34,6 +39,7 @@ export default function GroupSettings() {
         setGroupData(group);
         setGroupName(group.name);
         setGroupDescription(group.description);
+        setIsPrivate(group.isPrivate || false);
       } else {
         console.log("Group not found.");
       }
@@ -48,20 +54,16 @@ export default function GroupSettings() {
       alert("Error: Invalid group or user.");
       return;
     }
-
-    if (userId !== groupData.owner) {
-      alert("You must be the group leader to make changes.");
-      return;
-    }
-
     try {
       const groupRef = doc(db, "Groups", groupId);
       await updateDoc(groupRef, {
         name: groupName,
         description: groupDescription,
+        isPrivate: isPrivate, // Update privacy setting
         // Add logic to handle the group picture if necessary
       });
       alert("Group settings updated!");
+      router.push("/groupslist");
     } catch (error) {
       alert("Failed to update group settings.");
     }
@@ -73,18 +75,34 @@ export default function GroupSettings() {
       return;
     }
 
-    if (userId !== groupData.leader) {
-      alert("You must be the group leader to delete the group.");
+    if (userId !== groupData.owner) {
+      alert("You must be the group owner to delete the group.");
       return;
     }
 
     try {
       const groupRef = doc(db, "Groups", groupId);
-      await deleteDoc(groupRef);
-      alert("Group deleted successfully.");
 
-      // Redirect to home or groups page
-      router.push("/");
+      //ITERATE THROUGH ALL EVENTS AND DELETE EVENTS
+      if (groupData.events && Array.isArray(groupData.events)) {
+        for (const eventRefPath of groupData.events) {
+          const eventRef = doc(db, eventRefPath.path); // Convert reference path to doc ref
+
+          // Remove event reference from the group
+          await updateDoc(groupRef, {
+            events: arrayRemove(eventRef),
+          });
+
+          // Delete the event document
+          await deleteDoc(eventRef);
+        }
+      }
+
+      //delete group 
+      await deleteDoc(groupRef);
+
+      alert("Group deleted successfully.");
+      router.push("/groupslist");
     } catch (error) {
       alert("Failed to delete group.");
     }
@@ -145,6 +163,18 @@ export default function GroupSettings() {
             />
           </div>
 
+          <div className="mb-4 flex items-center justify-between">
+            <Label className="text-sm font-medium">Private Group</Label>
+            <input
+              type="checkbox"
+              checked={isPrivate}
+              onChange={(e) => setIsPrivate(e.target.checked)}
+              className="toggle-checkbox"
+            />
+          </div>
+
+
+
           <div className="flex justify-between">
             <Button onClick={handleUpdateGroupSettings} className="bg-blue-600 text-white">
               Save Changes
@@ -163,8 +193,18 @@ export default function GroupSettings() {
               >
                 Modify Permissions
               </Button>
+              
             )}
+            <Button 
+              onClick={() => router.push("/groupslist")} 
+              className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition-all mt-4"
+            >
+              Back to Groups List
+            </Button>
           </div>
+
+              
+
         </CardContent>
       </Card>
     </div>
