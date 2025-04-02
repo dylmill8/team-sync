@@ -136,13 +136,12 @@ export default function Groups() {
   return (
     <>
       <div className="group-header-background">
-        <div className="group-header">
+        <div className="group-header" onClick={() => { if (docId) router.push(`/group/view?groupId=${docId}`); }}>
           {
           //! TODO: Wrap this in a link to the group info page
           groupData?.name || 'Loading...'
           }
-          <div className="members-button">
-            {/*<button className="group-join-button">+</button>*/}
+          <div className="members-button" onClick={(e) => e.stopPropagation()}>
             <Sheet>
               <SheetTrigger>+</SheetTrigger>
               <SheetContent>
@@ -176,7 +175,8 @@ export default function Groups() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="announcements" className="tabs-content">
-            {/* add logic for button to display only if user is a team leader */}
+            {/* add logic for button to display only if user is a team leader */
+            }
             <Button onClick={() => router.push(`/announcement/create?groupId=${docId}`)}>Create Announcement</Button>
             Announcements...
           </TabsContent>

@@ -24,6 +24,11 @@
     font-weight: bold;
     position: relative;
     max-width: 1100px;
+    cursor: pointer;
+}
+
+.group-header * {
+    cursor: pointer;
 }
 
 /* MEMBERS BUTTON */
