@@ -303,14 +303,14 @@ export default function Groups() {
                   }
                 }}
                 eventClick={(info) => {
+                  // Remove tooltip if it exists before routing
+                  if (info.event.extendedProps.tooltipEl) {
+                    info.event.extendedProps.tooltipEl.remove();
+                  }
                   if (auth.currentUser?.uid === info.event.extendedProps.owner) {
-                    router.push(
-                      `/event/modify?docId=${info.event.extendedProps.docID}`
-                    );
+                    router.push(`/event/modify?docId=${info.event.extendedProps.docID}`);
                   } else {
-                    router.push(
-                      `/event/view?docId=${info.event.extendedProps.docID}`
-                    );
+                    router.push(`/event/view?docId=${info.event.extendedProps.docID}`);
                   }
                 }}
               />
