@@ -15,6 +15,8 @@ import {
   limit,
   doc,
   getDoc,
+  updateDoc,
+  arrayUnion,
 } from "firebase/firestore"
 
 export default function ChatPage() {
@@ -28,6 +30,9 @@ export default function ChatPage() {
   const [lastVisible, setLastVisible] = useState(null)
   const [loadingMore, setLoadingMore] = useState(false)
   const [chatTitle, setChatTitle] = useState("Loading chat...")
+  const [groupName, setGroupName] = useState("")
+  const [isGroupChat, setIsGroupChat] = useState(false)
+  const [friendsData, setFriendsData] = useState([])
   const batchSize = 10
   const userCache = useRef({})
 
@@ -47,7 +52,6 @@ export default function ChatPage() {
     return () => unsubscribe()
   }, [])
 
-  // Load chat metadata and determine chat title
   useEffect(() => {
     const loadChatInfo = async () => {
       if (!chatId || !currentUserId) return
@@ -65,14 +69,35 @@ export default function ChatPage() {
             setChatTitle("Private Chat")
           }
         } else {
-          setChatTitle(`Group Chat (${chatData.participants?.length || 0})`)
+          setIsGroupChat(true)
+          setGroupName(chatData.name || "Group Chat")
+          setChatTitle(chatData.name || `Group Chat (${chatData.participants?.length || 0})`)
         }
       } else {
         setChatTitle("Chat Not Found")
       }
     }
 
+    const loadFriends = async () => {
+      if (!currentUserId) return
+      try {
+        const userDoc = await getDoc(doc(db, "Users", currentUserId))
+        const userData = userDoc.data()
+        if (!userData?.friends) return
+        const friendPromises = userData.friends.map(async (ref) => {
+          const fid = ref.id || ref // in case it's stored as ID not document ref
+          const snap = await getDoc(doc(db, "Users", fid))
+          return snap.exists() ? { id: fid, ...snap.data() } : { id: fid, username: "Unknown" }
+        })
+        const resolved = await Promise.all(friendPromises)
+        setFriendsData(resolved)
+      } catch (err) {
+        console.error("Error loading friends:", err)
+      }
+    }
+
     loadChatInfo()
+    loadFriends()
   }, [chatId, currentUserId])
 
   useEffect(() => {
@@ -172,22 +197,77 @@ export default function ChatPage() {
     await Promise.all(promises)
   }
 
+  const handleChangeGroupName = async () => {
+    if (!chatId || !groupName) return
+    try {
+      await updateDoc(doc(db, "Chats", chatId), { name: groupName })
+      setChatTitle(groupName)
+    } catch (err) {
+      console.error("Failed to update group name:", err)
+    }
+  }
+
+  const handleAddFriendToGroup = async (friendId) => {
+    if (!chatId || !friendId) return
+    try {
+      const chatRef = doc(db, "Chats", chatId)
+      await updateDoc(chatRef, { participants: arrayUnion(friendId) })
+      await updateDoc(doc(db, "Users", friendId), { chats: arrayUnion(chatId) })
+      alert("Friend added to group!")
+    } catch (err) {
+      console.error("Error adding friend:", err)
+    }
+  }
+
   return (
     <div className="p-4 max-w-xl mx-auto">
       <h1 className="text-xl font-bold mb-4">{chatTitle}</h1>
+
+      {isGroupChat && (
+        <div className="mb-4 space-y-4">
+          <div className="flex space-x-2">
+            <Input
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              placeholder="Group Name"
+            />
+            <Button onClick={handleChangeGroupName}>Update Name</Button>
+          </div>
+          <div>
+            <h2 className="font-semibold mb-2">Add Friends</h2>
+            {friendsData
+              .filter((f) => !messages.some((m) => m.userId === f.id))
+              .map((friend) => (
+                <div key={friend.id} className="flex justify-between mb-1">
+                  <span>{friend.username || friend.id}</span>
+                  <Button size="sm" onClick={() => handleAddFriendToGroup(friend.id)}>
+                    Add to Group
+                  </Button>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
       <Button onClick={loadMoreMessages} disabled={loadingMore}>
         {loadingMore ? "Loading..." : "Load Previous Messages"}
       </Button>
+
       <div className="space-y-2 mb-4 mt-4">
         {messages.map((msg) => (
           <div key={msg.id} className="border rounded p-2 shadow-sm bg-white">
             <div className="text-sm text-gray-500">
-              {msg.username} • {msg.timestamp?.toDate?.().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {msg.username} •{" "}
+              {msg.timestamp?.toDate?.().toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </div>
             <div>{msg.text}</div>
           </div>
         ))}
       </div>
+
       <div className="flex space-x-2">
         <Input
           value={newMessage}
