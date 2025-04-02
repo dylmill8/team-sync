@@ -1,6 +1,3 @@
-// messagetest1@test.com ; testtest - gFt8q2HV77MxPxS2N8p1vMnjDRI2
-// messagetest@test.com ; testtest  - rLjfeAiRYxTKLvYut1V4rU8Kvkg1
-
 "use client"
 import { useEffect, useState, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
@@ -16,6 +13,8 @@ import {
   getDocs,
   startAfter,
   limit,
+  doc,
+  getDoc,
 } from "firebase/firestore"
 
 export default function ChatPage() {
@@ -28,8 +27,9 @@ export default function ChatPage() {
   const [currentUserId, setCurrentUserId] = useState(null)
   const [lastVisible, setLastVisible] = useState(null)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [chatTitle, setChatTitle] = useState("Loading chat...")
   const batchSize = 10
-  const userCache = useRef({}) // Caches userId -> username
+  const userCache = useRef({})
 
   useEffect(() => {
     if (userid) setChatId(userid)
@@ -46,6 +46,34 @@ export default function ChatPage() {
     })
     return () => unsubscribe()
   }, [])
+
+  // Load chat metadata and determine chat title
+  useEffect(() => {
+    const loadChatInfo = async () => {
+      if (!chatId || !currentUserId) return
+      const chatRef = doc(db, "Chats", chatId)
+      const chatSnap = await getDoc(chatRef)
+      if (chatSnap.exists()) {
+        const chatData = chatSnap.data()
+        if (chatData.type === "private") {
+          const friendId = chatData.participants.find((id) => id !== currentUserId)
+          try {
+            const friendData = await viewDocument("Users", friendId)
+            const friendName = friendData?.username || friendId
+            setChatTitle(friendName)
+          } catch (err) {
+            setChatTitle("Private Chat")
+          }
+        } else {
+          setChatTitle(`Group Chat (${chatData.participants?.length || 0})`)
+        }
+      } else {
+        setChatTitle("Chat Not Found")
+      }
+    }
+
+    loadChatInfo()
+  }, [chatId, currentUserId])
 
   useEffect(() => {
     if (!chatId) return
@@ -111,14 +139,12 @@ export default function ChatPage() {
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !currentUserId || !chatId) return
-
     const newMsgId = `${Date.now()}`
     const newMsgData = {
       text: newMessage,
       userId: currentUserId,
       timestamp: new Date(),
     }
-
     try {
       await setDocument(`Chats/${chatId}/messages`, newMsgId, newMsgData)
       setNewMessage("")
@@ -139,7 +165,6 @@ export default function ChatPage() {
           userCache.current[uid] = username
           msg.username = username
         } catch (err) {
-          console.warn(`Failed to fetch user for ID ${uid}`, err)
           msg.username = uid
         }
       }
@@ -149,7 +174,7 @@ export default function ChatPage() {
 
   return (
     <div className="p-4 max-w-xl mx-auto">
-      <h1 className="text-xl font-bold mb-4">Chat: {chatId}</h1>
+      <h1 className="text-xl font-bold mb-4">{chatTitle}</h1>
       <Button onClick={loadMoreMessages} disabled={loadingMore}>
         {loadingMore ? "Loading..." : "Load Previous Messages"}
       </Button>
