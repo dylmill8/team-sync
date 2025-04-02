@@ -5,12 +5,21 @@ import { useEffect, useState } from "react";
 import { db } from "@/utils/firebaseConfig";
 import { getDoc, doc, DocumentData } from "@firebase/firestore";
 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Label } from "@radix-ui/react-label";
 import UserLog from "@/components/ui/user-log";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 export default function GroupLogs() {
+  const auth = getAuth();
   const router = useRouter();
 
   const workoutId = useSearchParams().get("workoutId") || "";
@@ -21,6 +30,17 @@ export default function GroupLogs() {
   );
   const [exerciseList, setExerciseList] = useState<string[] | null>(null);
   const [eventData, setEventData] = useState<DocumentData | null>(null);
+  const [userId, setUserId] = useState("");
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserId(user.uid);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
 
   useEffect(() => {
     const fetchWorkoutData = async () => {
@@ -55,37 +75,42 @@ export default function GroupLogs() {
   }
 
   return (
-    <div className="flex flex-col items-center mt-4 mx-5">
-      <Label className="text-2xl font-bold mb-1">
-        {workoutData?.name || "Fetching workout..."}
-      </Label>
-      <Label className="text-m mb-3">
-        Event: {eventData?.name || "Fetching event..."}
-      </Label>
-      <Button
-        className="w-1/4 mb-5 bg-blue-600 hover:bg-blue-700"
-        onClick={() => router.push(`/event/view?docId=${workoutData?.eventId}`)}
-      >
-        Back to Event
-      </Button>
+    <div className="mt-2 mx-1">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg text-center">
+            {workoutData?.name || "Fetching workout..."}
+          </CardTitle>
+          <CardDescription className="text-center">
+            Event: {eventData?.name || "Fetching event..."}
+          </CardDescription>
+        </CardHeader>
 
-      <Tabs defaultValue="exercise" className="w-full">
-        <TabsList className="w-full">
-          <TabsTrigger className="w-full" value="exercise">
-            View By Exercise
-          </TabsTrigger>
-          <TabsTrigger className="w-full" value="member">
-            View By Member
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex flex-row items-center justify-center w-full">
+          <Button
+            className="w-1/4 mb-5 mx-1 bg-blue-600 hover:bg-blue-700"
+            onClick={() =>
+              router.push(`/event/view?docId=${workoutData?.eventId}`)
+            }
+          >
+            Back to Event
+          </Button>
+          <Button
+            className="w-1/4 mb-5 mx-1 bg-blue-600 hover:bg-blue-700"
+            onClick={() =>
+              router.push(
+                `/workout/modify?workoutId=${workoutId}&userId=${userId}`
+              )
+            }
+          >
+            Back to My Log
+          </Button>
+        </div>
 
-        <TabsContent value="exercise">
-          {!exerciseList && <Label>Loading exercises...</Label>}
-          {exerciseList && <Label>Exercise list is not null.</Label>}
-        </TabsContent>
-
-        <TabsContent value="member">
-          {!userMap && <Label>Loading members...</Label>}
+        <CardContent>
+          {!userMap && (
+            <Label>No members have recorded logs for this workout.</Label>
+          )}
           {userMap &&
             Object.keys(userMap).map((userId) => (
               <UserLog
@@ -95,8 +120,8 @@ export default function GroupLogs() {
                 exerciseList={exerciseList ? exerciseList : []}
               ></UserLog>
             ))}
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 }
