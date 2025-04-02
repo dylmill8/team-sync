@@ -12,7 +12,7 @@ export default function InviteRedirect() {
   const router = useRouter();
   const { id } = useParams();
   //const searchParams = useSearchParams();
-  const [error, setError] = useState("");
+  const [error, setError] = useState("Loading...");
 
   useEffect(() => {
     const auth = getAuth();
@@ -28,7 +28,7 @@ export default function InviteRedirect() {
       }
 
       console.log("Invite ID:", id);
-      console.log("1");
+      //console.log("1");
 
       let event = null;
       let group = null;
@@ -42,20 +42,20 @@ export default function InviteRedirect() {
       const groupDocSnap = await getDoc(groupDocRef);
 
       if (eventDocSnap.exists()) {
-        console.log("Event document data:", eventDocSnap.data());
+        //console.log("Event document data:", eventDocSnap.data());
         const eventRef = eventDocSnap.data().event; // Extract event reference
         event = typeof eventRef === "object" && eventRef.id ? eventRef.id : eventRef; // Use .id if it's a DocumentReference
       } else if (groupDocSnap.exists()) {
-        console.log("Group document data:", groupDocSnap.data());
+        //console.log("Group document data:", groupDocSnap.data());
         const groupRef = groupDocSnap.data().group; // Extract group reference
         group = typeof groupRef === "object" && groupRef.id ? groupRef.id : groupRef; // Use .id if it's a DocumentReference
       } else {
-        console.error("Neither event nor group document exists.");
-        setError("Invalid invite link.");
+        setError("Invalid invite link. Does not exist as either an event invite or a group invite.");
+        //TODO: Sleep 5 seconds, redirect to calendar
         return;
       }
 
-      console.log("2");
+      //console.log("2");
 
       try {
         const inviteId = event || group;
@@ -67,7 +67,7 @@ export default function InviteRedirect() {
           return;
         }
 
-        console.log("2.1 / inviteId:", inviteId, "inviteType:", inviteType);
+        //console.log("2.1 / inviteId:", inviteId, "inviteType:", inviteType);
 
         const inviteRef = doc(db, inviteType, inviteId);
         const inviteSnap = await getDoc(inviteRef);
@@ -85,7 +85,7 @@ export default function InviteRedirect() {
         const userDocRef = doc(db, "Users", user.uid);
         const userDocSnap = await getDoc(userDocRef);
 
-        console.log("4");
+        //console.log("4");
 
         if (event) {
           if (userDocSnap.exists()) {
@@ -100,9 +100,18 @@ export default function InviteRedirect() {
           }
         } else {
           // TODO: Add user to group, ask TJ about how to do this
+          const groupRef = doc(db, "Groups", group);
+          
+          const userSnap = await getDoc(userDocRef);      
+          const userData = userSnap.data();
+    
+          // Add user to members map of the group
+          await updateDoc(groupRef, {
+            [`members.${user.uid}`]: [userData.username, "member"], // User becomes a member
+          });
         }
 
-        router.push(event ? `/event/view?docId=${event}` : `/group/${group}`); // Redirect user with query parameter
+        router.push(event ? `/event/view?docId=${event}` : `/groups?docId=${group}`); // Redirect user with query parameter for groups
       } catch (err) {
         setError("An error occurred while processing the invite.");
         console.error(err);
@@ -114,7 +123,6 @@ export default function InviteRedirect() {
 
   return (
     <div>
-      <h1>Loading...</h1>
       {error}
     </div>
   );
