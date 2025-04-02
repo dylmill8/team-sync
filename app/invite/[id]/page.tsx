@@ -107,7 +107,12 @@ export default function InviteRedirect() {
     
           // Add user to members map of the group
           await updateDoc(groupRef, {
-            [`members.${user.uid}`]: [userData.username, "member"], // User becomes a member
+            [`members.${user.uid}`]: [userData.username, "member"],
+          });
+
+          // Add group to user's groups array
+          await updateDoc(userDocRef, {
+            groups: arrayUnion(groupRef)
           });
         }
 
