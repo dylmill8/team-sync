@@ -54,12 +54,6 @@ export default function GroupSettings() {
       alert("Error: Invalid group or user.");
       return;
     }
-
-    if (userId !== groupData.owner) {
-      alert("You must be the group leader to make changes.");
-      return;
-    }
-
     try {
       const groupRef = doc(db, "Groups", groupId);
       await updateDoc(groupRef, {
@@ -82,7 +76,7 @@ export default function GroupSettings() {
     }
 
     if (userId !== groupData.owner) {
-      alert("You must be the group leader to delete the group.");
+      alert("You must be the group owner to delete the group.");
       return;
     }
 

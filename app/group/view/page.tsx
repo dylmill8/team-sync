@@ -219,7 +219,7 @@ export default function ViewGroup() {
           )}
 
           <Button
-            onClick={() => router.push("/groupslist")}
+            onClick={() => router.push(`/groups?docId=${groupId}`)}
             className="mt-2 w-full bg-gray-500 hover:bg-gray-600 text-white font-bold rounded transition-all"
           >
             Back
