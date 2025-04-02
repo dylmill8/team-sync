@@ -51,10 +51,10 @@ export default function FriendsChatsPage() {
     }
 
     // For each friend reference string, fetch the friend’s doc
-    const friendPromises = userData.friends.map(async (refPath) => {
+    const friendPromises = userData.friends.map(async (ref) => {
       // e.g. "/Users/someFriendId"
-      const segments = refPath.split("/");
-      const friendId = segments[segments.length - 1];
+      const friendId = ref.id;
+
       const friendDocRef = doc(db, "Users", friendId);
       const friendSnap = await getDoc(friendDocRef);
       if (friendSnap.exists()) {
