@@ -28,11 +28,28 @@ import {
   getDoc,
   DocumentReference,
 } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { firebaseApp } from "@/utils/firebaseConfig";
+import { useSearchParams } from "next/navigation";
+
+// interface EventData {
+//   name: string;
+//   allDay: boolean;
+//   start: { seconds: number };
+//   end: { seconds: number };
+//   description: string;
+//   location: string;
+//   docID: string;
+//   ownerType: string;
+//   owner: string;
+//   RSVP: { [key: string]: string };
+//   workouts: string;
+// }
 
 export default function CreateEvent() {
   const router = useRouter();
+  const group = useSearchParams().get("group");
+  const groupId = group ? useSearchParams().get("groupId") : "";
 
   const [eventName, setEventName] = useState("");
   const [description, setDescription] = useState("");
@@ -43,10 +60,24 @@ export default function CreateEvent() {
   const [loading, setLoading] = useState(false);
 
   const auth = getAuth(firebaseApp);
-  const uid = auth.currentUser?.uid;
+  const [uid, setUid] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUid(user.uid);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
 
   const cancelButton = () => {
-    router.push("/calendar");
+    if (group == "true") {
+      router.push(`/groups?docId=${groupId}`);
+    } else {
+      router.push("/calendar");
+    }
   };
 
   const eventCreation = async () => {
@@ -103,28 +134,58 @@ export default function CreateEvent() {
           ? Timestamp.fromDate(localEndDate)
           : Timestamp.fromDate(new Date(endDate)),
         location,
-        owner: uid,
+        ownerType: group == "true" ? "group" : "user",
+        owner: group == "true" ? groupId : [],
         RSVP: {},
         workouts: [],
       });
 
-      if (uid) {
-        const userDocRef = doc(db, "Users", uid);
-
-        // check if events array exists
-        const docSnap = await getDoc(userDocRef);
+      if (group == "false") {
+        const docSnap = await getDoc(docref);
         if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (!("events" in data)) {
-            await updateDoc(userDocRef, {
-              events: [],
-            });
-          }
+          await updateDoc(docref, {
+            owner: arrayUnion(uid),
+          });
         }
+      }
 
-        await updateDoc(userDocRef, {
-          events: arrayUnion(doc(db, "Event", docref.id)),
-        });
+      if (group == "true") {
+        if (groupId) {
+          const groupDocRef = doc(db, "Groups", groupId);
+
+          const docSnap = await getDoc(groupDocRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (!("events" in data)) {
+              await updateDoc(groupDocRef, {
+                events: [],
+              });
+            }
+          }
+
+          await updateDoc(groupDocRef, {
+            events: arrayUnion(doc(db, "Event", docref.id)),
+          });
+        }
+      } else {
+        if (uid) {
+          const userDocRef = doc(db, "Users", uid);
+
+          // check if events array exists
+          const docSnap = await getDoc(userDocRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (!("events" in data)) {
+              await updateDoc(userDocRef, {
+                events: [],
+              });
+            }
+          }
+
+          await updateDoc(userDocRef, {
+            events: arrayUnion(doc(db, "Event", docref.id)),
+          });
+        }
       }
 
       alert("Event successfulling created!");
