@@ -54,6 +54,15 @@ export default function Groups() {
         <>
             <div className="groups-header">
                 Your Groups
+                <button
+                    className="create-group-button"
+                    onClick={() => {
+                        router.push("/group/create");
+                    }
+                    }
+                >
+                    Create Group
+                </button>
             </div>
             <ScrollArea className="rounded-md h-[70vh] max-w-[1100px] mx-auto">
               <div className="groups-list">
