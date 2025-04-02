@@ -66,7 +66,7 @@ function UserLog({ userId, logId, exerciseList }: UserLogProps) {
             <div key={i} className="grid mb-2">
               <Label className="text-sm font-bold">{exerciseList[i]}:</Label>
               <Label className="text-sm">
-                {logData?.descriptions[i] || ""}
+                {logData?.descriptions[i] || "No log for this exercise."}
               </Label>
             </div>
           ))}
