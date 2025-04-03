@@ -201,7 +201,19 @@ export default function ChatPage() {
         }))
         .reverse()
       await populateUsernames(olderMsgs)
-      setMessages((prev) => [...olderMsgs, ...prev])
+      setMessages((prev) => {
+        // Combine old + new
+        const combined = [...olderMsgs, ...prev]
+        
+        // Filter out duplicates by id
+        const unique = combined.filter(
+          (message, index, self) =>
+            index === self.findIndex((m) => m.id === message.id)
+        )
+      
+        return unique
+      })
+      
       if (snapshot.docs.length > 0) {
         setLastVisible(snapshot.docs[snapshot.docs.length - 1])
       }
