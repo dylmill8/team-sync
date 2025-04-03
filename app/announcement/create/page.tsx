@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,12 +24,12 @@ import {
   updateDoc,
   arrayUnion,
   DocumentReference,
-  serverTimestamp
+  serverTimestamp,
 } from "firebase/firestore";
 
-export default function CreateAnnouncement() {
+const CreateAnnouncementPage = () => {
   const router = useRouter();
-  
+
   const groupId = useSearchParams()?.get("groupId") ?? "";
   const [groupRef, setGroupRef] = useState<DocumentReference | null>(null);
 
@@ -132,4 +133,10 @@ export default function CreateAnnouncement() {
       </Card>
     </div>
   );
+};
+
+export default function CreateAnnouncement() {
+  <Suspense fallback={<div>Loading...</div>}>
+    <CreateAnnouncementPage />
+  </Suspense>;
 }

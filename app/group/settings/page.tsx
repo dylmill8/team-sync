@@ -1,6 +1,5 @@
 "use client";
 
-import { Suspense } from "react";
 import { useState, useEffect } from "react";
 import {
   Card,
@@ -27,7 +26,7 @@ interface GroupData {
   events?: { path: string }[]; // Assuming events contain references as paths
 }
 
-const GroupSettingsPage = () => {
+export default function GroupSettings() {
   const auth = getAuth();
   const userId = auth.currentUser?.uid;
   const [groupData, setGroupData] = useState<GroupData | null>(null);
@@ -283,10 +282,4 @@ const GroupSettingsPage = () => {
       </Card>
     </div>
   );
-};
-
-export default function GroupSettings() {
-  <Suspense fallback={<div>Loading...</div>}>
-    <GroupSettingsPage />
-  </Suspense>;
 }
