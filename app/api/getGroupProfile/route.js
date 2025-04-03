@@ -5,7 +5,7 @@ import path from "path";
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId");
+    const userId = searchParams.get("groupId");
     if (!userId) {
       return NextResponse.json({ error: "User ID is required" }, { status: 400 });
     }
