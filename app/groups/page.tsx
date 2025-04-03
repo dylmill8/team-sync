@@ -16,7 +16,7 @@ import NavBar from "@/components/ui/navigation-bar";
 import { firebaseApp } from "@/utils/firebaseConfig";
 import { db } from '@/utils/firebaseConfig';
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { doc, DocumentReference, getDoc, query, collection, orderBy, startAfter, limit, getDocs, QueryDocumentSnapshot, DocumentData, onSnapshot } from "firebase/firestore";
+import { doc, DocumentReference, getDoc, query, collection, orderBy, startAfter, limit, getDocs, QueryDocumentSnapshot, DocumentData, onSnapshot, Timestamp } from "firebase/firestore";
 import { useState, useEffect, useRef } from "react";
 import { setDocument, viewDocument } from "../../utils/firebaseHelper.js"
 
@@ -65,7 +65,7 @@ type Message = {
   text: string
   userId: string
   username?: string
-  timestamp?: any
+  timestamp?: Timestamp
 }
 
 export default function Groups() {
@@ -311,7 +311,8 @@ export default function Groups() {
           const username = userData?.username || uid
           userCache.current[uid] = username
           msg.username = username
-        } catch (err) {
+        } catch (error) {
+          console.error("Error fetching user data:", error)
           msg.username = uid
         }
       }
@@ -421,8 +422,6 @@ export default function Groups() {
           <TabsContent value="chat" className="tabs-content">
             <div className="p-4 max-w-xl mx-auto">
 
-              <h1 className="text-xl font-bold mb-4">{groupData?.name}</h1>
-
               <Button onClick={loadMoreMessages} disabled={loadingMore}>
                 {loadingMore ? "Loading..." : "Load Previous Messages"}
               </Button>
@@ -451,7 +450,6 @@ export default function Groups() {
                 <Button onClick={sendMessage}>Send</Button>
               </div>
             </div>
-            Chat...
           </TabsContent>
           <TabsContent value="calendar" className="tabs-content">
             <NavBar/>
