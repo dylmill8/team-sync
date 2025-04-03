@@ -447,11 +447,11 @@ export default function Groups() {
           </TabsContent>
           <TabsContent value="chat" className="tabs-content">
             <div className="chat" ref={chatRef}>
-              {/* <Button onClick={loadMoreMessages} disabled={loadingMore}>
-                {loadingMore ? "Loading..." : "Load Previous Messages"}
-              </Button> */}
 
               <div className="chat-messages space-y-2 mb-4 mt-4">
+              <Button onClick={loadMoreMessages} disabled={loadingMore}>
+                {loadingMore ? "Loading..." : "Load Previous Messages"}
+              </Button>
                 {messages.map((msg: Message) => (
                   <div key={msg.id} className="border rounded p-2 shadow-sm bg-white">
                     <div className="text-sm text-gray-500">
