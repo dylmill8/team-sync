@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { arrayRemove, arrayUnion, doc, getDoc, DocumentData, updateDoc } from "firebase/firestore";
+import { arrayRemove, arrayUnion, doc, getDoc, DocumentData, updateDoc, addDoc, collection } from "firebase/firestore";
 import { db } from "../../../utils/firebaseConfig";
 import { getAuth } from "firebase/auth";
 import { viewDocument } from "../../../utils/firebaseHelper.js";
@@ -16,7 +16,11 @@ export default function ViewGroup() {
   const [data, setData] = useState<DocumentData | null>(null);
   const groupId = useSearchParams().get("groupId");
   const [loading, setLoading] = useState(true);
+  const [profileId] = useState(groupId || "");
+  const [preview, setPreview] = useState("/default.png");
   const router = useRouter();
+
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
 
   // Helper function to get number of members
   const getNumberOfMembers = (members: Record<string, any> | undefined): number => {
@@ -56,7 +60,20 @@ export default function ViewGroup() {
     };
 
     fetchGroup();
+    fetchProfileImage();
   }, [groupId]);
+
+  const fetchProfileImage = async () => {
+    try {
+      const res = await fetch(`/api/getGroupProfile?groupId=${profileId}`);
+      const data = await res.json();
+      if (res.ok && data.file) {
+        setPreview(`/uploads/groups/${data.file}?timestamp=${Date.now()}`);
+      }
+    } catch {
+      setPreview("/uploads/testuser.png");
+    }
+  };
 
   // Leave group button
   const handleLeaveGroup = async () => {
@@ -163,6 +180,37 @@ export default function ViewGroup() {
     }
   };
 
+  // Create invite link
+  const createInviteLink = async () => {
+    setInviteLink(null);
+
+    const userRef = doc(db, "Users", userId);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) {
+      alert("User not found.");
+      return;
+    }
+
+    if (!groupId) {
+      return;
+    }
+
+    const groupRef = doc(db, "Groups", groupId);
+    const groupSnap = await getDoc(groupRef);
+    if (!groupSnap.exists()) {
+      alert("Group not found.");
+      return;
+    }
+
+    const inviteRef = await addDoc(collection(db, "GroupInvite"), {
+      group: groupRef,
+    });
+
+    const generatedLink = `localhost:3000/invite/${inviteRef.id}`;
+    setInviteLink(generatedLink);
+    alert(`Your invite link has been generated!`);
+  }
+
   if (loading) {
     return <p>Loading...</p>;
   }
@@ -173,6 +221,19 @@ export default function ViewGroup() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <Card className="w-full max-w-md p-6 shadow-lg bg-white rounded-xl">
+      <img
+            src={preview}
+            alt="Profile"
+            width="150"
+            style={{
+              display: "block",
+              margin: "0 auto",
+              borderRadius: "50%",
+              objectFit: "cover",
+              border: "3px solid #0070f3",
+            }}
+            onError={(e) => (e.currentTarget.src = "/default.png")}
+      />
         <CardHeader>
           <CardTitle className="text-2xl font-semibold">
             {data?.name || "Error loading group name."}
@@ -182,6 +243,8 @@ export default function ViewGroup() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+
+          
 
           {/* Display number of members */}
           <div className="mb-4">
@@ -194,12 +257,27 @@ export default function ViewGroup() {
             You are the owner of this group.
             </p>
           ) : isMember ? (
-            <Button
-              onClick={handleLeaveGroup}
-              className="my-2 w-full bg-red-600 hover:bg-red-700 text-white font-bold rounded transition-all"
-            >
-              Leave Group
-            </Button>
+            <div>
+              <Button
+                onClick={handleLeaveGroup}
+                className="my-2 w-full bg-red-600 hover:bg-red-700 text-white font-bold rounded transition-all"
+              >
+                Leave Group
+              </Button>
+              <Button
+                onClick={createInviteLink}
+                className="my-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition-all"
+              >
+                Create Invite Link
+              </Button>
+              <div className="flex w-full">
+                {inviteLink && (
+                  <div className="w-full justify-center flex mb-2 mx-2 mt-0">
+                    Invite Link: {inviteLink}
+                  </div>
+                )}
+          </div>
+            </div>
           ) : (
             <Button
               onClick={handleJoinGroup}
@@ -226,6 +304,7 @@ export default function ViewGroup() {
           </Button>
         </CardContent>
       </Card>
+      
     </div>
   );
 }

@@ -84,7 +84,7 @@ export default function CreateGroup() {
             const formData = new FormData();
             formData.append("image", groupPicture);
             try {
-            const res = await fetch(`/api/upload?groupId=${docRef.id}`, {
+            const res = await fetch(`/api/uploadGroup?groupId=${docRef.id}`, {
                 method: "POST",
                 body: formData,
             });
@@ -158,7 +158,7 @@ export default function CreateGroup() {
               type="file"
               accept="image/*"
               className="mt-2" 
-              ref={groupPicInputRef} 
+              ref={groupPicInputRef}
               onChange={(e) => {
                 if (e.target.files && e.target.files[0]) {
                   setGroupPicture(e.target.files[0]);
