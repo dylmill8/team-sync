@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import { db } from "@/utils/firebaseConfig";
 import { doc, getDoc, onSnapshot, updateDoc } from "firebase/firestore";
 
-function RSVPView({ eventId }) {
+function RSVPView({ eventId }: { eventId: string }) {
   // const [yesList, setYesList] = useState([]);
   // const [maybeList, setMaybeList] = useState([]);
   // const [noList, setNoList] = useState([]);
@@ -95,7 +95,6 @@ function RSVPView({ eventId }) {
       var dict: { [key: string]: string } = {};
       for (var i in Object.keys(RSVPList)) {
         const uid = Object.keys(RSVPList)[i];
-        console.log("uid", uid);
         const docRef = doc(db, "Users", uid);
         const docSnap = await getDoc(docRef);
 

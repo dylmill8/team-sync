@@ -1,20 +1,21 @@
 "use client";
 
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, SetStateAction } from "react";
 import { db, firebaseApp } from "@/utils/firebaseConfig";
 import {
   doc,
   getDoc,
-  arrayRemove,
-  arrayUnion,
   updateDoc,
 } from "firebase/firestore";
 import { getAuth } from "@firebase/auth";
 
-function RSVPStatus({ eventId }) {
+interface RSVPStatusProps {
+  eventId: string;
+}
+
+function RSVPStatus({ eventId }: RSVPStatusProps) {
   const auth = getAuth(firebaseApp);
   const uid = auth.currentUser?.uid;
   // const [username, setUsername] = useState("");
@@ -99,7 +100,7 @@ function RSVPStatus({ eventId }) {
   // };
   // fetchUsername();
 
-  const handleStatusChange = async (newTab) => {
+  const handleStatusChange = async (newTab: SetStateAction<string>) => {
     try {
       const docRef = doc(db, "Event", eventId);
       // const oldArray = `RSVP_${status}`;
