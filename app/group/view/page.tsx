@@ -16,6 +16,8 @@ export default function ViewGroup() {
   const [data, setData] = useState<DocumentData | null>(null);
   const groupId = useSearchParams().get("groupId");
   const [loading, setLoading] = useState(true);
+  const [profileId] = useState(groupId || "");
+  const [preview, setPreview] = useState("/default.png");
   const router = useRouter();
 
   // Helper function to get number of members
@@ -56,7 +58,20 @@ export default function ViewGroup() {
     };
 
     fetchGroup();
+    fetchProfileImage();
   }, [groupId]);
+
+  const fetchProfileImage = async () => {
+    try {
+      const res = await fetch(`/api/getGroupProfile?groupId=${profileId}`);
+      const data = await res.json();
+      if (res.ok && data.file) {
+        setPreview(`/uploads/groups/${data.file}?timestamp=${Date.now()}`);
+      }
+    } catch {
+      setPreview("/uploads/testuser.png");
+    }
+  };
 
   // Leave group button
   const handleLeaveGroup = async () => {
@@ -200,6 +215,19 @@ export default function ViewGroup() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <Card className="w-full max-w-md p-6 shadow-lg bg-white rounded-xl">
+      <img
+            src={preview}
+            alt="Profile"
+            width="150"
+            style={{
+              display: "block",
+              margin: "0 auto",
+              borderRadius: "50%",
+              objectFit: "cover",
+              border: "3px solid #0070f3",
+            }}
+            onError={(e) => (e.currentTarget.src = "/default.png")}
+      />
         <CardHeader>
           <CardTitle className="text-2xl font-semibold">
             {data?.name || "Error loading group name."}
@@ -209,6 +237,8 @@ export default function ViewGroup() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+
+          
 
           {/* Display number of members */}
           <div className="mb-4">
@@ -261,6 +291,7 @@ export default function ViewGroup() {
           </Button>
         </CardContent>
       </Card>
+      
     </div>
   );
 }

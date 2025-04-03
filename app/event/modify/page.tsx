@@ -19,13 +19,10 @@ import { useState, useEffect, SetStateAction } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { db } from "../../../utils/firebaseConfig";
 import {
-  collection,
-  addDoc,
   Timestamp,
   DocumentData,
   doc,
   getDoc,
-  setDoc,
   updateDoc,
   arrayRemove,
   deleteDoc,

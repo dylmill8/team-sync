@@ -7,15 +7,19 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input"
+
 import { useRouter, useSearchParams } from "next/navigation";
 import NavBar from "@/components/ui/navigation-bar";
 import { firebaseApp } from "@/utils/firebaseConfig";
 import { db } from '@/utils/firebaseConfig';
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { doc, DocumentReference, getDoc } from "firebase/firestore";
+import { doc, DocumentReference, getDoc, query, collection, orderBy, startAfter, limit, getDocs, QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
 import { useState, useEffect, useRef } from "react";
+import { setDocument, viewDocument } from "../../utils/firebaseHelper.js"
+
 
 interface EventData {
   name: string;
@@ -56,6 +60,14 @@ interface GroupData {
   announcements: DocumentReference;
 }
 
+type Message = {
+  id: string
+  text: string
+  userId: string
+  username?: string
+  timestamp?: any
+}
+
 export default function Groups() {
   const auth = getAuth(firebaseApp);
   const uid = auth.currentUser?.uid;
@@ -63,16 +75,28 @@ export default function Groups() {
   const searchParams = useSearchParams();
   const docId = searchParams.get("docId");
   const calendarRef = useRef<FullCalendar>(null);
+  const userCache = useRef<Record<string, string>>({})
+  const batchSize = 10
+
 
   const [eventList, setEventList] = useState<CalendarEvent[]>([]);
   const [groupData, setGroupData] = useState<GroupData | null>(null);
   const [groupMembers, setGroupMembers] = useState<Array<Array<string>>>([]);
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [chatId, setChatId] = useState<string | null>(null)
+  const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null)
+  const [messages, setMessages] = useState<Message[]>([])
+  const [newMessage, setNewMessage] = useState("")
+
 
   useEffect(() => {
     async function fetchGroup() {
       if (!docId) {
         console.error("Invalid group ID");
         return;
+      }
+      if (typeof docId === "string") {
+        setChatId(docId)
       }
       const groupRef = doc(db, "Groups", docId);
       const groupDoc = await getDoc(groupRef);
@@ -84,6 +108,8 @@ export default function Groups() {
     }
     fetchGroup();
   }, [docId, uid]);
+
+
 
   //! TODO: maybe remove
   useEffect(() => {
@@ -105,21 +131,47 @@ export default function Groups() {
 
   useEffect(() => {
     if (groupData?.members) {
-      const values = Object.values(groupData.members);
-      const sortedMembers = values
-        .sort((a, b) => {
-          if (a[1] === 'leader' && b[1] !== 'leader') return -1;
-          if (a[1] !== 'leader' && b[1] === 'leader') return 1;
-          return 0;
+      const entries = Object.entries(groupData.members);
+      const sortedMembers = entries
+        .sort(([, a], [, b]) => {
+          const roleOrder = (role: string) => {
+            if (role === 'owner') return 0;
+            if (role === 'leader') return 1;
+            return 2;
+          };
+          return roleOrder(a[1]) - roleOrder(b[1]);
         })
-        .map((item: string) => {
-          const name = item[0];
-          const priority = item[1];
-          return [name, priority];
+        .map(([key, value]) => {
+          const name = value[0];
+          const role = value[1];
+          return [name, role, key];
         });
       setGroupMembers(sortedMembers);
+      console.log("Group members:", sortedMembers);
     }
   }, [groupData?.members]);
+
+    useEffect(() => {
+      if (!chatId) return
+      const initialQuery = query(
+        collection(db, "Chats", chatId, "messages"),
+        orderBy("timestamp", "desc"),
+        limit(batchSize)
+      )
+      getDocs(initialQuery)
+        .then(async (snapshot) => {
+          const msgs: Message[] = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...(doc.data() as Omit<Message, "id">),
+          })).reverse()
+          await populateUsernames(msgs)
+          setMessages(msgs)
+          if (snapshot.docs.length > 0) {
+            setLastVisible(snapshot.docs[snapshot.docs.length - 1])
+          }
+        })
+        .catch((err) => console.error("Error loading messages: ", err))
+    }, [chatId])
 
   async function handleCalendarTabClick() {
     if (!docId) {
@@ -164,6 +216,67 @@ export default function Groups() {
     }
   }
 
+  const populateUsernames = async (msgs: Message[]) => {
+    const promises = msgs.map(async (msg: Message) => {
+      const uid = msg.userId
+      if (userCache.current[uid]) {
+        msg.username = userCache.current[uid]
+      } else {
+        try {
+          const userData = await viewDocument("Users", uid)
+          const username = userData?.username || uid
+          userCache.current[uid] = username
+          msg.username = username
+        } catch (err) {
+          msg.username = uid
+        }
+      }
+    })
+    await Promise.all(promises)
+  }
+
+  const loadMoreMessages = async () => {
+      if (!chatId || !lastVisible) return
+      setLoadingMore(true)
+      const olderQuery = query(
+        collection(db, "Chats", chatId, "messages"),
+        orderBy("timestamp", "desc"),
+        startAfter(lastVisible),
+        limit(batchSize)
+      )
+      try {
+        const snapshot = await getDocs(olderQuery)
+        const olderMsgs: Message[] = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<Message, "id">),
+        })).reverse()
+        await populateUsernames(olderMsgs)
+        setMessages((prev) => [...olderMsgs, ...prev])
+        if (snapshot.docs.length > 0) {
+          setLastVisible(snapshot.docs[snapshot.docs.length - 1])
+        }
+      } catch (error) {
+        console.error("Error loading older messages:", error)
+      }
+      setLoadingMore(false)
+    }
+
+    const sendMessage = async () => {
+      if (!newMessage.trim() || !uid || !chatId) return
+      const newMsgId = `${Date.now()}`
+      const newMsgData = {
+        text: newMessage,
+        userId: uid,
+        timestamp: new Date(),
+      }
+      try {
+        await setDocument(`Chats/${chatId}/messages`, newMsgId, newMsgData)
+        setNewMessage("")
+      } catch (error) {
+        console.error("Failed to send message:", error)
+      }
+    }
+
   return (
     <>
       <div className="group-header-background">
@@ -175,20 +288,24 @@ export default function Groups() {
             <Sheet>
               <SheetTrigger>+</SheetTrigger>
               <SheetContent>
-                <SheetHeader>
+                <div className="member-sheet-content">
                   <SheetTitle style={{fontWeight: 'bold'}}>Members</SheetTitle>
-                    <div style={{ maxHeight: '200px', overflowY: 'auto', listStyle: 'none', padding: 0, margin: 0 }}>
-                      {Array.isArray(groupMembers) ? (
-                        groupMembers.map((member: Array<string>, index: number) => (
-                          <li key={index}>{member[0]}</li>
-                        ))
-                      ) : (
-                        <li style={{fontSize: '0.9em', color: 'grey'}}>
-                          No members found
+                  <div className="member-list">
+                    {Array.isArray(groupMembers) ? (
+                      groupMembers.map((member: Array<string>, index: number) => (
+                        <li key={index} className="member-name" onClick={() => router.push(`/profile/${member[2]}`)}>
+                          <div className="member-username">{member[0]}</div>
+                          <div className="member-permission">{member[1]}</div>
+                          <hr className="member-divider" />
                         </li>
-                      )}
-                    </div>
-                </SheetHeader>
+                      ))
+                    ) : (
+                      <li style={{fontSize: '0.9em', color: 'grey'}}>
+                        No members found
+                      </li>
+                    )}
+                  </div>
+                </div>
               </SheetContent>
             </Sheet>
           </div>
@@ -218,6 +335,38 @@ export default function Groups() {
             Announcements...
           </TabsContent>
           <TabsContent value="chat" className="tabs-content">
+            <div className="p-4 max-w-xl mx-auto">
+
+              <h1 className="text-xl font-bold mb-4">{groupData?.name}</h1>
+
+              <Button onClick={loadMoreMessages} disabled={loadingMore}>
+                {loadingMore ? "Loading..." : "Load Previous Messages"}
+              </Button>
+
+              <div className="space-y-2 mb-4 mt-4">
+                {messages.map((msg: Message) => (
+                  <div key={msg.id} className="border rounded p-2 shadow-sm bg-white">
+                    <div className="text-sm text-gray-500">
+                      {msg.username} •{" "}
+                      {msg.timestamp?.toDate?.().toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                    <div>{msg.text}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex space-x-2">
+                <Input
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type a message"
+                />
+                <Button onClick={sendMessage}>Send</Button>
+              </div>
+            </div>
             Chat...
           </TabsContent>
           <TabsContent value="calendar" className="tabs-content">

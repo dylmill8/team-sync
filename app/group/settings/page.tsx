@@ -19,10 +19,13 @@ export default function GroupSettings() {
   const [groupData, setGroupData] = useState<any>(null);
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
-  const [groupPicture, setGroupPicture] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const groupId = useSearchParams().get("groupId");
   const router = useRouter();
+  const [uploading, setUploading] = useState(false);
+  const [image, setImage] = useState<File | null>(null);
+
+  
   const [isPrivate, setIsPrivate] = useState(false); // Track privacy setting
 
 
@@ -48,6 +51,42 @@ export default function GroupSettings() {
     
     fetchGroupData();
   }, [groupId]);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      const file = event.target.files[0];
+      setImage(file);
+    }
+  };
+
+
+  const handleUpload = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!image) {
+      alert("Please select an image!");
+      return;
+    }
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("image", image);
+
+    try {
+      const res = await fetch(`/api/uploadGroup?groupId=${groupId}`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Upload failed");
+      }
+      alert("Upload successful!");
+    } catch (error: any) {
+      alert(`Upload failed! ${error.message || "Unknown error"}`);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleUpdateGroupSettings = async () => {
     if (!userId || !groupId || !groupData) {
@@ -151,17 +190,36 @@ export default function GroupSettings() {
 
           <div className="mb-4">
             <label className="text-sm font-medium">Group Profile Picture</label>
-            <Input
-              type="file"
-              accept="image/*"
-              className="mt-2"
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  setGroupPicture(e.target.files[0]);
-                }
-              }}
-            />
+        
           </div>
+
+      <form onSubmit={handleUpload} style={{ marginBottom: "20px" }}>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          required
+          style={{ display: "block", margin: "10px auto" }}
+        />
+        <button
+          type="submit"
+          disabled={uploading}
+          style={{
+            padding: "10px 15px",
+            backgroundColor: uploading ? "#ccc" : "#0070f3",
+            color: "#fff",
+            border: "none",
+            borderRadius: "5px",
+            cursor: uploading ? "not-allowed" : "pointer",
+            width: "100%",
+          }}
+        >
+          {uploading ? "Uploading..." : "Upload New Image"}
+        </button>
+      </form>
+
+
+
 
           <div className="mb-4 flex items-center justify-between">
             <Label className="text-sm font-medium">Private Group</Label>
