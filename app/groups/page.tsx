@@ -372,6 +372,15 @@ export default function Groups() {
     }
   }
 
+  useEffect(() => {
+    if (chatRef.current) {
+      const chatMessagesEl = chatRef.current.querySelector('.chat-messages');
+      if (chatMessagesEl) {
+        chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+      }
+    }
+  }, [messages]);
+
   return (
     <>
       <div className="group-header-background">
