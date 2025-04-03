@@ -13,7 +13,6 @@ import {
 import { Label } from "@/components/ui/label";
 
 import {
-  DocumentData,
   DocumentReference,
   getDoc,
   Timestamp,
