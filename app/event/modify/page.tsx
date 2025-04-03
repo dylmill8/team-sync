@@ -36,6 +36,7 @@ import { getAuth } from "firebase/auth";
 export default function ModifyEvent() {
   const router = useRouter();
   const docId = useSearchParams().get("docId");
+  const [inviteLink, setInviteLink] = useState<string | null>(null); // Use state for inviteLink
 
   // fetch data on load
   const [data, setData] = useState<DocumentData | null>(null);
@@ -239,6 +240,8 @@ export default function ModifyEvent() {
 
   // Create invite link
   const createInviteLink = async () => {
+    setInviteLink(null);
+
     const auth = getAuth();
     const userId = auth.currentUser?.uid;
     if (!userId) {
@@ -267,8 +270,10 @@ export default function ModifyEvent() {
       event: eventRef,
     });
 
-    alert("Your invite link has been generated! Copy this link:\nlocalhost:3000/invite/" + inviteRef.id);
-  }
+    const generatedLink = `localhost:3000/invite/${inviteRef.id}`;
+    setInviteLink(generatedLink);
+    alert(`Your invite link has been generated!`);
+  };
 
   return (
     <div className="flex items-center justify-center">
@@ -387,6 +392,14 @@ export default function ModifyEvent() {
             >
               Create Event Invite Link
             </Button>
+          </div>
+
+          <div className="flex w-full">
+            {inviteLink && (
+              <div className="w-full justify-center flex mb-2 mx-2 mt-0">
+                Invite Link: {inviteLink}
+              </div>
+            )}
           </div>
 
           <div className="flex w-full">
