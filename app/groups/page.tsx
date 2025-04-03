@@ -78,6 +78,8 @@ export default function Groups() {
   const userCache = useRef<Record<string, string>>({})
   const batchSize = 10
 
+  const chatRef = useRef<HTMLDivElement>(null);
+  const tabsListRef = useRef<HTMLDivElement>(null);
 
   const [eventList, setEventList] = useState<CalendarEvent[]>([]);
   const [groupData, setGroupData] = useState<GroupData | null>(null);
@@ -88,6 +90,30 @@ export default function Groups() {
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
 
+  useEffect(() => {
+    const updateChatPosition = () => {
+      if (!chatRef.current || !tabsListRef.current) return;
+      const chatEl = chatRef.current;
+      const tabsRect = tabsListRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const chatHeight = chatEl.offsetHeight;
+      const baseBottom = 0.12 * viewportHeight;
+      const chatTop = viewportHeight - baseBottom - chatHeight;
+      if (chatTop < tabsRect.bottom) {
+        const newBottom = viewportHeight - chatHeight - tabsRect.bottom;
+        chatEl.style.bottom = newBottom + "px";
+      } else {
+        chatEl.style.bottom = baseBottom + "px";
+      }
+    };
+    window.addEventListener("resize", updateChatPosition);
+    window.addEventListener("scroll", updateChatPosition);
+    updateChatPosition();
+    return () => {
+      window.removeEventListener("resize", updateChatPosition);
+      window.removeEventListener("scroll", updateChatPosition);
+    };
+  }, []);
 
   useEffect(() => {
     async function fetchGroup() {
@@ -359,7 +385,7 @@ export default function Groups() {
             handleCalendarTabClick();
           }
         }}>
-          <TabsList className="tabs-list">
+          <TabsList className="tabs-list" ref={tabsListRef}>
             <TabsTrigger value="announcements" className="tabs-trigger">
               announcements
             </TabsTrigger>
@@ -377,13 +403,12 @@ export default function Groups() {
             Announcements...
           </TabsContent>
           <TabsContent value="chat" className="tabs-content">
-            <div className="p-4 max-w-xl mx-auto">
+            <div className="chat" ref={chatRef}>
 
+              <div className="chat-messages space-y-2 mb-4 mt-4">
               <Button onClick={loadMoreMessages} disabled={loadingMore}>
                 {loadingMore ? "Loading..." : "Load Previous Messages"}
               </Button>
-
-              <div className="space-y-2 mb-4 mt-4">
                 {messages.map((msg: Message) => (
                   <div key={msg.id} className="border rounded p-2 shadow-sm bg-white">
                     <div className="text-sm text-gray-500">
