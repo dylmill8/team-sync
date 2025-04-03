@@ -182,7 +182,6 @@ export default function Groups() {
           return [name, role, key];
         });
       setGroupMembers(sortedMembers);
-      console.log("Group members:", sortedMembers);
     }
   }, [groupData?.members]);
 
