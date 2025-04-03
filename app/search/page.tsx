@@ -9,12 +9,21 @@ import { db } from "../../utils/firebaseConfig";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import NavBar from "@/components/ui/navigation-bar";
 
+interface Group {
+  id: string;
+  name: string;
+  description: string;
+  isPrivate: boolean;
+  members?: Record<string, [string, string]>; // [username, permission]
+  events?: string[];
+}
+
 export default function GroupSearch() {
   const [searchTerm, setSearchTerm] = useState("");
   const [minMembers, setMinMembers] = useState(""); // Minimum members filter
   const [minEvents, setMinEvents] = useState(""); // Minimum events filter
-  const [allGroups, setAllGroups] = useState<any[]>([]);
-  const [filteredGroups, setFilteredGroups] = useState<any[]>([]);
+  const [allGroups, setAllGroups] = useState<Group[]>([]);
+  const [filteredGroups, setFilteredGroups] = useState<Group[]>([]);
   const [showFilters, setShowFilters] = useState(false); // Toggle filter menu
   const router = useRouter();
 
@@ -22,7 +31,17 @@ export default function GroupSearch() {
     const fetchGroups = async () => {
       const q = query(collection(db, "Groups"), where("isPrivate", "==", false));
       const querySnapshot = await getDocs(q);
-      const groupList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const groupList = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: data.name || "",
+          description: data.description || "",
+          isPrivate: data.isPrivate || false,
+          members: data.members || {}, // Ensure members is always an object
+          events: data.events || [], // Ensure events is always an array
+        };
+      });
       setAllGroups(groupList);
       setFilteredGroups(groupList);
     };

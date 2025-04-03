@@ -8,10 +8,18 @@ import { db } from "../../../utils/firebaseConfig";
 import { doc, getDoc, updateDoc, collection, addDoc } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
 
+interface Workout {
+  id: string;
+  name: string;
+  exercises: string[];
+  Map: { [userId: string]: string };
+  eventId: string;
+}
+
 export default function ModifyWorkout() {
   const [exercises, setExercises] = useState<string[]>([]);
   const [personalLogs, setPersonalLogs] = useState<string[]>([]);
-  const [workout, setWorkout] = useState<any>(null);
+  const [workout, setWorkout] = useState<Workout | null>(null); // Specify the type for workout
   const router = useRouter();
   const searchParams = useSearchParams();
   const workoutId = searchParams.get('workoutId');  // Get workoutId from query params
@@ -26,7 +34,17 @@ export default function ModifyWorkout() {
         if (workoutDocSnap.exists()) {
           const workoutData = workoutDocSnap.data();
           const exerciseList = workoutData.exercises || [];
-          setWorkout(workoutDocSnap.data());
+
+          // Manually set the fields of the workout object
+          const workoutObject: Workout = {
+            id: workoutDocSnap.id, // Using doc id as the workout ID
+            name: workoutData.name || "",
+            exercises: workoutData.exercises || [],
+            Map: workoutData.Map || {},
+            eventId: workoutData.eventId || "",
+          };
+          setWorkout(workoutObject); // Manually set the workout object
+
           setExercises(workoutDocSnap.data().exercises || []);
           setPersonalLogs(new Array(exerciseList.length).fill("")); // Initialize personalLogs with empty strings
         }
@@ -97,7 +115,7 @@ export default function ModifyWorkout() {
 
       const userRef = doc(db, "Users", userId);
       const userSnap = await getDoc(userRef);
-      let workouts = userSnap.exists() ? userSnap.data().workouts || [] : [];
+      const workouts = userSnap.exists() ? userSnap.data().workouts || [] : [];
       
       // Add the workoutId if it isn't already in the array
       if (!workouts.includes(workoutId)) {
@@ -114,7 +132,7 @@ export default function ModifyWorkout() {
       router.push(`/event/view?docId=${eventId}`);
 
     } catch (error) {
-      alert("Error saving logs.");
+      console.error("Error saving logs", error);
     }
   };
 
