@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDocs, query, where, setDoc, doc} from "firebase/firestore";
-import { collection, addDoc } from "firebase/firestore";
+import { collection } from "firebase/firestore";
 import { auth, db } from "../../utils/firebaseConfig"; 
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -66,15 +66,15 @@ export default function Register() {
       const user = userCredential.user;
 
       /* email, username, password send to database. userID is docRef */
-      const docRef = await setDoc(doc(db, "Users", user.uid), {
+      await setDoc(doc(db, "Users", user.uid), {
         email: email,
         username: username,
         isLightTheme: false,
       });  
       
-      const passDocRef = await setDoc(doc(db, "UserPasswords", user.uid), {
-        password: password,
-      });  
+      // const passDocRef = await setDoc(doc(db, "UserPasswords", user.uid), {
+      //   password: password,
+      // });  
 
       /* profile picture save with Marco API */
       if (profilePicture) {
@@ -108,11 +108,7 @@ export default function Register() {
       alert(`Email Registered: ${email}, username: ${username}`);
       router.push("/profile"); // Redirect to profile page
     } catch (e) {
-      if (e.code) {
-        alert(`Error: ${e.message}`);
-      } else {
-        alert("Error adding document:");
-      }
+      alert("Error adding document:");
     }
   };
   return (
