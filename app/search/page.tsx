@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "../../utils/firebaseConfig";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import NavBar from "@/components/ui/navigation-bar";
 
 export default function GroupSearch() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -126,6 +127,7 @@ export default function GroupSearch() {
           </Card>
         ))}
       </div>
+      <NavBar />
     </div>
   );
 }

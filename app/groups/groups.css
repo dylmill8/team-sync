@@ -129,7 +129,7 @@
 }
 
 .chat-messages {
-  max-height: 40vh;
+  max-height: 70vh;
   overflow-y: auto;
   /* background-color: #f9f9f9; */
   border-radius: 5px;
