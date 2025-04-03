@@ -211,7 +211,7 @@ export default function ChatPage() {
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !currentUserId || !chatId) return
-    const newMsgId = `${Date.now()}`
+    const newMsgId = `${Date.now()}_${userid}`
     const newMsgData = {
       text: newMessage,
       userId: currentUserId,

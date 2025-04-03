@@ -96,7 +96,7 @@ export default function Groups() {
         return;
       }
       if (typeof docId === "string") {
-        setChatId(docId)
+        setChatId("group" + docId)
       }
       const groupRef = doc(db, "Groups", docId);
       const groupDoc = await getDoc(groupRef);
@@ -151,110 +151,67 @@ export default function Groups() {
     }
   }, [groupData?.members]);
 
-    useEffect(() => {
-      if (!chatId) return
-      const initialQuery = query(
-        collection(db, "Chats", chatId, "messages"),
-        orderBy("timestamp", "desc"),
-        limit(batchSize)
-      )
-      getDocs(initialQuery)
-        .then(async (snapshot) => {
-          const msgs: Message[] = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...(doc.data() as Omit<Message, "id">),
-          })).reverse()
-          await populateUsernames(msgs)
-          setMessages(msgs)
-          if (snapshot.docs.length > 0) {
-            setLastVisible(snapshot.docs[snapshot.docs.length - 1])
-          }
-        })
-        .catch((err) => console.error("Error loading messages: ", err))
-    }, [chatId])
+  
 
-    useEffect(() => {
-        if (!chatId || messages.length === 0) return
-        const latestMessage = messages[messages.length - 1]
-        if (!latestMessage) return
-    
-        const newMsgQuery = query(
-          collection(db, "Chats", chatId, "messages"),
-          orderBy("timestamp", "asc"),
-          startAfter(latestMessage.timestamp)
-        )
-        const unsubscribe = onSnapshot(newMsgQuery, async (snapshot) => {
-          const newMsgs: Message[] = snapshot.docs.map((doc) => ({
+  useEffect(() => {
+    if (!chatId) return
+  
+    const initMessages = async () => {
+      const messagesRef = collection(db, "Chats", chatId, "messages")
+      const initialQuery = query(messagesRef, orderBy("timestamp", "desc"), limit(batchSize))
+      const snapshot = await getDocs(initialQuery)
+  
+      if (snapshot.empty) {
+        await setDocument(`Chats/${chatId}/messages`, "_placeholder", {
+          text: "",
+          userId: "system",
+          timestamp: new Date(0),
+        })
+        setMessages([])
+        return
+      }
+  
+      const msgs: Message[] = snapshot.docs
+        .filter((doc) => doc.id !== "_placeholder")
+        .map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<Message, "id">),
+        }))
+        .reverse()
+  
+      await populateUsernames(msgs)
+      setMessages(msgs)
+  
+      if (snapshot.docs.length > 0) {
+        setLastVisible(snapshot.docs[snapshot.docs.length - 1])
+      }
+    }
+  
+    initMessages().catch((err) => console.error("Error loading messages:", err))
+  }, [chatId])
+
+  useEffect(() => {
+    if (!chatId) return
+
+    const messagesRef = collection(db, "Chats", chatId, "messages")
+    const unsubscribe = onSnapshot(
+      query(messagesRef, orderBy("timestamp", "asc")),
+      async (snapshot) => {
+        const newMsgs: Message[] = snapshot.docs
+          .filter((doc) => doc.id !== "_placeholder")
+          .map((doc) => ({
             id: doc.id,
             ...(doc.data() as Omit<Message, "id">),
           }))
-          if (newMsgs.length > 0) {
-            await populateUsernames(newMsgs)
-            setMessages((prev) => [...prev, ...newMsgs])
-          }
-        })
-        return () => unsubscribe()
-      }, [chatId, messages])
-
-      useEffect(() => {
-        if (!chatId) return
-      
-        const initMessages = async () => {
-          const messagesRef = collection(db, "Chats", chatId, "messages")
-          const initialQuery = query(messagesRef, orderBy("timestamp", "desc"), limit(batchSize))
-          const snapshot = await getDocs(initialQuery)
-      
-          if (snapshot.empty) {
-            await setDocument(`Chats/${chatId}/messages`, "_placeholder", {
-              text: "",
-              userId: "system",
-              timestamp: new Date(0),
-            })
-            setMessages([])
-            return
-          }
-      
-          const msgs: Message[] = snapshot.docs
-            .filter((doc) => doc.id !== "_placeholder")
-            .map((doc) => ({
-              id: doc.id,
-              ...(doc.data() as Omit<Message, "id">),
-            }))
-            .reverse()
-      
-          await populateUsernames(msgs)
-          setMessages(msgs)
-      
-          if (snapshot.docs.length > 0) {
-            setLastVisible(snapshot.docs[snapshot.docs.length - 1])
-          }
+        if (newMsgs.length > 0) {
+          await populateUsernames(newMsgs)
+          setMessages(newMsgs)
         }
-      
-        initMessages().catch((err) => console.error("Error loading messages:", err))
-      }, [chatId])
-      
-      useEffect(() => {
-        if (!chatId) return
-      
-        const messagesRef = collection(db, "Chats", chatId, "messages")
-        const unsubscribe = onSnapshot(
-          query(messagesRef, orderBy("timestamp", "asc")),
-          async (snapshot) => {
-            const newMsgs: Message[] = snapshot.docs
-              .filter((doc) => doc.id !== "_placeholder")
-              .map((doc) => ({
-                id: doc.id,
-                ...(doc.data() as Omit<Message, "id">),
-              }))
-            if (newMsgs.length > 0) {
-              await populateUsernames(newMsgs)
-              setMessages(newMsgs)
-            }
-          }
-        )
-      
-        return () => unsubscribe()
-      }, [chatId])
+      }
+    )
+
+    return () => unsubscribe()
+  }, [chatId])
       
 
   async function handleCalendarTabClick() {
@@ -321,46 +278,46 @@ export default function Groups() {
   }
 
   const loadMoreMessages = async () => {
-      if (!chatId || !lastVisible) return
-      setLoadingMore(true)
-      const olderQuery = query(
-        collection(db, "Chats", chatId, "messages"),
-        orderBy("timestamp", "desc"),
-        startAfter(lastVisible),
-        limit(batchSize)
-      )
-      try {
-        const snapshot = await getDocs(olderQuery)
-        const olderMsgs: Message[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...(doc.data() as Omit<Message, "id">),
-        })).reverse()
-        await populateUsernames(olderMsgs)
-        setMessages((prev) => [...olderMsgs, ...prev])
-        if (snapshot.docs.length > 0) {
-          setLastVisible(snapshot.docs[snapshot.docs.length - 1])
-        }
-      } catch (error) {
-        console.error("Error loading older messages:", error)
+    if (!chatId || !lastVisible) return
+    setLoadingMore(true)
+    const olderQuery = query(
+      collection(db, "Chats", chatId, "messages"),
+      orderBy("timestamp", "desc"),
+      startAfter(lastVisible),
+      limit(batchSize)
+    )
+    try {
+      const snapshot = await getDocs(olderQuery)
+      const olderMsgs: Message[] = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as Omit<Message, "id">),
+      })).reverse()
+      await populateUsernames(olderMsgs)
+      setMessages((prev) => [...olderMsgs, ...prev])
+      if (snapshot.docs.length > 0) {
+        setLastVisible(snapshot.docs[snapshot.docs.length - 1])
       }
-      setLoadingMore(false)
+    } catch (error) {
+      console.error("Error loading older messages:", error)
     }
+    setLoadingMore(false)
+  }
 
-    const sendMessage = async () => {
-      if (!newMessage.trim() || !uid || !chatId) return
-      const newMsgId = `${Date.now()}`
-      const newMsgData = {
-        text: newMessage,
-        userId: uid,
-        timestamp: new Date(),
-      }
-      try {
-        await setDocument(`Chats/${chatId}/messages`, newMsgId, newMsgData)
-        setNewMessage("")
-      } catch (error) {
-        console.error("Failed to send message:", error)
-      }
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !uid || !chatId) return
+    const newMsgId = `${Date.now()}_${uid}`
+    const newMsgData = {
+      text: newMessage,
+      userId: uid,
+      timestamp: new Date(),
     }
+    try {
+      await setDocument(`Chats/${chatId}/messages`, newMsgId, newMsgData)
+      setNewMessage("")
+    } catch (error) {
+      console.error("Failed to send message:", error)
+    }
+  }
 
   return (
     <>
