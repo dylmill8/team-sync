@@ -192,7 +192,10 @@ export default function ViewGroup() {
   // Create invite link
   const createInviteLink = async () => {
     setInviteLink(null);
-
+    if (!userId) {
+      alert("User is not logged in.");
+      return;
+    }
     const userRef = doc(db, "Users", userId);
     const userSnap = await getDoc(userRef);
     if (!userSnap.exists()) {
@@ -262,9 +265,24 @@ export default function ViewGroup() {
           
           {/* Conditional rendering based on user role */}
           {data.owner === userId ? (
-            <p className="font-medium text-gray-700">
-            You are the owner of this group.
-            </p>
+            <div>
+              <p className="font-medium text-gray-700">
+                You are the owner of this group.
+              </p>
+              <Button
+                onClick={createInviteLink}
+                className="my-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition-all"
+              >
+                Create Invite Link
+              </Button>
+              <div className="flex w-full">
+                {inviteLink && (
+                  <div className="w-full justify-center flex mb-2 mx-2 mt-0">
+                    Invite Link: {inviteLink}
+                  </div>
+                )}
+              </div>
+            </div>
           ) : isMember ? (
             <div>
               <Button
@@ -285,7 +303,7 @@ export default function ViewGroup() {
                     Invite Link: {inviteLink}
                   </div>
                 )}
-          </div>
+              </div>
             </div>
           ) : (
             <Button
