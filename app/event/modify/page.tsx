@@ -25,8 +25,9 @@ import {
   updateDoc,
   arrayRemove,
   deleteDoc,
+  addDoc,
+  collection,
 } from "firebase/firestore";
-import { create } from "domain";
 import { getAuth } from "firebase/auth";
 
 export default function ModifyEvent() {
@@ -113,7 +114,9 @@ export default function ModifyEvent() {
   }
 
   // change updatedData variable on input field change
-  const handleDataChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleDataChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
 
     console.log("name:", name);
