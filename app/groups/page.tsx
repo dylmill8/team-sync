@@ -7,7 +7,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
 import NavBar from "@/components/ui/navigation-bar";
@@ -105,19 +105,23 @@ export default function Groups() {
 
   useEffect(() => {
     if (groupData?.members) {
-      const values = Object.values(groupData.members);
-      const sortedMembers = values
-        .sort((a, b) => {
-          if (a[1] === 'leader' && b[1] !== 'leader') return -1;
-          if (a[1] !== 'leader' && b[1] === 'leader') return 1;
-          return 0;
+      const entries = Object.entries(groupData.members);
+      const sortedMembers = entries
+        .sort(([, a], [, b]) => {
+          const roleOrder = (role: string) => {
+            if (role === 'owner') return 0;
+            if (role === 'leader') return 1;
+            return 2;
+          };
+          return roleOrder(a[1]) - roleOrder(b[1]);
         })
-        .map((item: string) => {
-          const name = item[0];
-          const priority = item[1];
-          return [name, priority];
+        .map(([key, value]) => {
+          const name = value[0];
+          const role = value[1];
+          return [name, role, key];
         });
       setGroupMembers(sortedMembers);
+      console.log("Group members:", sortedMembers);
     }
   }, [groupData?.members]);
 
@@ -175,20 +179,24 @@ export default function Groups() {
             <Sheet>
               <SheetTrigger>+</SheetTrigger>
               <SheetContent>
-                <SheetHeader>
+                <div className="member-sheet-content">
                   <SheetTitle style={{fontWeight: 'bold'}}>Members</SheetTitle>
-                    <div style={{ maxHeight: '200px', overflowY: 'auto', listStyle: 'none', padding: 0, margin: 0 }}>
-                      {Array.isArray(groupMembers) ? (
-                        groupMembers.map((member: Array<string>, index: number) => (
-                          <li key={index}>{member[0]}</li>
-                        ))
-                      ) : (
-                        <li style={{fontSize: '0.9em', color: 'grey'}}>
-                          No members found
+                  <div className="member-list">
+                    {Array.isArray(groupMembers) ? (
+                      groupMembers.map((member: Array<string>, index: number) => (
+                        <li key={index} className="member-name" onClick={() => router.push(`/profile/${member[2]}`)}>
+                          <div className="member-username">{member[0]}</div>
+                          <div className="member-permission">{member[1]}</div>
+                          <hr className="member-divider" />
                         </li>
-                      )}
-                    </div>
-                </SheetHeader>
+                      ))
+                    ) : (
+                      <li style={{fontSize: '0.9em', color: 'grey'}}>
+                        No members found
+                      </li>
+                    )}
+                  </div>
+                </div>
               </SheetContent>
             </Sheet>
           </div>
