@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { useEffect, useState } from "react"; 
@@ -19,7 +17,7 @@ const NavBar = () => {
 
     return (
         <div className={`navbar fixed bottom-0 left-0 w-full items-center shadow-md flex justify-around h-[10vh] border-t z-10 p-0 min-h-[20]`}>
-            <NavBarItem href="/calendar" icon="/nav_bar_icons/Search.png" active={false} />
+            <NavBarItem href="/search" icon="/nav_bar_icons/Search.png" active={false} />
             <NavBarItem href="/groupslist" icon="/nav_bar_icons/Groups.png" active={false} />
             <NavBarItem href="/calendar" icon="/nav_bar_icons/Calendar.png" active={false} />
             <NavBarItem href="/settings" icon="/nav_bar_icons/Settings.png" active={false} />

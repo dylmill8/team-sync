@@ -1,10 +1,7 @@
 "use client"
 import Image from "next/image";
-import Link from 'next/link';
 import { getAuth, signInWithEmailAndPassword, setPersistence, browserSessionPersistence } from "firebase/auth";
-import React, { useState, useEffect } from 'react';
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { setDocument, viewDocument } from "../utils/firebaseHelper.js"
+import React, { useState } from 'react';
 import { db } from "../utils/firebaseConfig"; 
 import { doc, getDoc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation"; //TJ added
@@ -20,13 +17,14 @@ export default function Home() {
 
   const auth = getAuth();
 
-  const changeEmailInput = (e) => {
+  const changeEmailInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);
-  }
-
-  const changePasswordInput = (e) => {
+  };
+  
+  const changePasswordInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPassword(e.target.value);
-  }
+  };
+  
 
   const handleLogin = async () => {
     console.log("trying login with EMAIL:" + email + " | PASSWORD:" + password + "\n");
@@ -91,7 +89,7 @@ export default function Home() {
             const secondaryUserData = secondaryUserDocSnap.data();
             const updatedSecondaryAccounts = secondaryUserData.otherAccounts || [];
 
-            if (!updatedSecondaryAccounts.some(ref => ref.id === primaryUser.uid)) {
+            if (!updatedSecondaryAccounts.some((ref: { id: string; }) => ref.id === primaryUser.uid)) {
               updatedSecondaryAccounts.push(primaryUserRef);
               await updateDoc(secondaryUserDocRef, { otherAccounts: updatedSecondaryAccounts });
             }
@@ -112,10 +110,14 @@ export default function Home() {
 
       // If addAccount is not true, just navigate to the calendar
       router.push("/calendar");
-    } catch (err) {
-      console.log(err.code);
-      console.log(err.message);
+    } catch (error) {
+      if (error instanceof Error) {
+        console.log(`Error! ${error.message || "Unknown error"}`);
+      } else {
+        console.log("Error updating password!");
+      }
       setError("Invalid email or password.");
+
     }
 };
 

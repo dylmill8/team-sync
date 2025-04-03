@@ -52,9 +52,9 @@ export default function ViewEvent() {
   // use effect for fetching workout data
   useEffect(() => {
     const parseWorkoutData = async () => {
-      var nameList = [];
-      var dict: { [key: string]: string } = {};
-      for (var id in workoutData) {
+      const nameList = [];
+      const dict: { [key: string]: string } = {};
+      for (const id in workoutData) {
         const workoutId = workoutData[id];
         const workoutDoc = doc(db, "Workouts", workoutId);
         const workoutSnap = await getDoc(workoutDoc);
@@ -69,7 +69,7 @@ export default function ViewEvent() {
     };
 
     parseWorkoutData();
-  }, [workoutCount]);
+  }, [workoutCount, workoutData]);
 
   // use effect for fetching data
   useEffect(() => {
@@ -95,7 +95,7 @@ export default function ViewEvent() {
     };
 
     fetchDocument();
-  }, []);
+  }, [docId]);
 
   // set modify event permissions use effect
   useEffect(() => {

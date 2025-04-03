@@ -67,7 +67,7 @@ export default function GroupLogs() {
     };
 
     fetchWorkoutData();
-  }, []);
+  }, [workoutId]);
 
   if (!workoutId) {
     return <h1>Loading workout logs...</h1>;

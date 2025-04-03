@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -15,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-import { useState, useEffect, SetStateAction } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { db } from "../../../utils/firebaseConfig";
 import {
@@ -26,11 +25,15 @@ import {
   updateDoc,
   arrayRemove,
   deleteDoc,
+  addDoc,
+  collection,
 } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 export default function ModifyEvent() {
   const router = useRouter();
   const docId = useSearchParams().get("docId");
+  const [inviteLink, setInviteLink] = useState<string | null>(null); // Use state for inviteLink
 
   // fetch data on load
   const [data, setData] = useState<DocumentData | null>(null);
@@ -111,19 +114,21 @@ export default function ModifyEvent() {
   }
 
   // change updatedData variable on input field change
-  const handleDataChange = (e: { target: { name: any; value: any } }) => {
+  const handleDataChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
 
     console.log("name:", name);
     if (allDay && name == "start") {
       setUpdatedData((prevData) => ({
         ...prevData,
-        start: `${value}T00:00`,
+        start: `${value}T00:00`, // Assuming value is a string
       }));
     } else if (allDay && name == "end") {
       setUpdatedData((prevData) => ({
         ...prevData,
-        end: `${value}T23:59`,
+        end: `${value}T23:59`, // Assuming value is a string
       }));
     } else {
       setUpdatedData((prevData) => ({
@@ -230,6 +235,43 @@ export default function ModifyEvent() {
       console.log("error with delete event:", e);
       return;
     }
+  };
+
+  // Create invite link
+  const createInviteLink = async () => {
+    setInviteLink(null);
+
+    const auth = getAuth();
+    const userId = auth.currentUser?.uid;
+    if (!userId) {
+      alert("You must be logged in to create an invite link.");
+      return;
+    }
+    const userRef = doc(db, "Users", userId);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) {
+      alert("User not found.");
+      return;
+    }
+
+    if (!docId) {
+      return;
+    }
+
+    const eventRef = doc(db, "Event", docId);
+    const eventSnap = await getDoc(eventRef);
+    if (!eventSnap.exists()) {
+      alert("Event not found.");
+      return;
+    }
+
+    const inviteRef = await addDoc(collection(db, "EventInvite"), {
+      event: eventRef,
+    });
+
+    const generatedLink = `localhost:3000/invite/${inviteRef.id}`;
+    setInviteLink(generatedLink);
+    alert(`Your invite link has been generated!`);
   };
 
   return (
@@ -340,6 +382,23 @@ export default function ModifyEvent() {
             >
               Save
             </Button>
+          </div>
+
+          <div className="flex w-full">
+            <Button
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all"
+              onClick={createInviteLink}
+            >
+              Create Event Invite Link
+            </Button>
+          </div>
+
+          <div className="flex w-full">
+            {inviteLink && (
+              <div className="w-full justify-center flex mb-2 mx-2 mt-0">
+                Invite Link: {inviteLink}
+              </div>
+            )}
           </div>
 
           <div className="flex w-full">
