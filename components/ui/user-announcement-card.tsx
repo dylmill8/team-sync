@@ -12,9 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 
-import { db, firebaseApp } from "@/utils/firebaseConfig";
 import {
-  doc,
   DocumentData,
   DocumentReference,
   getDoc,
@@ -23,12 +21,12 @@ import {
 
 interface AnnouncementData {
   title?: string;
-  groupRef?: any;
+  groupRef?: DocumentReference;
   body?: string;
   createdAt?: Timestamp;
 }
 
-function UserAnnouncementCard({ announcementRef }) {
+function UserAnnouncementCard({ announcementRef }: { announcementRef: DocumentReference<DocumentData> }) {
   const [title, setTitle] = useState("");
   const [group, setGroup] = useState("");
   const [body, setBody] = useState("");
@@ -48,7 +46,7 @@ function UserAnnouncementCard({ announcementRef }) {
           if (data.groupRef) {
             const groupDoc = await getDoc(data.groupRef);
             if (groupDoc.exists()) {
-              const groupData = groupDoc.data();
+              const groupData = groupDoc.data() as { name?: string };
               setGroup(groupData.name || "Unknown Group");
             }
           }
@@ -65,7 +63,7 @@ function UserAnnouncementCard({ announcementRef }) {
 
   return (
     <div className="flex items-center justify-center mt-3">
-      <Card className="w-full max-w-md px-3 my-0 py-0 shadow-lg bg-white rounded-xl">
+      <Card className="w-full px-3 my-0 py-0 shadow-lg bg-white rounded-xl">
         <CardHeader>
           <CardTitle>{title}</CardTitle>
           <CardDescription>

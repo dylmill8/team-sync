@@ -12,7 +12,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Label } from "@radix-ui/react-label";
 import UserLog from "@/components/ui/user-log";
@@ -68,7 +67,7 @@ export default function GroupLogs() {
     };
 
     fetchWorkoutData();
-  }, []);
+  }, [workoutId]);
 
   if (!workoutId) {
     return <h1>Loading workout logs...</h1>;

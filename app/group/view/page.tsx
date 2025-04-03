@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { arrayRemove, arrayUnion, doc, getDoc, DocumentData, updateDoc } from "firebase/firestore";
+import { arrayRemove, arrayUnion, doc, getDoc, DocumentData, updateDoc, addDoc, collection } from "firebase/firestore";
 import { db } from "../../../utils/firebaseConfig";
 import { getAuth } from "firebase/auth";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -24,6 +24,8 @@ export default function ViewGroup() {
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState("/default.png");
   const router = useRouter();
+
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
 
   // Helper function to get number of members
   const getNumberOfMembers = (members: Record<string, MemberData> | undefined): number => {
@@ -187,6 +189,37 @@ export default function ViewGroup() {
     }
   };
 
+  // Create invite link
+  const createInviteLink = async () => {
+    setInviteLink(null);
+
+    const userRef = doc(db, "Users", userId);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) {
+      alert("User not found.");
+      return;
+    }
+
+    if (!groupId) {
+      return;
+    }
+
+    const groupRef = doc(db, "Groups", groupId);
+    const groupSnap = await getDoc(groupRef);
+    if (!groupSnap.exists()) {
+      alert("Group not found.");
+      return;
+    }
+
+    const inviteRef = await addDoc(collection(db, "GroupInvite"), {
+      group: groupRef,
+    });
+
+    const generatedLink = `localhost:3000/invite/${inviteRef.id}`;
+    setInviteLink(generatedLink);
+    alert(`Your invite link has been generated!`);
+  }
+
   if (loading) {
     return <p>Loading...</p>;
   }
@@ -233,12 +266,27 @@ export default function ViewGroup() {
             You are the owner of this group.
             </p>
           ) : isMember ? (
-            <Button
-              onClick={handleLeaveGroup}
-              className="my-2 w-full bg-red-600 hover:bg-red-700 text-white font-bold rounded transition-all"
-            >
-              Leave Group
-            </Button>
+            <div>
+              <Button
+                onClick={handleLeaveGroup}
+                className="my-2 w-full bg-red-600 hover:bg-red-700 text-white font-bold rounded transition-all"
+              >
+                Leave Group
+              </Button>
+              <Button
+                onClick={createInviteLink}
+                className="my-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition-all"
+              >
+                Create Invite Link
+              </Button>
+              <div className="flex w-full">
+                {inviteLink && (
+                  <div className="w-full justify-center flex mb-2 mx-2 mt-0">
+                    Invite Link: {inviteLink}
+                  </div>
+                )}
+          </div>
+            </div>
           ) : (
             <Button
               onClick={handleJoinGroup}

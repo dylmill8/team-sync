@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -26,7 +25,6 @@ import {
   updateDoc,
   arrayUnion,
   getDoc,
-  DocumentReference,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { firebaseApp } from "@/utils/firebaseConfig";
@@ -48,8 +46,9 @@ import { useSearchParams } from "next/navigation";
 
 export default function CreateEvent() {
   const router = useRouter();
-  const group = useSearchParams().get("group");
-  const groupId = group ? useSearchParams().get("groupId") : "";
+  const searchParams = useSearchParams();
+  const group = searchParams.get("group");
+  const groupId = group === "true" ? searchParams.get("groupId") : "";
 
   const [eventName, setEventName] = useState("");
   const [description, setDescription] = useState("");
@@ -233,7 +232,7 @@ export default function CreateEvent() {
               <Label className="text-sm font-medium">All Day?</Label>
               <input
                 type="checkbox"
-                onChange={(e) => setAllDay(!allDay)}
+                onChange={() => setAllDay(!allDay)}
                 className="ml-3 all-day-checkbox"
               ></input>
             </div>

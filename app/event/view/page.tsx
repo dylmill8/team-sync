@@ -19,16 +19,17 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { db, firebaseApp } from "../../../utils/firebaseConfig";
 import { doc, getDoc, DocumentData } from "firebase/firestore";
-import { getAuth } from "@firebase/auth";
+import { getAuth, onAuthStateChanged } from "@firebase/auth";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function ViewEvent() {
   const auth = getAuth(firebaseApp);
-  const uid = auth.currentUser?.uid;
+  const [uid, setUid] = useState("");
 
   const [data, setData] = useState<DocumentData | null>(null);
   const docId = useSearchParams().get("docId");
   const [loading, setLoading] = useState(true);
+  const [canModify, setCanModify] = useState(false);
 
   // workout related data
   const [workoutData, setWorkoutData] = useState<string[]>([]);
@@ -36,12 +37,24 @@ export default function ViewEvent() {
   const [workoutNameList, setWorkoutNameList] = useState<string[]>([]);
   const [workoutDict, setWorkoutDict] = useState<{ [key: string]: string }>({});
 
+
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUid(user.uid);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
+
   // use effect for fetching workout data
   useEffect(() => {
     const parseWorkoutData = async () => {
-      var nameList = [];
-      var dict: { [key: string]: string } = {};
-      for (var id in workoutData) {
+      const nameList = [];
+      const dict: { [key: string]: string } = {};
+      for (const id in workoutData) {
         const workoutId = workoutData[id];
         const workoutDoc = doc(db, "Workouts", workoutId);
         const workoutSnap = await getDoc(workoutDoc);
@@ -56,7 +69,7 @@ export default function ViewEvent() {
     };
 
     parseWorkoutData();
-  }, [workoutCount]);
+  }, [workoutCount, workoutData]);
 
   // use effect for fetching data
   useEffect(() => {
@@ -71,6 +84,7 @@ export default function ViewEvent() {
       if (docSnap.exists()) {
         const currData = docSnap.data();
         setData(currData);
+
         setWorkoutData(currData.workouts);
         setWorkoutCount(currData.workouts?.length || 0);
 
@@ -81,8 +95,36 @@ export default function ViewEvent() {
     };
 
     fetchDocument();
-  }, []);
+  }, [docId]);
 
+  // set modify event permissions use effect
+  useEffect(() => {
+    const modifyPermissions = async () => {
+      if (uid && data) {
+        if (data.ownerType == "user") {
+          setCanModify(true);
+          return;
+        }
+
+        if (data.ownerType == "group") {
+          const groupRef = doc(db, "Groups", data.owner);
+          const groupDoc = await getDoc(groupRef);
+
+          if (groupDoc.exists()) {
+            const groupData = groupDoc.data();
+            
+            if (groupData.members[uid][1] == "leader" || groupData.members[uid][1] == "owner") {
+              setCanModify(true);
+            }
+          }
+        }
+      }
+    };
+
+    modifyPermissions();
+  }, [uid, data]);
+
+  // button navigations
   const router = useRouter();
 
   const toWorkout = async (workoutName: string) => {
@@ -191,12 +233,12 @@ export default function ViewEvent() {
 
           <div className="mt-4 mb-2">
             <Label>Your RSVP Status:</Label>
-            <RSVPStatus eventId={docId}></RSVPStatus>
+            <RSVPStatus eventId={docId || ""}></RSVPStatus>
           </div>
 
           <div className="mt-2 mb-4">
             <Label>View RSVP Statuses:</Label>
-            <RSVPView eventId={docId}></RSVPView>
+            <RSVPView eventId={docId || ""}></RSVPView>
           </div>
 
           {workoutCount != 0 && (
@@ -228,12 +270,14 @@ export default function ViewEvent() {
           >
             Back
           </Button>
-          <Button
-            onClick={modifyNavigation}
-            className="my-2 mx-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition-all"
-          >
-            Modify
-          </Button>
+          {canModify && (
+            <Button
+              onClick={modifyNavigation}
+              className="my-2 mx-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition-all"
+            >
+              Modify
+            </Button>
+          )}
         </CardFooter>
       </Card>
     </div>
