@@ -20,6 +20,8 @@ export default function ViewGroup() {
   const [preview, setPreview] = useState("/default.png");
   const router = useRouter();
 
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+
   // Helper function to get number of members
   const getNumberOfMembers = (members: Record<string, any> | undefined): number => {
     if (members && typeof members === "object") {
@@ -180,6 +182,8 @@ export default function ViewGroup() {
 
   // Create invite link
   const createInviteLink = async () => {
+    setInviteLink(null);
+
     const userRef = doc(db, "Users", userId);
     const userSnap = await getDoc(userRef);
     if (!userSnap.exists()) {
@@ -202,7 +206,9 @@ export default function ViewGroup() {
       group: groupRef,
     });
 
-    alert("Your invite link has been generated! Copy this link:\nlocalhost:3000/invite/" + inviteRef.id);
+    const generatedLink = `localhost:3000/invite/${inviteRef.id}`;
+    setInviteLink(generatedLink);
+    alert(`Your invite link has been generated!`);
   }
 
   if (loading) {
@@ -264,6 +270,13 @@ export default function ViewGroup() {
               >
                 Create Invite Link
               </Button>
+              <div className="flex w-full">
+                {inviteLink && (
+                  <div className="w-full justify-center flex mb-2 mx-2 mt-0">
+                    Invite Link: {inviteLink}
+                  </div>
+                )}
+          </div>
             </div>
           ) : (
             <Button
