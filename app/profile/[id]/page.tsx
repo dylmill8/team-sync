@@ -12,6 +12,8 @@ import {
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../../../utils/firebaseConfig.js";
 import NavBar from "@/components/ui/navigation-bar";
+import { DocumentReference } from "firebase/firestore";
+
 
 interface EventData {
   name: string;
@@ -43,10 +45,9 @@ export default function Profile() {
   const router = useRouter();
   const { id } = useParams();
   const [userId, setUserId] = useState("");
-  const [profileId, setProfileId] = useState(id || "");
+  const [profileId, setProfileId] = useState<string>("");
   const [userData, setUserData] = useState({ email: "", username: "" });
   const [preview, setPreview] = useState("/default.png");
-  const [isToggleOn, setIsToggleOn] = useState(false);
   const [eventList, setEventList] = useState<CalendarEvent[]>([]);
   const [showEvents, setShowEvents] = useState(false);
   const [isFriend, setIsFriend] = useState(false);
@@ -56,9 +57,10 @@ export default function Profile() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUserId(user.uid);
-        if (!profileId) {
-          setProfileId(user.uid);
+        if (!profileId && typeof id === "string") {
+          setProfileId(id);
         }
+        
 
         // Fetch the user's friend list
         const userDocRef = doc(db, "Users", user.uid);
@@ -67,7 +69,7 @@ export default function Profile() {
           const userData = userDoc.data();
           if (userData?.friends) {
             setFriendList(
-              userData.friends.map((friendRef: any) => friendRef.id)
+              userData.friends.map((friendRef: DocumentReference) => friendRef.id)
             );
           }
         }
@@ -95,7 +97,6 @@ export default function Profile() {
             email: userData.email || "",
             username: userData.username || "",
           });
-          setIsToggleOn(userData.toggleSetting || false);
           if (Array.isArray(userData.events)) {
             const newEventList = [];
 
@@ -270,24 +271,25 @@ export default function Profile() {
           >
             Go to Settings
           </button>
+          <button
+            onClick={() => router.push("/messages")}
+            style={{
+              marginTop: "20px",
+              padding: "10px 20px",
+              backgroundColor: "#0070f3",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              width: "80%",
+            }}
+          >
+            Open Messages
+           </button> 
         </>
       )}
 
-      <button
-        onClick={() => router.push("/messages")}
-        style={{
-          marginTop: "20px",
-          padding: "10px 20px",
-          backgroundColor: "#0070f3",
-          color: "#fff",
-          border: "none",
-          borderRadius: "4px",
-          cursor: "pointer",
-          width: "80%",
-        }}
-      >
-        Open Messages
-      </button>
+  
 
       <button
         onClick={() => router.push("/friends")}

@@ -20,6 +20,7 @@ import {
   arrayUnion,
   QueryDocumentSnapshot,
   DocumentData,
+  Timestamp,
 } from "firebase/firestore"
 
 type Message = {
@@ -27,7 +28,7 @@ type Message = {
   text: string
   userId: string
   username?: string
-  timestamp?: any
+  timestamp?: Timestamp
 }
 
 type Friend = {
@@ -68,7 +69,7 @@ export default function ChatPage() {
       }
     })
     return () => unsubscribe()
-  }, [])
+  }, )
 
   useEffect(() => {
     const loadChatInfo = async () => {
@@ -83,7 +84,8 @@ export default function ChatPage() {
             const friendData = await viewDocument("Users", friendId)
             const friendName = friendData?.username || friendId
             setChatTitle(friendName)
-          } catch (err) {
+          } catch (e) {
+            console.log(e)
             setChatTitle("Private Chat")
           }
         } else {
@@ -236,7 +238,8 @@ export default function ChatPage() {
           const username = userData?.username || uid
           userCache.current[uid] = username
           msg.username = username
-        } catch (err) {
+        } catch (e) {
+          console.log(e)
           msg.username = uid
         }
       }
