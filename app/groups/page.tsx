@@ -16,7 +16,7 @@ import NavBar from "@/components/ui/navigation-bar";
 import { firebaseApp } from "@/utils/firebaseConfig";
 import { db } from '@/utils/firebaseConfig';
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { doc, DocumentReference, getDoc, query, collection, orderBy, startAfter, limit, getDocs, QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
+import { doc, DocumentReference, getDoc, query, collection, orderBy, startAfter, limit, getDocs, QueryDocumentSnapshot, DocumentData, onSnapshot, Timestamp } from "firebase/firestore";
 import { useState, useEffect, useRef } from "react";
 import { setDocument, viewDocument } from "../../utils/firebaseHelper.js"
 
@@ -65,7 +65,7 @@ type Message = {
   text: string
   userId: string
   username?: string
-  timestamp?: any
+  timestamp?: Timestamp
 }
 
 export default function Groups() {
@@ -96,7 +96,7 @@ export default function Groups() {
         return;
       }
       if (typeof docId === "string") {
-        setChatId(docId)
+        setChatId("group" + docId)
       }
       const groupRef = doc(db, "Groups", docId);
       const groupDoc = await getDoc(groupRef);
@@ -151,27 +151,68 @@ export default function Groups() {
     }
   }, [groupData?.members]);
 
-    useEffect(() => {
-      if (!chatId) return
-      const initialQuery = query(
-        collection(db, "Chats", chatId, "messages"),
-        orderBy("timestamp", "desc"),
-        limit(batchSize)
-      )
-      getDocs(initialQuery)
-        .then(async (snapshot) => {
-          const msgs: Message[] = snapshot.docs.map((doc) => ({
+  
+
+  useEffect(() => {
+    if (!chatId) return
+  
+    const initMessages = async () => {
+      const messagesRef = collection(db, "Chats", chatId, "messages")
+      const initialQuery = query(messagesRef, orderBy("timestamp", "desc"), limit(batchSize))
+      const snapshot = await getDocs(initialQuery)
+  
+      if (snapshot.empty) {
+        await setDocument(`Chats/${chatId}/messages`, "_placeholder", {
+          text: "",
+          userId: "system",
+          timestamp: new Date(0),
+        })
+        setMessages([])
+        return
+      }
+  
+      const msgs: Message[] = snapshot.docs
+        .filter((doc) => doc.id !== "_placeholder")
+        .map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<Message, "id">),
+        }))
+        .reverse()
+  
+      await populateUsernames(msgs)
+      setMessages(msgs)
+  
+      if (snapshot.docs.length > 0) {
+        setLastVisible(snapshot.docs[snapshot.docs.length - 1])
+      }
+    }
+  
+    initMessages().catch((err) => console.error("Error loading messages:", err))
+  }, [chatId])
+
+  useEffect(() => {
+    if (!chatId) return
+
+    const messagesRef = collection(db, "Chats", chatId, "messages")
+    const unsubscribe = onSnapshot(
+      query(messagesRef, orderBy("timestamp", "asc")),
+      async (snapshot) => {
+        const newMsgs: Message[] = snapshot.docs
+          .filter((doc) => doc.id !== "_placeholder")
+          .map((doc) => ({
             id: doc.id,
             ...(doc.data() as Omit<Message, "id">),
-          })).reverse()
-          await populateUsernames(msgs)
-          setMessages(msgs)
-          if (snapshot.docs.length > 0) {
-            setLastVisible(snapshot.docs[snapshot.docs.length - 1])
-          }
-        })
-        .catch((err) => console.error("Error loading messages: ", err))
-    }, [chatId])
+          }))
+        if (newMsgs.length > 0) {
+          await populateUsernames(newMsgs)
+          setMessages(newMsgs)
+        }
+      }
+    )
+
+    return () => unsubscribe()
+  }, [chatId])
+      
 
   async function handleCalendarTabClick() {
     if (!docId) {
@@ -227,7 +268,8 @@ export default function Groups() {
           const username = userData?.username || uid
           userCache.current[uid] = username
           msg.username = username
-        } catch (err) {
+        } catch (error) {
+          console.error("Error fetching user data:", error)
           msg.username = uid
         }
       }
@@ -236,46 +278,46 @@ export default function Groups() {
   }
 
   const loadMoreMessages = async () => {
-      if (!chatId || !lastVisible) return
-      setLoadingMore(true)
-      const olderQuery = query(
-        collection(db, "Chats", chatId, "messages"),
-        orderBy("timestamp", "desc"),
-        startAfter(lastVisible),
-        limit(batchSize)
-      )
-      try {
-        const snapshot = await getDocs(olderQuery)
-        const olderMsgs: Message[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...(doc.data() as Omit<Message, "id">),
-        })).reverse()
-        await populateUsernames(olderMsgs)
-        setMessages((prev) => [...olderMsgs, ...prev])
-        if (snapshot.docs.length > 0) {
-          setLastVisible(snapshot.docs[snapshot.docs.length - 1])
-        }
-      } catch (error) {
-        console.error("Error loading older messages:", error)
+    if (!chatId || !lastVisible) return
+    setLoadingMore(true)
+    const olderQuery = query(
+      collection(db, "Chats", chatId, "messages"),
+      orderBy("timestamp", "desc"),
+      startAfter(lastVisible),
+      limit(batchSize)
+    )
+    try {
+      const snapshot = await getDocs(olderQuery)
+      const olderMsgs: Message[] = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as Omit<Message, "id">),
+      })).reverse()
+      await populateUsernames(olderMsgs)
+      setMessages((prev) => [...olderMsgs, ...prev])
+      if (snapshot.docs.length > 0) {
+        setLastVisible(snapshot.docs[snapshot.docs.length - 1])
       }
-      setLoadingMore(false)
+    } catch (error) {
+      console.error("Error loading older messages:", error)
     }
+    setLoadingMore(false)
+  }
 
-    const sendMessage = async () => {
-      if (!newMessage.trim() || !uid || !chatId) return
-      const newMsgId = `${Date.now()}`
-      const newMsgData = {
-        text: newMessage,
-        userId: uid,
-        timestamp: new Date(),
-      }
-      try {
-        await setDocument(`Chats/${chatId}/messages`, newMsgId, newMsgData)
-        setNewMessage("")
-      } catch (error) {
-        console.error("Failed to send message:", error)
-      }
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !uid || !chatId) return
+    const newMsgId = `${Date.now()}_${uid}`
+    const newMsgData = {
+      text: newMessage,
+      userId: uid,
+      timestamp: new Date(),
     }
+    try {
+      await setDocument(`Chats/${chatId}/messages`, newMsgId, newMsgData)
+      setNewMessage("")
+    } catch (error) {
+      console.error("Failed to send message:", error)
+    }
+  }
 
   return (
     <>
@@ -337,8 +379,6 @@ export default function Groups() {
           <TabsContent value="chat" className="tabs-content">
             <div className="p-4 max-w-xl mx-auto">
 
-              <h1 className="text-xl font-bold mb-4">{groupData?.name}</h1>
-
               <Button onClick={loadMoreMessages} disabled={loadingMore}>
                 {loadingMore ? "Loading..." : "Load Previous Messages"}
               </Button>
@@ -367,7 +407,6 @@ export default function Groups() {
                 <Button onClick={sendMessage}>Send</Button>
               </div>
             </div>
-            Chat...
           </TabsContent>
           <TabsContent value="calendar" className="tabs-content">
             <NavBar/>

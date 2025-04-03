@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { db } from "../../../utils/firebaseConfig";
-import { doc, getDoc, updateDoc, setDoc, collection, addDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, collection, addDoc } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function ModifyWorkout() {

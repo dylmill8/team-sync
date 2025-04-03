@@ -122,48 +122,63 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!chatId) return
-    const initialQuery = query(
-      collection(db, "Chats", chatId, "messages"),
-      orderBy("timestamp", "desc"),
-      limit(batchSize)
-    )
-    getDocs(initialQuery)
-      .then(async (snapshot) => {
-        const msgs: Message[] = snapshot.docs.map((doc) => ({
+
+    const initMessages = async () => {
+      const messagesRef = collection(db, "Chats", chatId, "messages")
+      const initialQuery = query(messagesRef, orderBy("timestamp", "desc"), limit(batchSize))
+      const snapshot = await getDocs(initialQuery)
+
+      if (snapshot.empty) {
+        await setDocument(`Chats/${chatId}/messages`, "_placeholder", {
+          text: "",
+          userId: "system",
+          timestamp: new Date(0),
+        })
+        setMessages([])
+        return
+      }
+
+      const msgs: Message[] = snapshot.docs
+        .filter((doc) => doc.id !== "_placeholder")
+        .map((doc) => ({
           id: doc.id,
           ...(doc.data() as Omit<Message, "id">),
-        })).reverse()
-        await populateUsernames(msgs)
-        setMessages(msgs)
-        if (snapshot.docs.length > 0) {
-          setLastVisible(snapshot.docs[snapshot.docs.length - 1])
-        }
-      })
-      .catch((err) => console.error("Error loading messages: ", err))
+        }))
+        .reverse()
+
+      await populateUsernames(msgs)
+      setMessages(msgs)
+
+      if (snapshot.docs.length > 0) {
+        setLastVisible(snapshot.docs[snapshot.docs.length - 1])
+      }
+    }
+
+    initMessages().catch((err) => console.error("Error loading messages:", err))
   }, [chatId])
 
   useEffect(() => {
-    if (!chatId || messages.length === 0) return
-    const latestMessage = messages[messages.length - 1]
-    if (!latestMessage) return
+    if (!chatId) return
 
-    const newMsgQuery = query(
-      collection(db, "Chats", chatId, "messages"),
-      orderBy("timestamp", "asc"),
-      startAfter(latestMessage.timestamp)
-    )
-    const unsubscribe = onSnapshot(newMsgQuery, async (snapshot) => {
-      const newMsgs: Message[] = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<Message, "id">),
-      }))
-      if (newMsgs.length > 0) {
-        await populateUsernames(newMsgs)
-        setMessages((prev) => [...prev, ...newMsgs])
+    const messagesRef = collection(db, "Chats", chatId, "messages")
+    const unsubscribe = onSnapshot(
+      query(messagesRef, orderBy("timestamp", "asc")),
+      async (snapshot) => {
+        const newMsgs: Message[] = snapshot.docs
+          .filter((doc) => doc.id !== "_placeholder")
+          .map((doc) => ({
+            id: doc.id,
+            ...(doc.data() as Omit<Message, "id">),
+          }))
+        if (newMsgs.length > 0) {
+          await populateUsernames(newMsgs)
+          setMessages(newMsgs)
+        }
       }
-    })
+    )
+
     return () => unsubscribe()
-  }, [chatId, messages])
+  }, [chatId])
 
   const loadMoreMessages = async () => {
     if (!chatId || !lastVisible) return
@@ -176,10 +191,13 @@ export default function ChatPage() {
     )
     try {
       const snapshot = await getDocs(olderQuery)
-      const olderMsgs: Message[] = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<Message, "id">),
-      })).reverse()
+      const olderMsgs: Message[] = snapshot.docs
+        .filter((doc) => doc.id !== "_placeholder")
+        .map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<Message, "id">),
+        }))
+        .reverse()
       await populateUsernames(olderMsgs)
       setMessages((prev) => [...olderMsgs, ...prev])
       if (snapshot.docs.length > 0) {
@@ -193,7 +211,7 @@ export default function ChatPage() {
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !currentUserId || !chatId) return
-    const newMsgId = `${Date.now()}`
+    const newMsgId = `${Date.now()}_${userid}`
     const newMsgData = {
       text: newMessage,
       userId: currentUserId,
