@@ -11,7 +11,6 @@ import {
   arrayUnion,
   arrayRemove,
   DocumentReference,
-  DocumentData,
 } from "firebase/firestore"
 import { auth, db } from "@/utils/firebaseConfig"
 import { createChat } from "@/utils/chatHelper"

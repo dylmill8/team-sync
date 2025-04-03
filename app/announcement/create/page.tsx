@@ -19,16 +19,12 @@ import { db } from "@/utils/firebaseConfig";
 import {
   collection,
   addDoc,
-  Timestamp,
   doc,
   updateDoc,
   arrayUnion,
-  getDoc,
   DocumentReference,
   serverTimestamp
 } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
-import { firebaseApp } from "@/utils/firebaseConfig";
 
 export default function CreateAnnouncement() {
   const router = useRouter();
@@ -45,7 +41,7 @@ export default function CreateAnnouncement() {
     if (groupId) {
       setGroupRef(doc(db, "Groups", groupId));
     }
-  }, []);
+  }, [groupId]);
 
   // TODO: implement cancel button that routes user back to the group page
 

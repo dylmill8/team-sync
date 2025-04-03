@@ -64,7 +64,7 @@ function RSVPView({ eventId }: { eventId: string }) {
     });
 
     return () => unsubscribe();
-  }, ["Event", eventId]);
+  }, [eventId]);
 
   useEffect(() => {
     const fetchDocument = async () => {
@@ -88,12 +88,12 @@ function RSVPView({ eventId }: { eventId: string }) {
     };
 
     fetchDocument();
-  }, []);
+  }, [eventId]);
 
   useEffect(() => {
     const generateUsernameDict = async () => {
-      var dict: { [key: string]: string } = {};
-      for (var i in Object.keys(RSVPList)) {
+      const dict: { [key: string]: string } = {};
+      for (const i in Object.keys(RSVPList)) {
         const uid = Object.keys(RSVPList)[i];
         const docRef = doc(db, "Users", uid);
         const docSnap = await getDoc(docRef);

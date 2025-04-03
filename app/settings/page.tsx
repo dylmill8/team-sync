@@ -10,11 +10,19 @@ import { db } from "@/utils/firebaseConfig.js";
 import NavBar from "@/components/ui/navigation-bar";
 import { setDocument, viewDocument, logout } from "../../utils/firebaseHelper.js";
 
+type LooseAccount = {
+  id?: string;
+  username?: string;
+  email?: string;
+  [key: string]: unknown;
+};
+
+
+
 export default function Settings() {
   const router = useRouter();
   const [userId, setUserId] = useState("");
   const [formData, setFormData] = useState({ email: "", username: "", isLightTheme: false});
-  const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [image, setImage] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -22,8 +30,10 @@ export default function Settings() {
   const [showAccounts, setShowAccounts] = useState(false);
   const [otherAccounts, setOtherAccounts] = useState([]);
 
-  const [isLightMode, setIsLightMode] = localStorage.getItem("theme") === "light" ? useState(false) : useState(true);
-  const [newPassword, setNewPassword] = useState("");
+  const [isLightMode, setIsLightMode] = useState(() => {
+    return localStorage.getItem("theme") === "light";
+  });
+    const [newPassword, setNewPassword] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -49,7 +59,6 @@ export default function Settings() {
           });
           setIsLightMode(data.isLightTheme || false);
         }
-        setLoading(false);
       }
     };
 
@@ -104,8 +113,12 @@ export default function Settings() {
         throw new Error(data.error || "Upload failed");
       }
       alert("Upload successful!");
-    } catch (error: any) {
-      alert(`Upload failed! ${error.message || "Unknown error"}`);
+    } catch (error) {
+      if (error instanceof Error) {
+        alert(`Upload failed! ${error.message || "Unknown error"}`);
+      } else {
+        alert("Upload failed! Unknown error");
+      }
     } finally {
       setUploading(false);
     }
@@ -125,7 +138,7 @@ export default function Settings() {
     }
   };
   
-  const switchAccount = async (newUserId) => {
+  const switchAccount = async (newUserId: string) => {
     try {
       // Fetch new user's email
       const userDocRef = doc(db, "Users", newUserId);
@@ -157,7 +170,11 @@ export default function Settings() {
       router.push(`/settings/`);
 
     } catch (error) {
-      console.error("Error switching accounts:", error.message);
+      if (error instanceof Error) {
+        alert(`Error Switching Accounts! ${error.message || "Unknown error"}`);
+      } else {
+        alert("Error Switching Accounts! Unknown error");
+      }
     }
   };
   
@@ -176,7 +193,7 @@ export default function Settings() {
             // Convert Firestore document references into actual user data
             const accountPromises = userData.otherAccounts.map(async (accountRef) => {
               const accountDoc = await getDoc(accountRef); // Resolve reference
-              return accountDoc.exists() ? { id: accountDoc.id, ...accountDoc.data() } : null;
+              return accountDoc.exists() ? { id: accountDoc.id, ... accountDoc.data() } : null;
             });
   
             // Wait for all references to resolve & filter out nulls
@@ -218,7 +235,8 @@ export default function Settings() {
     try {
       logout();
       router.push("/");
-    } catch (error) {
+    } catch {
+
       alert("Error logging out.");
     }
   };
@@ -231,7 +249,7 @@ export default function Settings() {
         alert("Account deleted successfully!");
         router.push("/");
       }
-    } catch (error) {
+    } catch {
       alert("Error deleting account.");
     }
   };
@@ -247,13 +265,17 @@ export default function Settings() {
       if (user) {
         // Update password without old password
         await updatePassword(user, newPassword);
-        const passDocRef = await setDoc(doc(db, "UserPasswords", user.uid), {
-          password: newPassword,
-        });  
+        //const passDocRef = await setDoc(doc(db, "UserPasswords", user.uid), {
+        //  password: newPassword,
+        //});  
         alert("Password updated successfully!");
       }
-    } catch (error: any) {
-      alert(`Error updating password: ${error.message}`);
+    } catch (error ) {
+      if (error instanceof Error) {
+        alert(`Error updating password! ${error.message || "Unknown error"}`);
+      } else {
+        alert("Error updating password!");
+      }
     }
   };
 
@@ -425,45 +447,54 @@ export default function Settings() {
         </button>
 
         <div className="flex flex-col items-center justify-center">
-          {showAccounts ? (
-            <div className="flex flex-col w-full">
-              <div className="w-full">
-                <p className="text-center mb-4 mt-4">You can view, switch to, and add other accounts here.</p>
-                {otherAccounts.length > 0 ? (
-                  <ul className="flex flex-col gap-y-4 mt-4">
-                    {otherAccounts.map((account) => (
-                      <div
-                        className="flex flex-row items-center justify-center gap-x-4 w-full"
-                        key={account.id}
-                      >
-                        <button
-                          className="flex flex-col rounded-full border border-solid transition-colors items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 sm:min-w-44 mb-2"
-                          onClick={() => router.push(`/profile/${account.id}`)}
-                        >
-                          {account.username} ({account.email})
-                        </button>
-                        <button
-                          className="flex flex-col rounded-full border border-solid transition-colors items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 mb-2"
-                          onClick={() => switchAccount(account.id)}
-                        >
-                          Switch
-                        </button>
-                      </div>
-                    ))}
-                  </ul>
-                ) : (
-                  <p>No other accounts found.</p>
-                )}
-              </div>
-              <div className="border-t border-gray-300 justify-center mt-4"></div>
-              <div className="w-full flex justify-center mt-4">
-                <button className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 sm:min-w-30"
-                onClick={() => router.push(`/?addAccount=true`)}>
-                  Add Account
-                </button>
-              </div>
+        {showAccounts ? (
+  <div className="flex flex-col w-full">
+    <div className="w-full">
+      <p className="text-center mb-4 mt-4">
+        You can view, switch to, and add other accounts here.
+      </p>
+      {otherAccounts.length > 0 ? (
+        <ul className="flex flex-col gap-y-4 mt-4">
+          {(otherAccounts as LooseAccount[]).map((account, i) => (
+            <div
+              className="flex flex-row items-center justify-center gap-x-4 w-full"
+              key={account.id ?? i}
+            >
+              <button
+                className="flex flex-col rounded-full border border-solid transition-colors items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 sm:min-w-44 mb-2"
+                onClick={() =>
+                  account.id ? router.push(`/profile/${account.id}`) : null
+                }
+              >
+                {account.username ?? "Unnamed"} ({account.email ?? "No email"})
+              </button>
+              <button
+                className="flex flex-col rounded-full border border-solid transition-colors items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 mb-2"
+                onClick={() =>
+                  account.id ? switchAccount(account.id) : null
+                }
+              >
+                Switch
+              </button>
             </div>
-          ) : null}
+          ))}
+        </ul>
+      ) : (
+        <p>No other accounts found.</p>
+      )}
+    </div>
+    <div className="border-t border-gray-300 justify-center mt-4"></div>
+    <div className="w-full flex justify-center mt-4">
+      <button
+        className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 sm:min-w-30"
+        onClick={() => router.push(`/?addAccount=true`)}
+      >
+        Add Account
+      </button>
+    </div>
+  </div>
+) : null}
+
         </div>
       </div>
 
