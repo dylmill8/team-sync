@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -26,7 +25,6 @@ import {
   updateDoc,
   arrayUnion,
   getDoc,
-  DocumentReference,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { firebaseApp } from "@/utils/firebaseConfig";

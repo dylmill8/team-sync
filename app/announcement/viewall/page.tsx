@@ -5,9 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import UserAnnouncementCard from "@/components/ui/user-announcement-card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { db, firebaseApp } from "@/utils/firebaseConfig";
@@ -48,7 +46,7 @@ export default function AnnouncementViewAll() {
           const groupDoc = await getDoc(group);
           if (groupDoc.exists()) {
             const groupData = groupDoc.data();
-            const announcementList = groupData.announcements || [];
+            const announcementList = (groupData as { announcements?: string[] }).announcements || [];
 
             setAnnouncements((prevAnnouncements) => [
               ...announcementList,
@@ -83,12 +81,15 @@ export default function AnnouncementViewAll() {
         </CardHeader>
 
         <CardContent>
-          {announcements.map((announcement, index) => (
-            <UserAnnouncementCard
-              announcementRef={announcement}
-              key={index}
-            ></UserAnnouncementCard>
-          ))}
+          {announcements.map((announcement, index) => {
+            const announcementRef = doc(db, "Announcements", announcement);
+            return (
+              <UserAnnouncementCard
+                announcementRef={announcementRef}
+                key={index}
+              ></UserAnnouncementCard>
+            );
+          })}
         </CardContent>
       </Card>
     </div>

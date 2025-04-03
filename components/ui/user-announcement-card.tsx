@@ -12,9 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 
-import { db, firebaseApp } from "@/utils/firebaseConfig";
 import {
-  doc,
   DocumentData,
   DocumentReference,
   getDoc,
@@ -28,7 +26,7 @@ interface AnnouncementData {
   createdAt?: Timestamp;
 }
 
-function UserAnnouncementCard({ announcementRef }) {
+function UserAnnouncementCard({ announcementRef }: { announcementRef: DocumentReference<DocumentData> }) {
   const [title, setTitle] = useState("");
   const [group, setGroup] = useState("");
   const [body, setBody] = useState("");
@@ -48,7 +46,7 @@ function UserAnnouncementCard({ announcementRef }) {
           if (data.groupRef) {
             const groupDoc = await getDoc(data.groupRef);
             if (groupDoc.exists()) {
-              const groupData = groupDoc.data();
+              const groupData = groupDoc.data() as { name?: string };
               setGroup(groupData.name || "Unknown Group");
             }
           }
