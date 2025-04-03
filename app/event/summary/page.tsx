@@ -7,12 +7,26 @@ import { db } from "../../../utils/firebaseConfig";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+interface EventData {
+    name: string;
+    allDay: boolean;
+    start: { seconds: number; };
+    end: { seconds: number; };
+    description: string;
+    location: string;
+    docID: string;
+    ownerType: string;
+    owner: string;
+    RSVP: { [key: string]: string; };
+    workouts: string;
+}
+
 export default function EventSummary() {
     const searchParams = useSearchParams();
     const eventId = searchParams.get("docId"); // Get event ID from URL
     const router = useRouter();
 
-    const [event, setEvent] = useState<any>(null);
+    const [event, setEvent] = useState<EventData | null>(null);
     const [workoutNames, setWorkoutNames] = useState<string[]>([]);
 
 
@@ -26,7 +40,7 @@ export default function EventSummary() {
 
                 if (eventSnap.exists()) {
                     const eventData = eventSnap.data();
-                    setEvent(eventSnap.data());
+                    setEvent(eventSnap.data() as EventData);
                     if (eventData.workouts?.length > 0) {
                         fetchWorkoutNames(eventData.workouts);
                     }
@@ -87,11 +101,11 @@ export default function EventSummary() {
                         </li>
                         <li>
                             <strong>RSVP Status:</strong>
-                            <ul className="list-disc pl-5">
+                            {/* <ul className="list-disc pl-5">
                                 <li>✅ Yes: {event.RSVP_yes?.length || 0}</li>
                                 <li>❓ Maybe: {event.RSVP_maybe?.length || 0}</li>
                                 <li>❌ No: {event.RSVP_no?.length || 0}</li>
-                            </ul>
+                            </ul> */}
                             <strong>Workouts:</strong>
                             <ul className="list-disc pl-5">
                                 {workoutNames.length > 0 ? (
