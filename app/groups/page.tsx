@@ -9,7 +9,8 @@ import listPlugin from '@fullcalendar/list';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"
+import { Input } from "@/components/ui/input";
+import UserAnnouncementCard from "@/components/ui/user-announcement-card";
 
 import { useRouter, useSearchParams } from "next/navigation";
 import NavBar from "@/components/ui/navigation-bar";
@@ -18,7 +19,7 @@ import { db } from '@/utils/firebaseConfig';
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { doc, DocumentReference, getDoc, query, collection, orderBy, startAfter, limit, getDocs, QueryDocumentSnapshot, DocumentData, onSnapshot, Timestamp } from "firebase/firestore";
 import { useState, useEffect, useRef } from "react";
-import { setDocument, viewDocument } from "../../utils/firebaseHelper.js"
+import { setDocument, viewDocument } from "../../utils/firebaseHelper.js";
 
 
 interface EventData {
@@ -57,7 +58,7 @@ interface GroupData {
   members: { [key: string]: string; };
   events: Array<{ id: string; }>;
   chat: DocumentReference;
-  announcements: DocumentReference;
+  announcements: DocumentReference[]; // changed from DocumentReference to an array
 }
 
 type Message = {
@@ -397,10 +398,20 @@ export default function Groups() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="announcements" className="tabs-content">
-            {/* add logic for button to display only if user is a team leader */
-            }
-            <Button onClick={() => router.push(`/announcement/create?groupId=${docId}`)}>Create Announcement</Button>
-            Announcements...
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+              <Button onClick={() => router.push(`/announcement/create?groupId=${docId}`)}>
+                Create Announcement
+              </Button>
+            </div>
+            <div className="chat-messages">
+              {groupData?.announcements && groupData.announcements.length > 0 ? (
+                groupData.announcements.map((announcement, index) => (
+                  <UserAnnouncementCard announcementRef={announcement} key={index} />
+                ))
+              ) : (
+                <p>No announcements found</p>
+              )}
+            </div>
           </TabsContent>
           <TabsContent value="chat" className="tabs-content">
             <div className="chat" ref={chatRef}>

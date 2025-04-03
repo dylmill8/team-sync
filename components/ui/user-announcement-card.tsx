@@ -63,7 +63,7 @@ function UserAnnouncementCard({ announcementRef }: { announcementRef: DocumentRe
 
   return (
     <div className="flex items-center justify-center mt-3">
-      <Card className="w-full max-w-md px-3 my-0 py-0 shadow-lg bg-white rounded-xl">
+      <Card className="w-full px-3 my-0 py-0 shadow-lg bg-white rounded-xl">
         <CardHeader>
           <CardTitle>{title}</CardTitle>
           <CardDescription>
