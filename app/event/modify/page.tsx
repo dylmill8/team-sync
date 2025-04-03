@@ -27,10 +27,13 @@ import {
   arrayRemove,
   deleteDoc,
 } from "firebase/firestore";
+import { create } from "domain";
+import { getAuth } from "firebase/auth";
 
 export default function ModifyEvent() {
   const router = useRouter();
   const docId = useSearchParams().get("docId");
+  const [inviteLink, setInviteLink] = useState<string | null>(null); // Use state for inviteLink
 
   // fetch data on load
   const [data, setData] = useState<DocumentData | null>(null);
@@ -232,6 +235,43 @@ export default function ModifyEvent() {
     }
   };
 
+  // Create invite link
+  const createInviteLink = async () => {
+    setInviteLink(null);
+
+    const auth = getAuth();
+    const userId = auth.currentUser?.uid;
+    if (!userId) {
+      alert("You must be logged in to create an invite link.");
+      return;
+    }
+    const userRef = doc(db, "Users", userId);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) {
+      alert("User not found.");
+      return;
+    }
+
+    if (!docId) {
+      return;
+    }
+
+    const eventRef = doc(db, "Event", docId);
+    const eventSnap = await getDoc(eventRef);
+    if (!eventSnap.exists()) {
+      alert("Event not found.");
+      return;
+    }
+
+    const inviteRef = await addDoc(collection(db, "EventInvite"), {
+      event: eventRef,
+    });
+
+    const generatedLink = `localhost:3000/invite/${inviteRef.id}`;
+    setInviteLink(generatedLink);
+    alert(`Your invite link has been generated!`);
+  };
+
   return (
     <div className="flex items-center justify-center">
       <Card className="w-full max-w-md p-6 shadow-lg bg-white rounded-xl">
@@ -340,6 +380,23 @@ export default function ModifyEvent() {
             >
               Save
             </Button>
+          </div>
+
+          <div className="flex w-full">
+            <Button
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all"
+              onClick={createInviteLink}
+            >
+              Create Event Invite Link
+            </Button>
+          </div>
+
+          <div className="flex w-full">
+            {inviteLink && (
+              <div className="w-full justify-center flex mb-2 mx-2 mt-0">
+                Invite Link: {inviteLink}
+              </div>
+            )}
           </div>
 
           <div className="flex w-full">
