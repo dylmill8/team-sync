@@ -451,7 +451,7 @@ export default function Groups() {
                 {loadingMore ? "Loading..." : "Load Previous Messages"}
               </Button> */}
 
-              <div className="space-y-2 mb-4 mt-4">
+              <div className="chat-messages space-y-2 mb-4 mt-4">
                 {messages.map((msg: Message) => (
                   <div key={msg.id} className="border rounded p-2 shadow-sm bg-white">
                     <div className="text-sm text-gray-500">

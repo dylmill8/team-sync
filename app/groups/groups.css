@@ -118,7 +118,7 @@
   margin: 10px auto;
 }
 
-.chat{
+.chat {
   padding-inline: 4px;
   position: fixed;
   left: 50%;
@@ -126,4 +126,12 @@
   bottom: 12%;
   max-width: 1100px;
   width: 100%;
+}
+
+.chat-messages {
+  max-height: 50vh;
+  overflow-y: auto;
+  background-color: #f9f9f9;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
