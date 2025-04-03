@@ -8,6 +8,7 @@ import { arrayRemove, arrayUnion, doc, getDoc, DocumentData, updateDoc, addDoc, 
 import { db } from "../../../utils/firebaseConfig";
 import { getAuth } from "firebase/auth";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Input } from "@/components/ui/input";
 
 
 interface MemberData {
@@ -26,6 +27,7 @@ export default function ViewGroup() {
   const router = useRouter();
 
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [recipientEmail, setRecipientEmail] = useState<string>(""); // Use state for recipient email
 
   // Helper function to get number of members
   const getNumberOfMembers = (members: Record<string, MemberData> | undefined): number => {
@@ -223,6 +225,42 @@ export default function ViewGroup() {
     alert(`Your invite link has been generated!`);
   }
 
+  // Send invite email
+  const sendInviteEmail = async () => {
+    if (!inviteLink || !recipientEmail) {
+      alert("Please generate an invite link and provide an email address.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/sendInviteEmail", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: recipientEmail,
+          inviteLink,
+        }),
+      });
+
+      if (response.ok) {
+        alert("Invite email sent successfully!");
+      } else {
+        try {
+          const errorData = await response.json();
+          alert(`Failed to send email: ${errorData.error}`);
+        } catch (err) {
+          console.error("Error parsing error response:", err);
+          alert("Failed to send email: An unknown error occurred.");
+        }
+      }
+    } catch (error) {
+      console.error("Error sending invite email:", error);
+      alert("An error occurred while sending the email.");
+    }
+  };
+
   if (loading) {
     return <p>Loading...</p>;
   }
@@ -304,6 +342,29 @@ export default function ViewGroup() {
                   </div>
                 )}
               </div>
+
+              <div className="flex w-full">
+                <Label className="text-sm font-medium">Invite Recipient:</Label>
+                </div>
+
+                <div className="flex w-full">
+                <Input
+                  type="email"
+                  placeholder="Enter recipient's email"
+                  value={recipientEmail}
+                  onChange={(e) => setRecipientEmail(e.target.value)}
+                  className="mb-2 mx-2 mt-0"
+                />
+                </div>
+
+                <div className="flex w-full">
+                <Button
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all"
+                  onClick={sendInviteEmail}
+                >
+                  Send Invite Email
+                </Button>
+                </div>
             </div>
           ) : (
             <Button
