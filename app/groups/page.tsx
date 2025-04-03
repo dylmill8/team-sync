@@ -81,7 +81,7 @@ export default function Groups() {
   const uid = auth.currentUser?.uid;
   const router = useRouter();
   const searchParams = useSearchParams();
-  const docId = searchParams.get("docId");
+  const docId = searchParams?.get("docId") ?? "";
   const calendarRef = useRef<FullCalendar>(null);
   const userCache = useRef<Record<string, string>>({})
   const batchSize = 10

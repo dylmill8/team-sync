@@ -1,7 +1,8 @@
 "use client";
 
+import React from "react";
 import { useState, useEffect } from "react";
-import { getFirestore, doc, getDoc, DocumentReference, updateDoc, arrayRemove, arrayUnion } from "firebase/firestore";
+import { doc, getDoc, DocumentReference, updateDoc, arrayRemove, arrayUnion } from "firebase/firestore";
 import { auth, db } from "../../utils/firebaseConfig.js";
 import { onAuthStateChanged } from "firebase/auth";
 import { viewDocument } from "../../utils/firebaseHelper.js";
@@ -11,9 +12,9 @@ import NavBar from "@/components/ui/navigation-bar";
 export default function Friends() {
     const [userId, setUserId] = useState("");
     const [friendRefs, setFriendRefs] = useState<DocumentReference[]>([]);
-    const [friendData, setFriendData] = useState<{ id: "", email: ""; username: "" }[]>([]);
+    const [friendData, setFriendData] = useState<{ id: string; email: string; username: string }[]>([]);
     const [incomingFriendRequests, setIncomingFriendRequests] = useState<DocumentReference[]>([]);
-    const [incomingFriendRequestsData, setIncomingFriendRequestsData] = useState<{ id: ""; email: ""; username: "" }[]>([]);
+    const [incomingFriendRequestsData, setIncomingFriendRequestsData] = useState<{ id: string; email: string; username: string }[]>([]);
     const [loading, setLoading] = useState(true);
     const [showFriendRequests, setShowFriendRequests] = useState(false);
     const router = useRouter();
@@ -60,6 +61,10 @@ export default function Friends() {
                         const friendRefsFixed = userData.friends.map((friendPath: string) => {
                             if (typeof friendPath === "string") {
                                 const friendId = friendPath.split("/").pop(); // Extracts just the UID
+                                if (!friendId) {
+                                    console.error("Friend ID not found in path:", friendPath);
+                                    return null;
+                                }
                                 return doc(db, "Users", friendId); // Converts to Firestore reference
                             }
                             return friendPath;
@@ -72,7 +77,10 @@ export default function Friends() {
 
                     if (userData?.incomingFriendRequests) {
                         const requestRefsFixed = userData.incomingFriendRequests.map((requestPath: string) =>
-                            typeof requestPath === "string" ? doc(db, "Users", requestPath.split("/").pop()) : requestPath
+                            typeof requestPath === "string" ? (() => {
+                                const friendId = requestPath.split("/").pop();
+                                return friendId ? doc(db, "Users", friendId) : null;
+                            })() : requestPath
                         );
                         setIncomingFriendRequests(requestRefsFixed);
                     } else {
@@ -98,7 +106,6 @@ export default function Friends() {
 
         const fetchFriends = async () => {
             try {
-                const db = getFirestore();
                 console.log("Fetching friend details for:", friendRefs);
 
                 const friendDetails = await Promise.all(
@@ -118,7 +125,11 @@ export default function Friends() {
                     })
                 );
 
-                setFriendData(friendDetails.filter(Boolean)); // Remove null values
+                setFriendData(
+                    friendDetails.filter(
+                        (friend): friend is { id: string; email: string; username: string } => friend !== null && 'email' in friend && 'username' in friend
+                    )
+                ); // Remove null values and ensure type safety
             } catch (error) {
                 console.error("Error fetching friend details:", error);
             }
@@ -154,7 +165,9 @@ export default function Friends() {
                     })
                 );
     
-                setIncomingFriendRequestsData(requestDetails.filter(Boolean)); // Remove null values
+                setIncomingFriendRequestsData(
+                    requestDetails.filter((request): request is { id: string; email: string; username: string } => request !== null)
+                ); 
             } catch (error) {
                 console.error("Error fetching incoming friend requests:", error);
             }
@@ -217,7 +230,7 @@ export default function Friends() {
                                     </ul>
 
                                 ) : (
-                                    <p>You don't have any incoming friend requests.</p>
+                                    <p>You don&apos;t have any incoming friend requests.</p>
                                 )}
                             </>
                         ) : null}
@@ -239,7 +252,7 @@ export default function Friends() {
                             ))}
                         </ul>
                     ) : (
-                        <p>You don't have any friends yet - try adding other users from their profile pages!</p>
+                        <p>You don&apos;t have any friends yet - try adding other users from their profile pages!</p>
                     )}
                 </div>
             </div>
