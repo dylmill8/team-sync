@@ -98,6 +98,7 @@ export default function Groups() {
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [sortedAnnouncements, setSortedAnnouncements] = useState<(AnnouncementData & { id: string })[]>([]);
+  const [createAnnouncement, setCreateAnnouncement] = useState(false);
 
   useEffect(() => {
     const updateChatPosition = () => {
@@ -380,6 +381,18 @@ export default function Groups() {
     }
   }, [messages]);
 
+  // use effect for announcement permissions
+  useEffect(() => {
+    if (uid && groupData) {
+      const members = groupData.members;
+      if (members[uid][1] == "leader" || members[uid][1] == "owner") {
+        setCreateAnnouncement(true);
+      } else {
+        setCreateAnnouncement(false);
+      }
+    }
+  }, [uid, groupData]);
+
   return (
     <>
       <div className="group-header-background">
@@ -433,9 +446,9 @@ export default function Groups() {
           </TabsList>
           <TabsContent value="announcements" className="tabs-content">
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-              <Button onClick={() => router.push(`/announcement/create?groupId=${docId}`)}>
+              {createAnnouncement && (<Button onClick={() => router.push(`/announcement/create?groupId=${docId}`)}>
                 Create Announcement
-              </Button>
+              </Button>)}
             </div>
             <div className="chat-messages">
               {sortedAnnouncements.length > 0 ? (
