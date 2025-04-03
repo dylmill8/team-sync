@@ -12,11 +12,18 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { arrayRemove } from "firebase/firestore";  
 import { Label } from "@/components/ui/label"; 
 
+interface GroupData {
+  name: string;
+  description: string;
+  isPrivate: boolean;
+  owner: string;
+  events?: { path: string }[]; // Assuming events contain references as paths
+}
 
 export default function GroupSettings() {
   const auth = getAuth();
   const userId = auth.currentUser?.uid;
-  const [groupData, setGroupData] = useState<any>(null);
+  const [groupData, setGroupData] = useState<GroupData | null>(null);
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
   const [loading, setLoading] = useState(true);
@@ -39,7 +46,13 @@ export default function GroupSettings() {
       
       if (docSnap.exists()) {
         const group = docSnap.data();
-        setGroupData(group);
+        setGroupData({
+          name: group.name || "",
+          description: group.description || "",
+          isPrivate: group.isPrivate || false,
+          owner: group.owner || "",
+          events: group.events || [],
+        });
         setGroupName(group.name);
         setGroupDescription(group.description);
         setIsPrivate(group.isPrivate || false);
@@ -81,8 +94,8 @@ export default function GroupSettings() {
         throw new Error(data.error || "Upload failed");
       }
       alert("Upload successful!");
-    } catch (error: any) {
-      alert(`Upload failed! ${error.message || "Unknown error"}`);
+    } catch (error) {
+      console.error("Error removing member:", error);
     } finally {
       setUploading(false);
     }
@@ -104,7 +117,7 @@ export default function GroupSettings() {
       alert("Group settings updated!");
       router.push("/groupslist");
     } catch (error) {
-      alert("Failed to update group settings.");
+      console.error("Error removing member:", error);
     }
   };
 
@@ -143,7 +156,7 @@ export default function GroupSettings() {
       alert("Group deleted successfully.");
       router.push("/groupslist");
     } catch (error) {
-      alert("Failed to delete group.");
+      console.error("Error removing member:", error);
     }
   };
 
@@ -193,33 +206,30 @@ export default function GroupSettings() {
         
           </div>
 
-      <form onSubmit={handleUpload} style={{ marginBottom: "20px" }}>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          required
-          style={{ display: "block", margin: "10px auto" }}
-        />
-        <button
-          type="submit"
-          disabled={uploading}
-          style={{
-            padding: "10px 15px",
-            backgroundColor: uploading ? "#ccc" : "#0070f3",
-            color: "#fff",
-            border: "none",
-            borderRadius: "5px",
-            cursor: uploading ? "not-allowed" : "pointer",
-            width: "100%",
-          }}
-        >
-          {uploading ? "Uploading..." : "Upload New Image"}
-        </button>
-      </form>
-
-
-
+          <form onSubmit={handleUpload} style={{ marginBottom: "20px" }}>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              required
+              style={{ display: "block", margin: "10px auto" }}
+            />
+            <button
+              type="submit"
+              disabled={uploading}
+              style={{
+                padding: "10px 15px",
+                backgroundColor: uploading ? "#ccc" : "#0070f3",
+                color: "#fff",
+                border: "none",
+                borderRadius: "5px",
+                cursor: uploading ? "not-allowed" : "pointer",
+                width: "100%",
+              }}
+            >
+              {uploading ? "Uploading..." : "Upload New Image"}
+            </button>
+          </form>
 
           <div className="mb-4 flex items-center justify-between">
             <Label className="text-sm font-medium">Private Group</Label>
