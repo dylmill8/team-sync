@@ -30,7 +30,7 @@ export default function NotificationSettings() {
       }
     });
     return () => unsubscribe();
-  }, []);
+  }, [ router ]);
 
   useEffect(() => {
     const fetchSettings = async () => {

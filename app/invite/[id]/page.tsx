@@ -10,8 +10,7 @@ import { useRouter, useParams } from "next/navigation";
 
 export default function InviteRedirect() {
   const router = useRouter();
-  const { id } = useParams();
-  //const searchParams = useSearchParams();
+  const { id } = useParams() as { id: string };
   const [error, setError] = useState("Loading...");
 
   useEffect(() => {
@@ -81,8 +80,12 @@ export default function InviteRedirect() {
         console.log("Invite document data:", inviteSnap.data());
         //console.log("3");
 
-        const user = auth.currentUser;
-        const userDocRef = doc(db, "Users", user.uid);
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          setError("User not authenticated.");
+          return;
+        }
+        const userDocRef = doc(db, "Users", currentUser.uid);
         const userDocSnap = await getDoc(userDocRef);
 
         //console.log("4");
@@ -104,6 +107,11 @@ export default function InviteRedirect() {
           
           const userSnap = await getDoc(userDocRef);      
           const userData = userSnap.data();
+          
+          if (!userData) {
+            setError("User data not found.");
+            return;
+          }
     
           // Add user to members map of the group
           await updateDoc(groupRef, {

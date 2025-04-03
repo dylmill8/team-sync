@@ -13,7 +13,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const router = useRouter(); //TJ added
   const searchParams = useSearchParams();
-  const addAccount = searchParams.get("addAccount") === "true";
+  const addAccount = searchParams?.get("addAccount") === "true";
 
   const auth = getAuth();
 

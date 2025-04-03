@@ -28,7 +28,7 @@ export default function Settings() {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState("/default.png");
   const [showAccounts, setShowAccounts] = useState(false);
-  const [otherAccounts, setOtherAccounts] = useState([]);
+  const [otherAccounts, setOtherAccounts] = useState<LooseAccount[]>([]);
 
   const [isLightMode, setIsLightMode] = useState(() => {
     return localStorage.getItem("theme") === "light";
@@ -193,11 +193,13 @@ export default function Settings() {
             // Convert Firestore document references into actual user data
             const accountPromises = userData.otherAccounts.map(async (accountRef) => {
               const accountDoc = await getDoc(accountRef); // Resolve reference
-              return accountDoc.exists() ? { id: accountDoc.id, ... accountDoc.data() } : null;
+              return accountDoc.exists()
+                ? { id: accountDoc.id, ...(accountDoc.data() as object) }
+                : null;
             });
   
-            // Wait for all references to resolve & filter out nulls
-            const accountData = (await Promise.all(accountPromises)).filter(Boolean);
+            // Wait for all references to resolve & filter out nulls using a type predicate
+            const accountData = (await Promise.all(accountPromises)).filter((account): account is Omit<LooseAccount, "id"> & { id: string } => account !== null && typeof account.id === "string");
             setOtherAccounts(accountData);
           } else {
             setOtherAccounts([]); // Ensure it's always an array

@@ -22,8 +22,8 @@ export default function ModifyWorkout() {
   const [workout, setWorkout] = useState<Workout | null>(null); // Specify the type for workout
   const router = useRouter();
   const searchParams = useSearchParams();
-  const workoutId = searchParams.get('workoutId');  // Get workoutId from query params
-  const userId = searchParams.get('userId');  // Get userId from query params
+  const workoutId = searchParams?.get('workoutId') ?? "";  // Get workoutId from query params
+  const userId = searchParams?.get('userId') ?? "";  // Get userId from query params
 
   // Fetch the workout document
   useEffect(() => {
