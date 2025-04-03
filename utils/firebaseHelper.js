@@ -23,7 +23,7 @@ async function setDocument(collectionName, docId, data) {
 
 async function viewDocument(collectionName, docId) {
     try {
-        const user = auth.currentUser;
+        //const user = auth.currentUser;
         //if (!user) {
         //    throw new Error("User not authenticated. Cannot fetch document.");
         //}

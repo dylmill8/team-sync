@@ -28,8 +28,8 @@ import {
 
 export default function CreateAnnouncement() {
   const router = useRouter();
-
-  const groupId = useSearchParams().get("groupId");
+  
+  const groupId = useSearchParams()?.get("groupId") ?? "";
   const [groupRef, setGroupRef] = useState<DocumentReference | null>(null);
 
   const [title, setTitle] = useState("");
