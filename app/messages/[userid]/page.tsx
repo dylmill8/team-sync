@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { auth, onAuthStateChanged, db } from "../../../utils/firebaseConfig.js"
 import { setDocument, viewDocument } from "../../../utils/firebaseHelper.js"
+import { DocumentReference } from "firebase/firestore"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,27 +18,44 @@ import {
   getDoc,
   updateDoc,
   arrayUnion,
+  QueryDocumentSnapshot,
+  DocumentData,
 } from "firebase/firestore"
+
+type Message = {
+  id: string
+  text: string
+  userId: string
+  username?: string
+  timestamp?: any
+}
+
+type Friend = {
+  id: string
+  username?: string
+}
 
 export default function ChatPage() {
   const router = useRouter()
   const { userid } = useParams()
 
-  const [chatId, setChatId] = useState(null)
-  const [messages, setMessages] = useState([])
+  const [chatId, setChatId] = useState<string | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null)
+  const [chatTitle, setChatTitle] = useState<string>("Loading chat...")
+  const [groupName, setGroupName] = useState<string>("")
+  const [friendsData, setFriendsData] = useState<Friend[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
-  const [currentUserId, setCurrentUserId] = useState(null)
-  const [lastVisible, setLastVisible] = useState(null)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [chatTitle, setChatTitle] = useState("Loading chat...")
-  const [groupName, setGroupName] = useState("")
   const [isGroupChat, setIsGroupChat] = useState(false)
-  const [friendsData, setFriendsData] = useState([])
   const batchSize = 10
-  const userCache = useRef({})
+  const userCache = useRef<Record<string, string>>({})
 
   useEffect(() => {
-    if (userid) setChatId(userid)
+    if (typeof userid === "string") {
+      setChatId(userid)
+    }
   }, [userid])
 
   useEffect(() => {
@@ -60,7 +78,7 @@ export default function ChatPage() {
       if (chatSnap.exists()) {
         const chatData = chatSnap.data()
         if (chatData.type === "private") {
-          const friendId = chatData.participants.find((id) => id !== currentUserId)
+          const friendId = chatData.participants.find((id: string) => id !== currentUserId)
           try {
             const friendData = await viewDocument("Users", friendId)
             const friendName = friendData?.username || friendId
@@ -84,11 +102,13 @@ export default function ChatPage() {
         const userDoc = await getDoc(doc(db, "Users", currentUserId))
         const userData = userDoc.data()
         if (!userData?.friends) return
-        const friendPromises = userData.friends.map(async (ref) => {
-          const fid = ref.id || ref // in case it's stored as ID not document ref
-          const snap = await getDoc(doc(db, "Users", fid))
-          return snap.exists() ? { id: fid, ...snap.data() } : { id: fid, username: "Unknown" }
-        })
+        const friendPromises = userData.friends.map(
+          async (ref: DocumentReference | string) => {
+            const fid = typeof ref === "string" ? ref : ref.id
+            const snap = await getDoc(doc(db, "Users", fid))
+            return snap.exists() ? { id: fid, ...snap.data() } : { id: fid, username: "Unknown" }
+          }
+        )
         const resolved = await Promise.all(friendPromises)
         setFriendsData(resolved)
       } catch (err) {
@@ -109,7 +129,10 @@ export default function ChatPage() {
     )
     getDocs(initialQuery)
       .then(async (snapshot) => {
-        const msgs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })).reverse()
+        const msgs: Message[] = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<Message, "id">),
+        })).reverse()
         await populateUsernames(msgs)
         setMessages(msgs)
         if (snapshot.docs.length > 0) {
@@ -130,7 +153,10 @@ export default function ChatPage() {
       startAfter(latestMessage.timestamp)
     )
     const unsubscribe = onSnapshot(newMsgQuery, async (snapshot) => {
-      const newMsgs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+      const newMsgs: Message[] = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as Omit<Message, "id">),
+      }))
       if (newMsgs.length > 0) {
         await populateUsernames(newMsgs)
         setMessages((prev) => [...prev, ...newMsgs])
@@ -150,7 +176,10 @@ export default function ChatPage() {
     )
     try {
       const snapshot = await getDocs(olderQuery)
-      const olderMsgs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })).reverse()
+      const olderMsgs: Message[] = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as Omit<Message, "id">),
+      })).reverse()
       await populateUsernames(olderMsgs)
       setMessages((prev) => [...olderMsgs, ...prev])
       if (snapshot.docs.length > 0) {
@@ -178,8 +207,8 @@ export default function ChatPage() {
     }
   }
 
-  const populateUsernames = async (msgs) => {
-    const promises = msgs.map(async (msg) => {
+  const populateUsernames = async (msgs: Message[]) => {
+    const promises = msgs.map(async (msg: Message) => {
       const uid = msg.userId
       if (userCache.current[uid]) {
         msg.username = userCache.current[uid]
@@ -207,7 +236,7 @@ export default function ChatPage() {
     }
   }
 
-  const handleAddFriendToGroup = async (friendId) => {
+  const handleAddFriendToGroup = async (friendId: string) => {
     if (!chatId || !friendId) return
     try {
       const chatRef = doc(db, "Chats", chatId)
@@ -221,6 +250,14 @@ export default function ChatPage() {
 
   return (
     <div className="p-4 max-w-xl mx-auto">
+      <Button
+        className="mb-4"
+        variant="outline"
+        onClick={() => router.push("/messages")}
+      >
+        ← Back to Messages
+      </Button>
+
       <h1 className="text-xl font-bold mb-4">{chatTitle}</h1>
 
       {isGroupChat && (
@@ -236,8 +273,8 @@ export default function ChatPage() {
           <div>
             <h2 className="font-semibold mb-2">Add Friends</h2>
             {friendsData
-              .filter((f) => !messages.some((m) => m.userId === f.id))
-              .map((friend) => (
+              .filter((f) => !messages.some((m: Message) => m.userId === f.id))
+              .map((friend: Friend) => (
                 <div key={friend.id} className="flex justify-between mb-1">
                   <span>{friend.username || friend.id}</span>
                   <Button size="sm" onClick={() => handleAddFriendToGroup(friend.id)}>
@@ -254,7 +291,7 @@ export default function ChatPage() {
       </Button>
 
       <div className="space-y-2 mb-4 mt-4">
-        {messages.map((msg) => (
+        {messages.map((msg: Message) => (
           <div key={msg.id} className="border rounded p-2 shadow-sm bg-white">
             <div className="text-sm text-gray-500">
               {msg.username} •{" "}
