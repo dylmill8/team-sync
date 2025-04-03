@@ -61,6 +61,13 @@ interface GroupData {
   announcements: DocumentReference[]; // changed from DocumentReference to an array
 }
 
+interface AnnouncementData {
+  body: string;
+  createdAt: Timestamp;
+  groupRef: DocumentReference;
+  title: string;
+}
+
 type Message = {
   id: string
   text: string
@@ -90,6 +97,7 @@ export default function Groups() {
   const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
+  const [sortedAnnouncements, setSortedAnnouncements] = useState<(AnnouncementData & { id: string })[]>([]);
 
   useEffect(() => {
     const updateChatPosition = () => {
@@ -240,6 +248,24 @@ export default function Groups() {
     return () => unsubscribe()
   }, [chatId])
       
+  useEffect(() => {
+    if (groupData?.announcements) {
+      const fetchAndSortAnnouncements = async () => {
+        const docs = await Promise.all(
+          groupData.announcements.map(async (annRef) => {
+            const annSnap = await getDoc(annRef);
+            return annSnap.exists()
+              ? ({ id: annSnap.id, ...annSnap.data() } as AnnouncementData & { id: string })
+              : null;
+          })
+        );
+        const validDocs = docs.filter((doc) => doc !== null) as (AnnouncementData & { id: string })[];
+        validDocs.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+        setSortedAnnouncements(validDocs);
+      };
+      fetchAndSortAnnouncements();
+    }
+  }, [groupData?.announcements]);
 
   async function handleCalendarTabClick() {
     if (!docId) {
@@ -404,9 +430,9 @@ export default function Groups() {
               </Button>
             </div>
             <div className="chat-messages">
-              {groupData?.announcements && groupData.announcements.length > 0 ? (
-                groupData.announcements.map((announcement, index) => (
-                  <UserAnnouncementCard announcementRef={announcement} key={index} />
+              {sortedAnnouncements.length > 0 ? (
+                sortedAnnouncements.map((announcement) => (
+                  <UserAnnouncementCard announcementData={announcement} key={announcement.id} />
                 ))
               ) : (
                 <p>No announcements found</p>

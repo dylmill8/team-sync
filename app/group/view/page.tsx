@@ -1,14 +1,20 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { arrayRemove, arrayUnion, doc, getDoc, DocumentData, updateDoc, addDoc, collection } from "firebase/firestore";
 import { db } from "../../../utils/firebaseConfig";
 import { getAuth } from "firebase/auth";
-import { viewDocument } from "../../../utils/firebaseHelper.js";
 import { useRouter, useSearchParams } from "next/navigation";
+
+
+interface MemberData {
+  name: string;
+  role: string; // Assuming role can be "member", "leader", "owner", etc.
+}
+
 
 export default function ViewGroup() {
   const auth = getAuth();
@@ -16,14 +22,13 @@ export default function ViewGroup() {
   const [data, setData] = useState<DocumentData | null>(null);
   const groupId = useSearchParams().get("groupId");
   const [loading, setLoading] = useState(true);
-  const [profileId] = useState(groupId || "");
   const [preview, setPreview] = useState("/default.png");
   const router = useRouter();
 
   const [inviteLink, setInviteLink] = useState<string | null>(null);
 
   // Helper function to get number of members
-  const getNumberOfMembers = (members: Record<string, any> | undefined): number => {
+  const getNumberOfMembers = (members: Record<string, MemberData> | undefined): number => {
     if (members && typeof members === "object") {
       return Object.keys(members).length;
     }
@@ -59,21 +64,24 @@ export default function ViewGroup() {
       }
     };
 
+    const fetchProfileImage = async () => {
+      try {
+        
+        const res = await fetch(`/api/getGroupProfile?groupId=${groupId}`);
+        const data = await res.json();
+        if (res.ok && data.file) {
+          setPreview(`/uploads/groups/${data.file}?timestamp=${Date.now()}`);
+        }
+      } catch {
+        setPreview("/uploads/testuser.png");
+      }
+    };
+
     fetchGroup();
     fetchProfileImage();
   }, [groupId]);
 
-  const fetchProfileImage = async () => {
-    try {
-      const res = await fetch(`/api/getGroupProfile?groupId=${profileId}`);
-      const data = await res.json();
-      if (res.ok && data.file) {
-        setPreview(`/uploads/groups/${data.file}?timestamp=${Date.now()}`);
-      }
-    } catch {
-      setPreview("/uploads/testuser.png");
-    }
-  };
+  
 
   // Leave group button
   const handleLeaveGroup = async () => {
@@ -176,6 +184,7 @@ export default function ViewGroup() {
       // Redirect after joining
       router.push(`/groupslist`);
     } catch (error) {
+      console.error("Error joining group:", error);
       alert("Failed to join group.");
     }
   };
@@ -183,7 +192,10 @@ export default function ViewGroup() {
   // Create invite link
   const createInviteLink = async () => {
     setInviteLink(null);
-
+    if (!userId) {
+      alert("User is not logged in.");
+      return;
+    }
     const userRef = doc(db, "Users", userId);
     const userSnap = await getDoc(userRef);
     if (!userSnap.exists()) {
@@ -221,19 +233,19 @@ export default function ViewGroup() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <Card className="w-full max-w-md p-6 shadow-lg bg-white rounded-xl">
-      <img
-            src={preview}
-            alt="Profile"
-            width="150"
-            style={{
-              display: "block",
-              margin: "0 auto",
-              borderRadius: "50%",
-              objectFit: "cover",
-              border: "3px solid #0070f3",
-            }}
-            onError={(e) => (e.currentTarget.src = "/default.png")}
-      />
+        <img
+              src={preview}
+              alt="Profile"
+              width="150"
+              style={{
+                display: "block",
+                margin: "0 auto",
+                borderRadius: "50%",
+                objectFit: "cover",
+                border: "3px solid #0070f3",
+              }}
+              onError={(e) => (e.currentTarget.src = "/default.png")}
+        />
         <CardHeader>
           <CardTitle className="text-2xl font-semibold">
             {data?.name || "Error loading group name."}
@@ -253,9 +265,24 @@ export default function ViewGroup() {
           
           {/* Conditional rendering based on user role */}
           {data.owner === userId ? (
-            <p className="font-medium text-gray-700">
-            You are the owner of this group.
-            </p>
+            <div>
+              <p className="font-medium text-gray-700">
+                You are the owner of this group.
+              </p>
+              <Button
+                onClick={createInviteLink}
+                className="my-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition-all"
+              >
+                Create Invite Link
+              </Button>
+              <div className="flex w-full">
+                {inviteLink && (
+                  <div className="w-full justify-center flex mb-2 mx-2 mt-0">
+                    Invite Link: {inviteLink}
+                  </div>
+                )}
+              </div>
+            </div>
           ) : isMember ? (
             <div>
               <Button
@@ -276,7 +303,7 @@ export default function ViewGroup() {
                     Invite Link: {inviteLink}
                   </div>
                 )}
-          </div>
+              </div>
             </div>
           ) : (
             <Button

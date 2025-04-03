@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { updateDoc, doc, getDoc, DocumentData } from "firebase/firestore";
 import { db } from "../../../utils/firebaseConfig";
-import { getAuth } from "firebase/auth";
+//import { getAuth } from "firebase/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 
 // Define the type for a member object
@@ -16,8 +16,8 @@ interface Member {
 }
 
 export default function Permissions() {
-    const auth = getAuth();
-    const userId = auth.currentUser?.uid;
+    //const auth = getAuth();
+    //const userId = auth.currentUser?.uid;
     const [data, setData] = useState<DocumentData | null>(null);
     const groupId = useSearchParams().get("groupId");
     const [members, setMembers] = useState<Member[]>([]);
