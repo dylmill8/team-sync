@@ -11,10 +11,22 @@ import { db } from '@/utils/firebaseConfig';
 import { doc, DocumentData, DocumentReference, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 
+interface GroupData {
+  docID: string;
+  name: string;
+  description: string;
+  picture: string;
+  privacy: boolean;
+  members: { [key: string]: string; };
+  events: Array<{ id: string; }>;
+  chat: DocumentReference;
+  announcements: DocumentReference[]; // changed from DocumentReference to an array
+}
+
 export default function Groups() {
     const auth = getAuth(firebaseApp);
     const router = useRouter();
-    const [userGroups, setUserGroups] = useState<Array<{ docID: string } & DocumentData>>([]);
+    const [userGroups, setUserGroups] = useState<GroupData[]>([]);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -40,7 +52,7 @@ export default function Groups() {
                     };
                   }),
                 );
-                setUserGroups(groupDocs.filter((doc): doc is { docID: string } & DocumentData => doc !== null));
+                setUserGroups(groupDocs.filter((doc) => doc !== null) as unknown as GroupData[]);
               }
             }
           }
@@ -58,8 +70,7 @@ export default function Groups() {
                     className="create-group-button"
                     onClick={() => {
                         router.push("/group/create");
-                    }
-                    }
+                    }}
                 >
                     Create Group
                 </button>
@@ -76,6 +87,7 @@ export default function Groups() {
                       className="p-4 border rounded-md shadow-md">
                         <h3 className="text-lg font-semibold">{group.name}</h3>
                         <p className="text-gray-600">{group.description}</p>
+                        <p className="text-gray-400">{Object.keys(group.members).length} members</p>
                       </li>
                     ))}
                   </ul>
