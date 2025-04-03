@@ -269,7 +269,22 @@ export default function Profile() {
               width: "80%",
             }}
           >
-            Go to Settings
+            Account Settings
+          </button>
+          <button
+            onClick={() => router.push("/notification-settings")}
+            style={{
+              marginTop: "20px",
+              padding: "10px 20px",
+              backgroundColor: "#0070f3",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              width: "80%",
+            }}
+          >
+            Notification Settings
           </button>
           <button
             onClick={() => router.push("/messages")}
