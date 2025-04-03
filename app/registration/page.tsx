@@ -22,7 +22,7 @@ export default function Register() {
   const router = useRouter(); // Initialize useRouter for navigation
 
   useEffect(() => {
-    const emailParam = searchParams.get("email");
+    const emailParam = searchParams?.get("email") || "";
     console.log("hi");
     if (emailParam) {
       setEmail(emailParam);

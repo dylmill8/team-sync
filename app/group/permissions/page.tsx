@@ -19,7 +19,7 @@ export default function Permissions() {
     //const auth = getAuth();
     //const userId = auth.currentUser?.uid;
     const [data, setData] = useState<DocumentData | null>(null);
-    const groupId = useSearchParams().get("groupId");
+    const groupId = useSearchParams()?.get("groupId") ?? "";
     const [members, setMembers] = useState<Member[]>([]);
     const [loading, setLoading] = useState(true);
     const router = useRouter();

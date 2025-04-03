@@ -38,7 +38,7 @@ type Friend = {
 
 export default function ChatPage() {
   const router = useRouter()
-  const { userid } = useParams()
+  const { userid } = useParams() as { userid: string }
 
   const [chatId, setChatId] = useState<string | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
