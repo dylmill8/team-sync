@@ -182,7 +182,6 @@ export default function Groups() {
           return [name, role, key];
         });
       setGroupMembers(sortedMembers);
-      console.log("Group members:", sortedMembers);
     }
   }, [groupData?.members]);
 
@@ -371,6 +370,15 @@ export default function Groups() {
       console.error("Failed to send message:", error)
     }
   }
+
+  useEffect(() => {
+    if (chatRef.current) {
+      const chatMessagesEl = chatRef.current.querySelector('.chat-messages');
+      if (chatMessagesEl) {
+        chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+      }
+    }
+  }, [messages]);
 
   return (
     <>
