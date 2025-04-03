@@ -21,7 +21,7 @@ export default function ViewGroup() {
   const auth = getAuth();
   const userId = auth.currentUser?.uid;
   const [data, setData] = useState<DocumentData | null>(null);
-  const groupId = useSearchParams().get("groupId");
+  const groupId = useSearchParams()?.get("groupId") ?? "";
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState("/default.png");
   const router = useRouter();
