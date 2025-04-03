@@ -27,7 +27,7 @@ export default function GroupSettings() {
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
   const [loading, setLoading] = useState(true);
-  const groupId = useSearchParams().get("groupId");
+  const groupId = useSearchParams()?.get("groupId") || "";
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [image, setImage] = useState<File | null>(null);
