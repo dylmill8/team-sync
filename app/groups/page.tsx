@@ -9,7 +9,8 @@ import listPlugin from '@fullcalendar/list';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"
+import { Input } from "@/components/ui/input";
+import UserAnnouncementCard from "@/components/ui/user-announcement-card";
 
 import { useRouter, useSearchParams } from "next/navigation";
 import NavBar from "@/components/ui/navigation-bar";
@@ -18,7 +19,7 @@ import { db } from '@/utils/firebaseConfig';
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { doc, DocumentReference, getDoc, query, collection, orderBy, startAfter, limit, getDocs, QueryDocumentSnapshot, DocumentData, onSnapshot, Timestamp } from "firebase/firestore";
 import { useState, useEffect, useRef } from "react";
-import { setDocument, viewDocument } from "../../utils/firebaseHelper.js"
+import { setDocument, viewDocument } from "../../utils/firebaseHelper.js";
 
 
 interface EventData {
@@ -57,7 +58,14 @@ interface GroupData {
   members: { [key: string]: string; };
   events: Array<{ id: string; }>;
   chat: DocumentReference;
-  announcements: DocumentReference;
+  announcements: DocumentReference[]; // changed from DocumentReference to an array
+}
+
+interface AnnouncementData {
+  body: string;
+  createdAt: Timestamp;
+  groupRef: DocumentReference;
+  title: string;
 }
 
 type Message = {
@@ -78,6 +86,8 @@ export default function Groups() {
   const userCache = useRef<Record<string, string>>({})
   const batchSize = 10
 
+  const chatRef = useRef<HTMLDivElement>(null);
+  const tabsListRef = useRef<HTMLDivElement>(null);
 
   const [eventList, setEventList] = useState<CalendarEvent[]>([]);
   const [groupData, setGroupData] = useState<GroupData | null>(null);
@@ -87,7 +97,33 @@ export default function Groups() {
   const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
+  const [sortedAnnouncements, setSortedAnnouncements] = useState<(AnnouncementData & { id: string })[]>([]);
+  const [createAnnouncement, setCreateAnnouncement] = useState(false);
 
+  useEffect(() => {
+    const updateChatPosition = () => {
+      if (!chatRef.current || !tabsListRef.current) return;
+      const chatEl = chatRef.current;
+      const tabsRect = tabsListRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const chatHeight = chatEl.offsetHeight;
+      const baseBottom = 0.12 * viewportHeight;
+      const chatTop = viewportHeight - baseBottom - chatHeight;
+      if (chatTop < tabsRect.bottom) {
+        const newBottom = viewportHeight - chatHeight - tabsRect.bottom;
+        chatEl.style.bottom = newBottom + "px";
+      } else {
+        chatEl.style.bottom = baseBottom + "px";
+      }
+    };
+    window.addEventListener("resize", updateChatPosition);
+    window.addEventListener("scroll", updateChatPosition);
+    updateChatPosition();
+    return () => {
+      window.removeEventListener("resize", updateChatPosition);
+      window.removeEventListener("scroll", updateChatPosition);
+    };
+  }, []);
 
   useEffect(() => {
     async function fetchGroup() {
@@ -147,7 +183,6 @@ export default function Groups() {
           return [name, role, key];
         });
       setGroupMembers(sortedMembers);
-      console.log("Group members:", sortedMembers);
     }
   }, [groupData?.members]);
 
@@ -213,6 +248,24 @@ export default function Groups() {
     return () => unsubscribe()
   }, [chatId])
       
+  useEffect(() => {
+    if (groupData?.announcements) {
+      const fetchAndSortAnnouncements = async () => {
+        const docs = await Promise.all(
+          groupData.announcements.map(async (annRef) => {
+            const annSnap = await getDoc(annRef);
+            return annSnap.exists()
+              ? ({ id: annSnap.id, ...annSnap.data() } as AnnouncementData & { id: string })
+              : null;
+          })
+        );
+        const validDocs = docs.filter((doc) => doc !== null) as (AnnouncementData & { id: string })[];
+        validDocs.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+        setSortedAnnouncements(validDocs);
+      };
+      fetchAndSortAnnouncements();
+    }
+  }, [groupData?.announcements]);
 
   async function handleCalendarTabClick() {
     if (!docId) {
@@ -319,6 +372,27 @@ export default function Groups() {
     }
   }
 
+  useEffect(() => {
+    if (chatRef.current) {
+      const chatMessagesEl = chatRef.current.querySelector('.chat-messages');
+      if (chatMessagesEl) {
+        chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+      }
+    }
+  }, [messages]);
+
+  // use effect for announcement permissions
+  useEffect(() => {
+    if (uid && groupData) {
+      const members = groupData.members;
+      if (members[uid][1] == "leader" || members[uid][1] == "owner") {
+        setCreateAnnouncement(true);
+      } else {
+        setCreateAnnouncement(false);
+      }
+    }
+  }, [uid, groupData]);
+
   return (
     <>
       <div className="group-header-background">
@@ -359,7 +433,7 @@ export default function Groups() {
             handleCalendarTabClick();
           }
         }}>
-          <TabsList className="tabs-list">
+          <TabsList className="tabs-list" ref={tabsListRef}>
             <TabsTrigger value="announcements" className="tabs-trigger">
               announcements
             </TabsTrigger>
@@ -371,19 +445,28 @@ export default function Groups() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="announcements" className="tabs-content">
-            {/* add logic for button to display only if user is a team leader */
-            }
-            <Button onClick={() => router.push(`/announcement/create?groupId=${docId}`)}>Create Announcement</Button>
-            Announcements...
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+              {createAnnouncement && (<Button onClick={() => router.push(`/announcement/create?groupId=${docId}`)}>
+                Create Announcement
+              </Button>)}
+            </div>
+            <div className="chat-messages">
+              {sortedAnnouncements.length > 0 ? (
+                sortedAnnouncements.map((announcement) => (
+                  <UserAnnouncementCard announcementData={announcement} key={announcement.id} />
+                ))
+              ) : (
+                <p>No announcements found</p>
+              )}
+            </div>
           </TabsContent>
           <TabsContent value="chat" className="tabs-content">
-            <div className="p-4 max-w-xl mx-auto">
+            <div className="chat" ref={chatRef}>
 
+              <div className="chat-messages space-y-2 mb-4 mt-4">
               <Button onClick={loadMoreMessages} disabled={loadingMore}>
                 {loadingMore ? "Loading..." : "Load Previous Messages"}
               </Button>
-
-              <div className="space-y-2 mb-4 mt-4">
                 {messages.map((msg: Message) => (
                   <div key={msg.id} className="border rounded p-2 shadow-sm bg-white">
                     <div className="text-sm text-gray-500">

@@ -96,7 +96,9 @@ export default function CreateGroup() {
                 alert(`Upload failed! ${errorData.error || "Unknown error"}`);
             }
             } catch (error) {
-            alert("Upload failed! Network error.");
+              if (error) {
+                alert("Upload failed! Network error.");
+              } 
             }
         }
       
@@ -106,7 +108,9 @@ export default function CreateGroup() {
         alert("Group Created Successfully");
         router.push(`/group/view?groupId=${docRef.id}`);
         } catch (e) {
+            if (e) {
             alert("Error creating group");
+            }
         }
     };
 

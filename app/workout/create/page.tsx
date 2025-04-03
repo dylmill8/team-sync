@@ -2,10 +2,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getDocs, query, where } from "firebase/firestore";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { db } from "../../../utils/firebaseConfig"; 
 import { useRouter, useSearchParams } from "next/navigation";
 import { doc, updateDoc, arrayUnion, addDoc, collection } from "firebase/firestore";
@@ -41,6 +38,7 @@ export default function Workout() {
             router.push(`/event/view?docId=${docId}`);
 
         } catch (error) {
+            console.error("Error saving", error);
             alert("There was an error saving the workout.");
         }
     };

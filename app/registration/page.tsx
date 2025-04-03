@@ -93,7 +93,7 @@ export default function Register() {
             alert(`Upload failed! ${errorData.error || "Unknown error"}`);
           }
         } catch (error) {
-          alert("Upload failed! Network error.");
+          console.error("uppload failed", error);
         }
       }
 
@@ -108,6 +108,7 @@ export default function Register() {
       alert(`Email Registered: ${email}, username: ${username}`);
       router.push("/profile"); // Redirect to profile page
     } catch (e) {
+      console.error("Error adding document:", e);
       alert("Error adding document:");
     }
   };

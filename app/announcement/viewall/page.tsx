@@ -9,14 +9,14 @@ import UserAnnouncementCard from "@/components/ui/user-announcement-card";
 
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { db, firebaseApp } from "@/utils/firebaseConfig";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, DocumentReference, getDoc } from "firebase/firestore";
 
 export default function AnnouncementViewAll() {
   const router = useRouter();
   const auth = getAuth(firebaseApp);
 
   const [uid, setUid] = useState<string | null>(null);
-  const [announcements, setAnnouncements] = useState<string[]>([]);
+  const [announcements, setAnnouncements] = useState<DocumentReference[]>([]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -28,41 +28,41 @@ export default function AnnouncementViewAll() {
     return () => unsubscribe();
   }, [auth]);
 
-  const getUserAnnouncements = async () => {
-    if (!uid) {
-      return;
-    }
+  useEffect(() => {
+    const getUserAnnouncements = async () => {
+      if (!uid) {
+        return;
+      }
 
-    try {
-      const userDocRef = doc(db, "Users", uid);
-      const userDoc = await getDoc(userDocRef);
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        const groupList = userData.groups || [];
+      try {
+        const userDocRef = doc(db, "Users", uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const groupList = userData.groups || [];
 
-        console.log(groupList);
+          console.log(groupList);
 
-        for (const group of groupList) {
-          const groupDoc = await getDoc(group);
-          if (groupDoc.exists()) {
-            const groupData = groupDoc.data();
-            const announcementList = (groupData as { announcements?: string[] }).announcements || [];
+          for (const group of groupList) {
+            const groupDoc = await getDoc(group);
+            if (groupDoc.exists()) {
+              const groupData = groupDoc.data();
+              const announcementList =
+                (groupData as { announcements?: DocumentReference[] }).announcements || [];
 
-            setAnnouncements((prevAnnouncements) => [
-              ...announcementList,
-              ...prevAnnouncements,
-            ]);
+              setAnnouncements((prevAnnouncements) => [
+                ...announcementList,
+                ...prevAnnouncements,
+              ]);
+            }
           }
         }
+      } catch (e) {
+        console.log("Error getting user announcements:", e);
       }
-    } catch (e) {
-      console.log("Error getting user announcements:", e);
-    }
-  };
-  useEffect(() => {
-    if (uid) {
-      getUserAnnouncements();
-    }
+    };
+
+    getUserAnnouncements();
   }, [uid]);
 
   return (
@@ -82,10 +82,9 @@ export default function AnnouncementViewAll() {
 
         <CardContent>
           {announcements.map((announcement, index) => {
-            const announcementRef = doc(db, "Announcements", announcement);
             return (
               <UserAnnouncementCard
-                announcementRef={announcementRef}
+                announcementRef={announcement}
                 key={index}
               ></UserAnnouncementCard>
             );

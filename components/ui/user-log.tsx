@@ -48,7 +48,7 @@ function UserLog({ userId, logId, exerciseList }: UserLogProps) {
 
     fetchUserData();
     fetchLogData();
-  }, []);
+  }, [logId, userId]);
 
   return (
     <div>
