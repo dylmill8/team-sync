@@ -1,5 +1,4 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import CreateAnnouncement from "../create/page";
 
 // NOTE: this is just an example of how testing with jest works. this tests are not exhaustive (nor fully functional, i'm

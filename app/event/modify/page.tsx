@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -15,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-import { useState, useEffect, SetStateAction } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { db } from "../../../utils/firebaseConfig";
 import {
@@ -114,19 +113,19 @@ export default function ModifyEvent() {
   }
 
   // change updatedData variable on input field change
-  const handleDataChange = (e: { target: { name: any; value: any } }) => {
+  const handleDataChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
 
     console.log("name:", name);
     if (allDay && name == "start") {
       setUpdatedData((prevData) => ({
         ...prevData,
-        start: `${value}T00:00`,
+        start: `${value}T00:00`, // Assuming value is a string
       }));
     } else if (allDay && name == "end") {
       setUpdatedData((prevData) => ({
         ...prevData,
-        end: `${value}T23:59`,
+        end: `${value}T23:59`, // Assuming value is a string
       }));
     } else {
       setUpdatedData((prevData) => ({

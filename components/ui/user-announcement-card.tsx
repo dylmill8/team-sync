@@ -21,7 +21,7 @@ import {
 
 interface AnnouncementData {
   title?: string;
-  groupRef?: any;
+  groupRef?: DocumentReference;
   body?: string;
   createdAt?: Timestamp;
 }
