@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { onAuthStateChanged } from "firebase/auth"
+import { onAuthStateChanged, User } from "firebase/auth"
 import {
   doc,
   getDoc,
@@ -10,6 +10,8 @@ import {
   onSnapshot,
   arrayUnion,
   arrayRemove,
+  DocumentReference,
+  DocumentData,
 } from "firebase/firestore"
 import { auth, db } from "@/utils/firebaseConfig"
 import { createChat } from "@/utils/chatHelper"
@@ -17,12 +19,25 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
+type Friend = {
+  id: string
+  username?: string
+}
+
+type Chat = {
+  id: string
+  participants: string[]
+  createdAt: Date | { seconds: number; nanoseconds: number }
+  type: "private" | "group"
+  name?: string
+}
+
 export default function FriendsChatsPage() {
-  const [user, setUser] = useState(null)
-  const [friendsData, setFriendsData] = useState([])
-  const [userChats, setUserChats] = useState([])
+  const [user, setUser] = useState<User | null>(null)
+  const [friendsData, setFriendsData] = useState<Friend[]>([])
+  const [userChats, setUserChats] = useState<Chat[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedFriends, setSelectedFriends] = useState([])
+  const [selectedFriends, setSelectedFriends] = useState<string[]>([])
   const [groupName, setGroupName] = useState("")
   const router = useRouter()
 
@@ -41,7 +56,7 @@ export default function FriendsChatsPage() {
     return () => unsubscribe()
   }, [router])
 
-  const loadUserData = async (userId) => {
+  const loadUserData = async (userId: string) => {
     const userDocRef = doc(db, "Users", userId)
     const userSnap = await getDoc(userDocRef)
 
@@ -57,38 +72,39 @@ export default function FriendsChatsPage() {
       return
     }
 
-    const friendPromises = userData.friends.map(async (ref) => {
-      const friendId = ref.id || ref
+    const friendPromises = userData.friends.map(async (ref: DocumentReference | string) => {
+      const friendId = typeof ref === "string" ? ref : ref.id
       const friendDocRef = doc(db, "Users", friendId)
       const friendSnap = await getDoc(friendDocRef)
-      if (friendSnap.exists()) {
-        return { id: friendId, ...friendSnap.data() }
-      }
-      return { id: friendId, username: "Unknown" }
+      return friendSnap.exists()
+        ? { id: friendId, ...(friendSnap.data() as Omit<Friend, "id">) }
+        : { id: friendId, username: "Unknown" }
     })
 
     const resolvedFriends = await Promise.all(friendPromises)
     setFriendsData(resolvedFriends)
   }
 
-  const listenToUserChats = (userId) => {
+  const listenToUserChats = (userId: string) => {
     const userDocRef = doc(db, "Users", userId)
     return onSnapshot(userDocRef, async (snap) => {
       if (!snap.exists()) return
       const data = snap.data()
       const chatIds = data.chats || []
 
-      const chatPromises = chatIds.map(async (chatId) => {
+      const chatPromises = chatIds.map(async (chatId: string) => {
         const chatSnap = await getDoc(doc(db, "Chats", chatId))
-        return chatSnap.exists() ? { id: chatId, ...chatSnap.data() } : null
+        return chatSnap.exists()
+          ? { id: chatId, ...(chatSnap.data() as Omit<Chat, "id">) }
+          : null
       })
 
-      const resolvedChats = (await Promise.all(chatPromises)).filter(Boolean)
+      const resolvedChats = (await Promise.all(chatPromises)).filter(Boolean) as Chat[]
       setUserChats(resolvedChats)
     })
   }
 
-  const handleFriendChat = async (friendId) => {
+  const handleFriendChat = async (friendId: string) => {
     if (!user) return
 
     const sortedIds = [user.uid, friendId].sort()
@@ -133,7 +149,7 @@ export default function FriendsChatsPage() {
     router.push(`/messages/${chatId}`)
   }
 
-  const handleRemoveGroupChat = async (chatId) => {
+  const handleRemoveGroupChat = async (chatId: string) => {
     if (!user) return
     const userDocRef = doc(db, "Users", user.uid)
     await updateDoc(userDocRef, {
@@ -141,7 +157,7 @@ export default function FriendsChatsPage() {
     })
   }
 
-  const toggleFriendSelection = (friendId) => {
+  const toggleFriendSelection = (friendId: string) => {
     setSelectedFriends((prev) =>
       prev.includes(friendId)
         ? prev.filter((id) => id !== friendId)
@@ -153,6 +169,14 @@ export default function FriendsChatsPage() {
 
   return (
     <div className="p-4 max-w-xl mx-auto">
+      <Button
+        className="mb-4"
+        variant="outline"
+        onClick={() => router.push("/profile")}
+      >
+        ← Back to Profile
+      </Button>
+
       <h1 className="text-xl font-bold mb-4">My Chats</h1>
 
       {userChats.length === 0 ? (
@@ -217,7 +241,6 @@ export default function FriendsChatsPage() {
               onChange={() => toggleFriendSelection(friend.id)}
               className="w-4 h-4"
             />
-
             <span>{friend.username || friend.id}</span>
           </li>
         ))}
