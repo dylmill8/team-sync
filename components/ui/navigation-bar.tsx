@@ -4,6 +4,7 @@ import React from "react"; // Add React import
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 const NavBar = () => {
     return (
@@ -19,7 +20,7 @@ const NavBar = () => {
 
 const NavBarItem = ({ href, icon, active }: { href: string; icon: string; active: boolean }) => {
     const router = useRouter();
-    const isDarkMode = localStorage.getItem("theme") === "dark";
+    const isDarkMode = useState(false);
 
     // Dynamically change the icon based on the theme
     const iconSrc = isDarkMode ? icon.replace(".png", "-White.png") : icon;
