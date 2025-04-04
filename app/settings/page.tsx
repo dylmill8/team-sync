@@ -262,9 +262,9 @@ export default function Settings() {
       if (user) {
         // Update password without old password
         await updatePassword(user, newPassword);
-        //const passDocRef = await setDoc(doc(db, "UserPasswords", user.uid), {
-        //  password: newPassword,
-        //});  
+        const passDocRef = await setDoc(doc(db, "UserPasswords", user.uid), {
+          password: newPassword,
+        });  
         alert("Password updated successfully!");
       }
     } catch (error ) {
