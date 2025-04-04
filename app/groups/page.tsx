@@ -17,7 +17,7 @@ import NavBar from "@/components/ui/navigation-bar";
 import { firebaseApp } from "@/utils/firebaseConfig";
 import { db } from '@/utils/firebaseConfig';
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { doc, DocumentReference, getDoc, query, collection, orderBy, startAfter, limit, getDocs, QueryDocumentSnapshot, DocumentData, onSnapshot, Timestamp } from "firebase/firestore";
+import { doc, DocumentReference, getDoc, query, collection, orderBy, startAfter, limit, getDocs, QueryDocumentSnapshot, DocumentData, onSnapshot, Timestamp, deleteDoc } from "firebase/firestore";
 import { useState, useEffect, useRef } from "react";
 import { setDocument, viewDocument } from "../../utils/firebaseHelper.js";
 
@@ -99,6 +99,8 @@ export default function Groups() {
   const [newMessage, setNewMessage] = useState("")
   const [sortedAnnouncements, setSortedAnnouncements] = useState<(AnnouncementData & { id: string })[]>([]);
   const [createAnnouncement, setCreateAnnouncement] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
 
   useEffect(() => {
     const updateChatPosition = () => {
@@ -310,6 +312,15 @@ export default function Groups() {
     }
   }
 
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!chatId || !messageId) return;
+    try {
+      await deleteDoc(doc(db, "Chats", chatId, "messages", messageId));
+    } catch (error) {
+      console.error("Error deleting message:", error);
+    }
+  };
+
   const populateUsernames = async (msgs: Message[]) => {
     const promises = msgs.map(async (msg: Message) => {
       const uid = msg.userId
@@ -399,6 +410,7 @@ export default function Groups() {
   useEffect(() => {
     if (uid && groupData) {
       const members = groupData.members;
+      setUserRole(members[uid][1]);
       if (members[uid][1] == "leader" || members[uid][1] == "owner") {
         setCreateAnnouncement(true);
       } else {
@@ -476,19 +488,28 @@ export default function Groups() {
           </TabsContent>
           <TabsContent value="chat" className="tabs-content">
             <div className="chat" ref={chatRef}>
-
               <div className="chat-messages space-y-2 mb-4 mt-4">
-              <Button onClick={loadMoreMessages} disabled={loadingMore}>
-                {loadingMore ? "Loading..." : "Load Previous Messages"}
-              </Button>
+                <Button onClick={loadMoreMessages} disabled={loadingMore}>
+                  {loadingMore ? "Loading..." : "Load Previous Messages"}
+                </Button>
                 {messages.map((msg: Message) => (
                   <div key={msg.id} className="border rounded p-2 shadow-sm bg-white">
-                    <div className="text-sm text-gray-500">
-                      {msg.username} •{" "}
-                      {msg.timestamp?.toDate?.().toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                    <div className="text-sm text-gray-500 flex justify-between">
+                      <div>
+                        {msg.username} •{" "}
+                        {msg.timestamp?.toDate?.().toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                      {(userRole === "leader" || userRole === "owner") && (
+                        <button
+                          onClick={() => handleDeleteMessage(msg.id)}
+                          className="text-red-500 hover:underline text-xs ml-2"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                     <div>{msg.text}</div>
                   </div>
