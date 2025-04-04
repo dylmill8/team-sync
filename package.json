@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "jest --passWithNoTests"
+    "test": "jest"
   },
   "dependencies": {
     "@firebase/firestore": "^4.7.8",
