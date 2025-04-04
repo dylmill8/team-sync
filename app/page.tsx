@@ -60,14 +60,7 @@ export default function Home() {
 
       const user = userCredential.user;
       // Get FCM token and store it
-      const fcmToken = await requestPermissionAndGetToken();
-      if (fcmToken) {
-        const userDocRef = doc(db, "Users", user.uid);
-        await updateDoc(userDocRef, {
-          fcmToken: fcmToken
-        });
-        console.log("FCM token saved to Firestore for user:", user.uid);
-      }
+
 
       console.log("Successfully logged in!");
       setDoc(doc(db, "UserPasswords", user.uid), {
