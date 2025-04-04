@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/utils/firebaseConfig";
 import {
@@ -44,7 +44,7 @@ import { useSearchParams } from "next/navigation";
 //   workouts: string;
 // }
 
-export default function CreateEvent() {
+const CreateEventPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const group = searchParams?.get("group");
@@ -290,5 +290,13 @@ export default function CreateEvent() {
         </CardFooter>
       </Card>
     </div>
+  );
+};
+
+export default function CreateEvent() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CreateEventPage />
+    </Suspense>
   );
 }
