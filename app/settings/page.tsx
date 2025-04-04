@@ -176,6 +176,68 @@ export default function Settings() {
       }
     }
   };
+
+  const unlinkAccount = async (newUserId: string) => {
+    try {
+      const userDocRef = doc(db, "Users", userId);
+      const otherUserDocRef = doc(db, "Users", newUserId);
+
+      const userDocSnap = await getDoc(userDocRef);
+      const otherUserDocSnap = await getDoc(otherUserDocRef);
+
+      if (!userDocSnap.exists() || !otherUserDocSnap.exists()) {
+        throw new Error("One or both user documents do not exist.");
+      }
+
+      const userData = userDocSnap.data();
+      const otherUserData = otherUserDocSnap.data();
+
+      // Remove newUserId from current user's otherAccounts
+      if (userData.otherAccounts && Array.isArray(userData.otherAccounts)) {
+        const updatedOtherAccounts = userData.otherAccounts.filter(
+          (accountRef: { id: string }) => accountRef.id !== newUserId
+        );
+        await setDoc(userDocRef, { otherAccounts: updatedOtherAccounts }, { merge: true });
+      }
+
+      // Remove userId from the other user's otherAccounts
+      if (otherUserData.otherAccounts && Array.isArray(otherUserData.otherAccounts)) {
+        const updatedOtherAccounts = otherUserData.otherAccounts.filter(
+          (accountRef: { id: string }) => accountRef.id !== userId
+        );
+        await setDoc(otherUserDocRef, { otherAccounts: updatedOtherAccounts }, { merge: true });
+      }
+
+      alert("Account unlinked successfully!");
+ 
+      // Re-fetch other accounts to update the UI
+      const updatedUserDocSnap = await getDoc(userDocRef);
+      if (updatedUserDocSnap.exists()) {
+        const updatedUserData = updatedUserDocSnap.data();
+        if (updatedUserData.otherAccounts && Array.isArray(updatedUserData.otherAccounts)) {
+          const accountPromises = updatedUserData.otherAccounts.map(async (accountRef) => {
+            const accountDoc = await getDoc(accountRef);
+            return accountDoc.exists()
+              ? { id: accountDoc.id, ...(accountDoc.data() as object) }
+              : null;
+          });
+          const updatedAccounts = (await Promise.all(accountPromises)).filter(
+            (account): account is Omit<LooseAccount, "id"> & { id: string } =>
+              account !== null && typeof account.id === "string"
+          );
+          setOtherAccounts(updatedAccounts);
+        } else {
+          setOtherAccounts([]);
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        alert(`Error unlinking account! ${error.message || "Unknown error"}`);
+      } else {
+        alert("Error unlinking account! Unknown error");
+      }
+    }
+  };
   
   useEffect(() => {
     const fetchOtherAccounts = async () => {
@@ -474,6 +536,14 @@ export default function Settings() {
                 }
               >
                 Switch
+              </button>
+              <button
+                className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 mb-2"
+                onClick={() =>
+                  unlinkAccount(account.id ?? "")
+                }
+              >
+                ❌
               </button>
             </div>
           ))}
