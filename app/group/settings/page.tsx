@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ interface GroupData {
   events?: { path: string }[]; // Assuming events contain references as paths
 }
 
-export default function GroupSettings() {
+function GroupSettingsContent() {
   const auth = getAuth();
   const userId = auth.currentUser?.uid;
   const [groupData, setGroupData] = useState<GroupData | null>(null);
@@ -276,5 +276,13 @@ export default function GroupSettings() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function GroupSettings() {
+  return (
+    <Suspense fallback={<p>Loading settings...</p>}>
+      <GroupSettingsContent />
+    </Suspense>
   );
 }
