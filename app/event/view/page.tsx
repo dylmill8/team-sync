@@ -27,7 +27,7 @@ export default function ViewEvent() {
   const [uid, setUid] = useState("");
 
   const [data, setData] = useState<DocumentData | null>(null);
-  const docId = useSearchParams().get("docId");
+  const docId = useSearchParams()?.get("docId") ?? "";
   const [loading, setLoading] = useState(true);
   const [canModify, setCanModify] = useState(false);
 

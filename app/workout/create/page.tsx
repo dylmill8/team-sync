@@ -12,7 +12,7 @@ export default function Workout() {
     const [exercises, setExercises] = useState<string[]>([]);
 
     const router = useRouter();
-    const docId = useSearchParams().get("docId"); // Get the event docId from the URL
+    const docId = useSearchParams()?.get("docId") ?? ""; // Get the event docId from the URL
 
     /* Save Workout Button */
     const handleSaveWorkout = async () => {

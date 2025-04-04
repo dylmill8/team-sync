@@ -21,7 +21,7 @@ export default function GroupLogs() {
   const auth = getAuth();
   const router = useRouter();
 
-  const workoutId = useSearchParams().get("workoutId") || "";
+  const workoutId = useSearchParams()?.get("workoutId") ?? "";
 
   const [workoutData, setWorkoutData] = useState<DocumentData | null>(null);
   const [userMap, setUserMap] = useState<{ [key: string]: string } | null>(

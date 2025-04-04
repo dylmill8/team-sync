@@ -23,7 +23,7 @@ interface EventData {
 
 export default function EventSummary() {
     const searchParams = useSearchParams();
-    const eventId = searchParams.get("docId"); // Get event ID from URL
+    const eventId = searchParams?.get("docId") ?? ""; // Get event ID from URL
     const router = useRouter();
 
     const [event, setEvent] = useState<EventData | null>(null);

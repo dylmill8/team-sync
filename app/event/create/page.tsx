@@ -47,8 +47,8 @@ import { useSearchParams } from "next/navigation";
 export default function CreateEvent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const group = searchParams.get("group");
-  const groupId = group === "true" ? searchParams.get("groupId") : "";
+  const group = searchParams?.get("group");
+  const groupId = group ? searchParams?.get("groupId") : "";
 
   const [eventName, setEventName] = useState("");
   const [description, setDescription] = useState("");
