@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,8 +15,8 @@ import { getAuth } from "firebase/auth";
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../../../utils/firebaseConfig";
 import { useRouter, useSearchParams } from "next/navigation";
-import { arrayRemove } from "firebase/firestore";  
-import { Label } from "@/components/ui/label"; 
+import { arrayRemove } from "firebase/firestore";
+import { Label } from "@/components/ui/label";
 
 interface GroupData {
   name: string;
@@ -32,18 +38,16 @@ export default function GroupSettings() {
   const [uploading, setUploading] = useState(false);
   const [image, setImage] = useState<File | null>(null);
 
-  
   const [isPrivate, setIsPrivate] = useState(false); // Track privacy setting
-
 
   // Fetch the group data
   useEffect(() => {
     const fetchGroupData = async () => {
       if (!groupId) return;
-      
+
       const docRef = doc(db, "Groups", groupId);
       const docSnap = await getDoc(docRef);
-      
+
       if (docSnap.exists()) {
         const group = docSnap.data();
         setGroupData({
@@ -61,7 +65,7 @@ export default function GroupSettings() {
       }
       setLoading(false);
     };
-    
+
     fetchGroupData();
   }, [groupId]);
 
@@ -71,7 +75,6 @@ export default function GroupSettings() {
       setImage(file);
     }
   };
-
 
   const handleUpload = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -150,7 +153,7 @@ export default function GroupSettings() {
         }
       }
 
-      //delete group 
+      //delete group
       await deleteDoc(groupRef);
 
       alert("Group deleted successfully.");
@@ -172,7 +175,9 @@ export default function GroupSettings() {
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <Card className="w-full max-w-md p-6 shadow-lg bg-white rounded-xl">
         <CardHeader>
-          <CardTitle className="text-center text-2xl font-semibold">Group Settings</CardTitle>
+          <CardTitle className="text-center text-2xl font-semibold">
+            Group Settings
+          </CardTitle>
           <CardDescription className="text-center text-sm font-medium text-gray-600">
             Manage your group settings below.
           </CardDescription>
@@ -203,7 +208,6 @@ export default function GroupSettings() {
 
           <div className="mb-4">
             <label className="text-sm font-medium">Group Profile Picture</label>
-        
           </div>
 
           <form onSubmit={handleUpload} style={{ marginBottom: "20px" }}>
@@ -241,13 +245,17 @@ export default function GroupSettings() {
             />
           </div>
 
-
-
           <div className="flex justify-between">
-            <Button onClick={handleUpdateGroupSettings} className="bg-blue-600 text-white">
+            <Button
+              onClick={handleUpdateGroupSettings}
+              className="bg-blue-600 text-white"
+            >
               Save Changes
             </Button>
-            <Button onClick={handleDeleteGroup} className="bg-red-600 text-white">
+            <Button
+              onClick={handleDeleteGroup}
+              className="bg-red-600 text-white"
+            >
               Delete Group
             </Button>
           </div>
@@ -255,24 +263,21 @@ export default function GroupSettings() {
             {/* Only show the button if the current user is the leader */}
             {groupData.owner === userId && (
               <Button
-
-                onClick={() => router.push(`/group/permissions?groupId=${groupId}`)}
+                onClick={() =>
+                  router.push(`/group/permissions?groupId=${groupId}`)
+                }
                 className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-all mt-4"
               >
                 Modify Permissions
               </Button>
-              
             )}
-            <Button 
-              onClick={() => router.push("/groupslist")} 
+            <Button
+              onClick={() => router.push("/groupslist")}
               className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition-all mt-4"
             >
               Back to Groups List
             </Button>
           </div>
-
-              
-
         </CardContent>
       </Card>
     </div>

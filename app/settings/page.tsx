@@ -45,7 +45,7 @@ export default function Settings() {
       }
     });
     return () => unsubscribe();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     const fetchUserData = async () => {
