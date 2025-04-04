@@ -1,23 +1,36 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { arrayRemove, arrayUnion, doc, getDoc, DocumentData, updateDoc, addDoc, collection } from "firebase/firestore";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  arrayRemove,
+  arrayUnion,
+  doc,
+  getDoc,
+  DocumentData,
+  updateDoc,
+  addDoc,
+  collection,
+} from "firebase/firestore";
 import { db } from "../../../utils/firebaseConfig";
 import { getAuth } from "firebase/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
-
 
 interface MemberData {
   name: string;
   role: string; // Assuming role can be "member", "leader", "owner", etc.
 }
 
-
-export default function ViewGroup() {
+const ViewGroupPage = () => {
   const auth = getAuth();
   const userId = auth.currentUser?.uid;
   const [data, setData] = useState<DocumentData | null>(null);
@@ -30,7 +43,9 @@ export default function ViewGroup() {
   const [recipientEmail, setRecipientEmail] = useState<string>(""); // Use state for recipient email
 
   // Helper function to get number of members
-  const getNumberOfMembers = (members: Record<string, MemberData> | undefined): number => {
+  const getNumberOfMembers = (
+    members: Record<string, MemberData> | undefined
+  ): number => {
     if (members && typeof members === "object") {
       return Object.keys(members).length;
     }
@@ -68,7 +83,6 @@ export default function ViewGroup() {
 
     const fetchProfileImage = async () => {
       try {
-        
         const res = await fetch(`/api/getGroupProfile?groupId=${groupId}`);
         const data = await res.json();
         if (res.ok && data.file) {
@@ -83,8 +97,6 @@ export default function ViewGroup() {
     fetchProfileImage();
   }, [groupId]);
 
-  
-
   // Leave group button
   const handleLeaveGroup = async () => {
     if (!userId) {
@@ -95,39 +107,39 @@ export default function ViewGroup() {
       alert("Group ID is missing.");
       return;
     }
-  
+
     try {
       const groupRef = doc(db, "Groups", groupId);
       const userRef = doc(db, "Users", userId);
-  
+
       // Check if the group exists
       const groupSnap = await getDoc(groupRef);
       if (!groupSnap.exists()) {
         alert("Group not found.");
         return;
       }
-  
+
       const groupData = groupSnap.data();
-  
+
       // Check if user is in the group
       if (!groupData?.members?.[userId]) {
         alert("You are not a member of this group.");
         return;
       }
-  
+
       // Remove the user from the group's members map
       const updatedMembers = { ...groupData.members };
       delete updatedMembers[userId];
-  
+
       await updateDoc(groupRef, {
         members: updatedMembers,
       });
-  
+
       // Remove the group from the user's groups array
       await updateDoc(userRef, {
         groups: arrayRemove(groupRef),
       });
-  
+
       alert("You have left the group.");
       router.push("/groupslist"); // Redirect after leaving
     } catch (error) {
@@ -135,7 +147,6 @@ export default function ViewGroup() {
       console.error("Error leaving group:", error);
     }
   };
-
 
   // Join group button
   const handleJoinGroup = async () => {
@@ -161,7 +172,7 @@ export default function ViewGroup() {
         alert("You are already a member of this group.");
         return;
       }
-      
+
       // Get user data
       const userRef = doc(db, "Users", userId);
       const userSnap = await getDoc(userRef);
@@ -223,7 +234,7 @@ export default function ViewGroup() {
     const generatedLink = `localhost:3000/invite/${inviteRef.id}`;
     setInviteLink(generatedLink);
     alert(`Your invite link has been generated!`);
-  }
+  };
 
   // Send invite email
   const sendInviteEmail = async () => {
@@ -272,17 +283,17 @@ export default function ViewGroup() {
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <Card className="w-full max-w-md p-6 shadow-lg bg-white rounded-xl">
         <img
-              src={preview}
-              alt="Profile"
-              width="150"
-              style={{
-                display: "block",
-                margin: "0 auto",
-                borderRadius: "50%",
-                objectFit: "cover",
-                border: "3px solid #0070f3",
-              }}
-              onError={(e) => (e.currentTarget.src = "/default.png")}
+          src={preview}
+          alt="Profile"
+          width="150"
+          style={{
+            display: "block",
+            margin: "0 auto",
+            borderRadius: "50%",
+            objectFit: "cover",
+            border: "3px solid #0070f3",
+          }}
+          onError={(e) => (e.currentTarget.src = "/default.png")}
         />
         <CardHeader>
           <CardTitle className="text-2xl font-semibold">
@@ -293,14 +304,13 @@ export default function ViewGroup() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-
-          
-
           {/* Display number of members */}
           <div className="mb-4">
-            <Label className="text-sm font-medium">Number of Members: {numberOfMembers}</Label>
+            <Label className="text-sm font-medium">
+              Number of Members: {numberOfMembers}
+            </Label>
           </div>
-          
+
           {/* Conditional rendering based on user role */}
           {data.owner === userId ? (
             <div>
@@ -345,9 +355,9 @@ export default function ViewGroup() {
 
               <div className="flex w-full">
                 <Label className="text-sm font-medium">Invite Recipient:</Label>
-                </div>
+              </div>
 
-                <div className="flex w-full">
+              <div className="flex w-full">
                 <Input
                   type="email"
                   placeholder="Enter recipient's email"
@@ -355,16 +365,16 @@ export default function ViewGroup() {
                   onChange={(e) => setRecipientEmail(e.target.value)}
                   className="mb-2 mx-2 mt-0"
                 />
-                </div>
+              </div>
 
-                <div className="flex w-full">
+              <div className="flex w-full">
                 <Button
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all"
                   onClick={sendInviteEmail}
                 >
                   Send Invite Email
                 </Button>
-                </div>
+              </div>
             </div>
           ) : (
             <Button
@@ -392,7 +402,14 @@ export default function ViewGroup() {
           </Button>
         </CardContent>
       </Card>
-      
     </div>
+  );
+};
+
+export default function ViewGroup() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ViewGroupPage />
+    </Suspense>
   );
 }
