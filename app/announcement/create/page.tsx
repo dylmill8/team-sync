@@ -1,6 +1,5 @@
 "use client";
 
-import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -27,7 +26,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 
-const CreateAnnouncementPage = () => {
+export default function CreateAnnouncement() {
   const router = useRouter();
 
   const groupId = useSearchParams()?.get("groupId") ?? "";
@@ -133,10 +132,4 @@ const CreateAnnouncementPage = () => {
       </Card>
     </div>
   );
-};
-
-export default function CreateAnnouncement() {
-  <Suspense fallback={<div>Loading...</div>}>
-    <CreateAnnouncementPage />
-  </Suspense>;
 }
