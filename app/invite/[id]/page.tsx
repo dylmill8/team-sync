@@ -24,6 +24,7 @@ export default function InviteRedirect() {
 
       if (!id) {
         setError("Invalid invite link.");
+        setTimeout(() => router.push("/calendar"), 5000); // Redirect after 5 seconds
         return;
       }
 
@@ -51,7 +52,7 @@ export default function InviteRedirect() {
         group = typeof groupRef === "object" && groupRef.id ? groupRef.id : groupRef; // Use .id if it's a DocumentReference
       } else {
         setError("Invalid invite link. Does not exist as either an event invite or a group invite.");
-        //TODO: Sleep 5 seconds, redirect to calendar
+        setTimeout(() => router.push("/calendar"), 5000); // Redirect after 5 seconds
         return;
       }
 
@@ -64,6 +65,7 @@ export default function InviteRedirect() {
         if (typeof inviteId !== "string" || typeof inviteType !== "string") {
           console.error("Invalid inviteId or inviteType:", { inviteId, inviteType });
           setError("An error occurred while processing the invite.");
+          setTimeout(() => router.push("/calendar"), 5000); // Redirect after 5 seconds
           return;
         }
 
@@ -75,6 +77,7 @@ export default function InviteRedirect() {
         if (!inviteSnap.exists()) {
           console.error("Invite document does not exist:", { inviteId, inviteType });
           setError("This invite link is invalid or expired.");
+          setTimeout(() => router.push("/calendar"), 5000); // Redirect after 5 seconds
           return;
         }
 
@@ -96,6 +99,7 @@ export default function InviteRedirect() {
             console.log("5");
           } else {
             setError("User not found.");
+            setTimeout(() => router.push("/calendar"), 5000); // Redirect after 5 seconds
             return;
           }
         } else {
@@ -120,6 +124,7 @@ export default function InviteRedirect() {
       } catch (err) {
         setError("An error occurred while processing the invite.");
         console.error(err);
+        setTimeout(() => router.push("/calendar"), 5000); // Redirect after 5 seconds
       }
     });
 
