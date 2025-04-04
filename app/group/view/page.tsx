@@ -202,6 +202,14 @@ const ViewGroupPage = () => {
     }
   };
 
+  const handleBack = () => {
+    if (isMember) {
+      router.push(`/groups?docId=${groupId}`);
+    } else {
+      router.push('/search');
+    }
+  };
+
   // Create invite link
   const createInviteLink = async () => {
     setInviteLink(null);
@@ -395,7 +403,7 @@ const ViewGroupPage = () => {
           )}
 
           <Button
-            onClick={() => router.push(`/groups?docId=${groupId}`)}
+              onClick={handleBack}
             className="mt-2 w-full bg-gray-500 hover:bg-gray-600 text-white font-bold rounded transition-all"
           >
             Back
@@ -405,6 +413,7 @@ const ViewGroupPage = () => {
     </div>
   );
 };
+
 
 export default function ViewGroup() {
   return (
