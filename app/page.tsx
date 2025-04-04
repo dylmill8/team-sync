@@ -2,7 +2,7 @@
 import Image from "next/image";
 import { getAuth, signInWithEmailAndPassword, setPersistence, browserSessionPersistence } from "firebase/auth";
 import React, { useState } from 'react';
-import { db } from "../utils/firebaseConfig"; 
+import { db, requestPermissionAndGetToken} from "../utils/firebaseConfig"; 
 import { doc, getDoc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation"; //TJ added
 
@@ -56,7 +56,19 @@ export default function Home() {
 
       // Sign in
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+
       const user = userCredential.user;
+      // Get FCM token and store it
+      const fcmToken = await requestPermissionAndGetToken();
+      if (fcmToken) {
+        const userDocRef = doc(db, "Users", user.uid);
+        await updateDoc(userDocRef, {
+          fcmToken: fcmToken
+        });
+        console.log("FCM token saved to Firestore for user:", user.uid);
+      }
+
       console.log("Successfully logged in!");
       //console.log("User ID (UID):", user.uid);
       //console.log("User Email:", user.email);
