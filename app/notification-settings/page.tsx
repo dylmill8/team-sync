@@ -16,7 +16,7 @@ export default function NotificationSettings() {
   const [notificationEmail, setNotificationEmail] = useState("");
   const [settings, setSettings] = useState({
     emailNotifications: false,
-    popupNotifications: true,
+    popupNotifications: false,
     friendRequest: true,
     announcement: true,
   });
@@ -30,7 +30,7 @@ export default function NotificationSettings() {
       }
     });
     return () => unsubscribe();
-  }, [ router ]);
+  }, [router]);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -42,7 +42,7 @@ export default function NotificationSettings() {
           if (data.notificationSettings) {
             setSettings({
               emailNotifications: data.notificationSettings.emailNotifications ?? false,
-              popupNotifications: data.notificationSettings.popupNotifications ?? true,
+              popupNotifications: data.notificationSettings.popupNotifications ?? false,
               friendRequest: data.notificationSettings.friendRequest ?? true,
               announcement: data.notificationSettings.announcement ?? true,
             });
@@ -55,8 +55,19 @@ export default function NotificationSettings() {
     fetchSettings();
   }, [userId]);
 
+  // Simple email validation function
+  const validateEmail = (email: string) => {
+    const re = /\S+@\S+\.\S+/;
+    return re.test(email);
+  };
+
   const handleSave = async () => {
     if (!userId) return;
+    // If email notifications are enabled, validate the email address
+    if (settings.emailNotifications && !validateEmail(notificationEmail)) {
+      alert("Please enter a valid email for notifications.");
+      return;
+    }
     setSaving(true);
     try {
       await setDoc(
@@ -77,6 +88,26 @@ export default function NotificationSettings() {
     }
   };
 
+  const handlePopupToggle = () => {
+    // Check if the browser has already granted permission for notifications.
+    if (Notification.permission === "default") {
+      Notification.requestPermission().then((permission) => {
+        if (permission === "granted") {
+          setSettings((prev) => ({
+            ...prev,
+            popupNotifications: !prev.popupNotifications,
+          }));
+        }
+      });
+    } else {
+      // Toggle regardless if permission is already granted or denied.
+      setSettings((prev) => ({
+        ...prev,
+        popupNotifications: !prev.popupNotifications,
+      }));
+    }
+  };
+
   return (
     <div
       style={{
@@ -94,7 +125,7 @@ export default function NotificationSettings() {
         <h2 style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "10px" }}>
           Notification Methods
         </h2>
-
+        
         <div className="flex items-center justify-between mb-4">
           <label>Email Notifications</label>
           <Switch
@@ -127,12 +158,7 @@ export default function NotificationSettings() {
           <label>Pop-up Notifications</label>
           <Switch
             checked={settings.popupNotifications}
-            onCheckedChange={() =>
-              setSettings((prev) => ({
-                ...prev,
-                popupNotifications: !prev.popupNotifications,
-              }))
-            }
+            onCheckedChange={handlePopupToggle}
           />
         </div>
       </div>

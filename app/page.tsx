@@ -56,6 +56,8 @@ export default function Home() {
 
       // Sign in
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+
       const user = userCredential.user;
       console.log("Successfully logged in!");
       //console.log("User ID (UID):", user.uid);
