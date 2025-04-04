@@ -311,7 +311,7 @@ export default function ModifyEvent() {
     <div className="flex items-center justify-center">
       <Card className="w-full max-w-md p-6 shadow-lg bg-white rounded-xl">
         <CardHeader>
-          <CardTitle className="text-center text-2xl font-semibold">
+          <CardTitle className="text-center text-2xl font-semibold" data-testid="modify-event-title">
             Modify Event
           </CardTitle>
         </CardHeader>
@@ -417,6 +417,35 @@ export default function ModifyEvent() {
             </Button>
           </div>
 
+          <div className="flex w-full">
+            {!deleteEvent && (
+              <Button
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all"
+                onClick={() => setDeleteEvent(true)}
+              >
+                Delete
+              </Button>
+            )}
+
+            {deleteEvent && (
+              <div className="w-full flex mt-1">
+                <Label className="ml-2 w-full font-bold">Confirm Delete?</Label>
+                <Button
+                  className="w-full bg-gray-100 hover:bg-gray-200 text-black font-bold mb-2 mx-2 mt-0 rounded transition-all"
+                  onClick={() => setDeleteEvent(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="w-full bg-red-600 hover:bg-red-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all"
+                  onClick={handleDelete}
+                >
+                  Confirm
+                </Button>
+              </div>
+            )}
+          </div>
+
           <div className="flex w-full mt-4">
             <Button
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all"
@@ -453,35 +482,6 @@ export default function ModifyEvent() {
             {inviteLink && (
               <div className="w-full justify-center flex mb-2 mx-2 mt-0">
                 Invite Link: {inviteLink}
-              </div>
-            )}
-          </div>
-
-          <div className="flex w-full">
-            {!deleteEvent && (
-              <Button
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all"
-                onClick={() => setDeleteEvent(true)}
-              >
-                Delete
-              </Button>
-            )}
-
-            {deleteEvent && (
-              <div className="w-full flex mt-1">
-                <Label className="ml-2 w-full font-bold">Confirm Delete?</Label>
-                <Button
-                  className="w-full bg-gray-100 hover:bg-gray-200 text-black font-bold mb-2 mx-2 mt-0 rounded transition-all"
-                  onClick={() => setDeleteEvent(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="w-full bg-red-600 hover:bg-red-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all"
-                  onClick={handleDelete}
-                >
-                  Confirm
-                </Button>
               </div>
             )}
           </div>

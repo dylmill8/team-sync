@@ -26,7 +26,7 @@ export default function Settings() {
   const [updating, setUpdating] = useState(false);
   const [image, setImage] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState("/default.png");
+  const [preview, setPreview] = useState("/uploads/default.png");
   const [showAccounts, setShowAccounts] = useState(false);
   const [otherAccounts, setOtherAccounts] = useState<LooseAccount[]>([]);
 
@@ -44,7 +44,7 @@ export default function Settings() {
       }
     });
     return () => unsubscribe();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     const fetchUserData = async () => {

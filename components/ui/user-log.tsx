@@ -51,7 +51,7 @@ function UserLog({ userId, logId, exerciseList }: UserLogProps) {
   }, [logId, userId]);
 
   return (
-    <div>
+    <div className="mb-3">
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">
