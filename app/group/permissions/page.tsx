@@ -34,6 +34,7 @@ const PermissionsPage = () => {
   // Fetch group data and members
   useEffect(() => {
     const fetchGroup = async () => {
+
       if (!groupId) return;
 
       const docRef = doc(db, "Groups", groupId);
