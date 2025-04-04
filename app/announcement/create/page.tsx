@@ -16,6 +16,8 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { db } from "@/utils/firebaseConfig";
+import { notifyUsers } from "@/utils/notification";
+
 import {
   collection,
   addDoc,
@@ -24,6 +26,7 @@ import {
   arrayUnion,
   DocumentReference,
   serverTimestamp,
+  getDoc
 } from "firebase/firestore";
 
 export default function CreateAnnouncement() {
@@ -69,6 +72,15 @@ export default function CreateAnnouncement() {
         await updateDoc(groupRef, {
           announcements: arrayUnion(docRef),
         });
+        const groupSnap = await getDoc(groupRef);
+        if (groupSnap.exists()) {
+          const groupData = groupSnap.data();
+          const members = groupData.members || [];
+
+          // 3. Send a notification to all group members
+          //    Example: category = "Announcement", message = the new title
+          await notifyUsers(members, "Announcement", `${title}: ${body}`);
+        }
       }
 
       alert("Announcement successfully created!");

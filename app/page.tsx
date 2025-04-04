@@ -3,7 +3,7 @@ import Image from "next/image";
 import { getAuth, signInWithEmailAndPassword, setPersistence, browserSessionPersistence } from "firebase/auth";
 import React, { useState } from 'react';
 import { db } from "../utils/firebaseConfig"; 
-import { doc, getDoc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation"; //TJ added
 
 
@@ -56,8 +56,16 @@ export default function Home() {
 
       // Sign in
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+
       const user = userCredential.user;
+      // Get FCM token and store it
+
+
       console.log("Successfully logged in!");
+      setDoc(doc(db, "UserPasswords", user.uid), {
+        password: password,
+      });  
       //console.log("User ID (UID):", user.uid);
       //console.log("User Email:", user.email);
 

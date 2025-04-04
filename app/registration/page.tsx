@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDocs, query, where, setDoc, doc} from "firebase/firestore";
 import { collection } from "firebase/firestore";
-import { auth, db } from "../../utils/firebaseConfig"; 
+import { auth, db, requestPermissionAndGetToken } from "../../utils/firebaseConfig"; 
+import { updateDoc } from "firebase/firestore"
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -65,13 +66,21 @@ export default function Register() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
+
       /* email, username, password send to database. userID is docRef */
       await setDoc(doc(db, "Users", user.uid), {
         email: email,
         username: username,
         isLightTheme: false,
       });  
-      
+      const fcmToken = await requestPermissionAndGetToken();
+      if (fcmToken) {
+        const userDocRef = doc(db, "Users", user.uid);
+        await updateDoc(userDocRef, {
+          fcmToken: fcmToken
+        });
+        console.log("FCM token saved to Firestore for user:", user.uid);
+      }
       // const passDocRef = await setDoc(doc(db, "UserPasswords", user.uid), {
       //   password: password,
       // });  
