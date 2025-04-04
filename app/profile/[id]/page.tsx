@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { notifyUsers } from "@/utils/notification";
+
 import {
   doc,
   getDoc,
@@ -192,16 +194,33 @@ export default function Profile() {
     try {
       const currentUserDocRef = doc(db, "Users", userId);
       const profileUserDocRef = doc(db, "Users", profileId);
-
+  
+      // Add incoming request to profile user's document
       await updateDoc(profileUserDocRef, {
         incomingFriendRequests: arrayUnion(currentUserDocRef),
       });
-
+  
+      // Fetch sender's username
+      const currentUserDoc = await getDoc(currentUserDocRef);
+      let senderUsername = "Someone";
+      if (currentUserDoc.exists()) {
+        const currentUserData = currentUserDoc.data();
+        senderUsername = currentUserData.username || "Someone";
+      }
+  
+      // Notify the receiver
+      await notifyUsers(
+        [profileId],
+        "FriendRequest",
+        `${senderUsername} has sent you a friend request.`
+      );
+  
       alert("Friend request sent!");
     } catch (error) {
       console.error("Error sending friend request:", error);
     }
   };
+  
 
   const removeFriend = async () => {
     try {

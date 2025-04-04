@@ -79,7 +79,7 @@ export default function CreateAnnouncement() {
 
           // 3. Send a notification to all group members
           //    Example: category = "Announcement", message = the new title
-          await notifyUsers(members, "Announcement", `New announcement: ${title}`);
+          await notifyUsers(members, "Announcement", `${title}: ${body}`);
         }
       }
 

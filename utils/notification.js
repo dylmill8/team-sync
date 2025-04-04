@@ -18,7 +18,7 @@ export async function notifyUsers(members, category, message) {
     throw new Error("Unsupported notification category");
   }
 
-  const userIds = Object.keys(members);
+  const userIds = Array.isArray(members) ? members : Object.keys(members);
 
   for (const userId of userIds) {
     try {
