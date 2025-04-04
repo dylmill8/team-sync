@@ -31,7 +31,7 @@ import {
 
 export default function CreateAnnouncement() {
   const router = useRouter();
-  
+
   const groupId = useSearchParams()?.get("groupId") ?? "";
   const [groupRef, setGroupRef] = useState<DocumentReference | null>(null);
 
@@ -92,6 +92,10 @@ export default function CreateAnnouncement() {
       setLoading(false);
     }
   };
+
+  if (!groupRef) {
+    return <p>Loading...</p>;
+  }
 
   return (
     <div className="flex items-center justify-center mt-4">
