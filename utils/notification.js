@@ -2,9 +2,10 @@ import { doc, getDoc } from "@firebase/firestore";
 import { db } from "./firebaseConfig"; 
 
 
-/* async function sendEmailNotification(email, subject, message) {
+async function sendEmailNotification(email, subject, message) {
+    alert("SENDING EMAIL NOTIF")
   console.log(`Sending email to ${email} with subject: "${subject}" and message: "${message}"`);
-} */
+} 
 
 
 /**
@@ -51,13 +52,13 @@ export async function notifyUsers(members, category, message) {
       }
 
       // If email notifications are enabled and an email is provided, send an email.
-      /*if (notifSettings.emailNotifications && notifSettings.notificationEmail) {
+      if (notifSettings.emailNotifications && notifSettings.notificationEmail) {
         await sendEmailNotification(
           notifSettings.notificationEmail,
           `New ${category}`,
           message
         );
-      }*/
+      }
 
       // If popup (push) notifications are enabled, send a push notification.
       if (notifSettings.popupNotifications) {

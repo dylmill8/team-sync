@@ -16,7 +16,7 @@ export default function NotificationSettings() {
   const [notificationEmail, setNotificationEmail] = useState("");
   const [settings, setSettings] = useState({
     emailNotifications: false,
-    popupNotifications: false,
+    //popupNotifications: false,
     friendRequest: true,
     announcement: true,
   });
@@ -42,7 +42,7 @@ export default function NotificationSettings() {
           if (data.notificationSettings) {
             setSettings({
               emailNotifications: data.notificationSettings.emailNotifications ?? false,
-              popupNotifications: data.notificationSettings.popupNotifications ?? false,
+              //popupNotifications: data.notificationSettings.popupNotifications ?? false,
               friendRequest: data.notificationSettings.friendRequest ?? true,
               announcement: data.notificationSettings.announcement ?? true,
             });
@@ -88,7 +88,7 @@ export default function NotificationSettings() {
     }
   };
 
-  const handlePopupToggle = () => {
+  /*const handlePopupToggle = () => {
     // Check if the browser has already granted permission for notifications.
     if (Notification.permission === "default") {
       Notification.requestPermission().then((permission) => {
@@ -106,7 +106,7 @@ export default function NotificationSettings() {
         popupNotifications: !prev.popupNotifications,
       }));
     }
-  };
+  };*/
 
   return (
     <div
@@ -154,13 +154,13 @@ export default function NotificationSettings() {
           }}
         />
 
-        <div className="flex items-center justify-between mb-4">
+        {/*<div className="flex items-center justify-between mb-4">
           <label>Pop-up Notifications</label>
           <Switch
             checked={settings.popupNotifications}
             onCheckedChange={handlePopupToggle}
           />
-        </div>
+        </div>*/}
       </div>
 
       <div style={{ textAlign: "left", marginBottom: "25px" }}>
