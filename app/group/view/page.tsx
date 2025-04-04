@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -17,7 +17,7 @@ interface MemberData {
 }
 
 
-export default function ViewGroup() {
+function View() {
   const auth = getAuth();
   const userId = auth.currentUser?.uid;
   const [data, setData] = useState<DocumentData | null>(null);
@@ -396,3 +396,11 @@ export default function ViewGroup() {
     </div>
   );
 }
+
+ export default function GroupView() {
+    return (
+      <Suspense fallback={<p>Loading view group...</p>}>
+        <View />
+      </Suspense>
+    );
+  }
