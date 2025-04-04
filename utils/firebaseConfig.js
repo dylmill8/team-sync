@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged } from "firebase/auth";
+import { getMessaging, getToken, onMessage } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -15,20 +16,50 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
+const messaging = typeof window !== "undefined" ? getMessaging(firebaseApp) : null;
 
+// Set persistence
 setPersistence(auth, browserLocalPersistence)
   .then(() => console.log("Auth persistence set to local storage"))
   .catch((error) => console.error("Error setting auth persistence:", error));
 
-// Monitor authentication state changes
+// Monitor auth state
 onAuthStateChanged(auth, (user) => {
   if (user) {
     console.log("User is signed in:", user.uid);
-    // You can add additional logic here when a user signs in.
   } else {
     console.log("No user is signed in.");
-    // You can add additional logic here when a user signs out.
   }
 });
 
-export { firebaseApp, db, auth , onAuthStateChanged};
+// Request permission and get FCM token
+async function requestPermissionAndGetToken() {
+  if (!messaging) return null;
+
+  try {
+    const token = await getToken(messaging, {
+      vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
+    });
+    console.log("FCM Token:", token);
+    return token;
+  } catch (err) {
+    console.error("Failed to get FCM token:", err);
+    return null;
+  }
+}
+
+// Listen for foreground messages
+function onForegroundMessage(callback) {
+  if (!messaging) return;
+  onMessage(messaging, callback);
+}
+
+export {
+  firebaseApp,
+  db,
+  auth,
+  messaging,
+  onAuthStateChanged,
+  requestPermissionAndGetToken,
+  onForegroundMessage
+};

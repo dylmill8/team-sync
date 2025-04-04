@@ -15,19 +15,19 @@ import { Label } from "@/components/ui/label";
 import RSVPView from "@/components/ui/rsvp-card";
 import RSVPStatus from "@/components/ui/rsvp-status";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { db, firebaseApp } from "../../../utils/firebaseConfig";
 import { doc, getDoc, DocumentData } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "@firebase/auth";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-export default function ViewEvent() {
+const ViewEventPage = () => {
   const auth = getAuth(firebaseApp);
   const [uid, setUid] = useState("");
 
   const [data, setData] = useState<DocumentData | null>(null);
-  const docId = useSearchParams().get("docId");
+  const docId = useSearchParams()?.get("docId") ?? "";
   const [loading, setLoading] = useState(true);
   const [canModify, setCanModify] = useState(false);
 
@@ -36,8 +36,6 @@ export default function ViewEvent() {
   const [workoutCount, setWorkoutCount] = useState<number>(0);
   const [workoutNameList, setWorkoutNameList] = useState<string[]>([]);
   const [workoutDict, setWorkoutDict] = useState<{ [key: string]: string }>({});
-
-
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -112,8 +110,11 @@ export default function ViewEvent() {
 
           if (groupDoc.exists()) {
             const groupData = groupDoc.data();
-            
-            if (groupData.members[uid][1] == "leader" || groupData.members[uid][1] == "owner") {
+
+            if (
+              groupData.members[uid][1] == "leader" ||
+              groupData.members[uid][1] == "owner"
+            ) {
               setCanModify(true);
             }
           }
@@ -130,23 +131,28 @@ export default function ViewEvent() {
   const toWorkout = async (workoutName: string) => {
     const workoutId = workoutDict[workoutName];
 
-    if (data?.ownerType == "group") {
-      try {
-        const groupRef = doc(db, "Groups", data?.owner);
-        const groupDoc = await getDoc(groupRef);
-        if (groupDoc.exists()) {
-          const groupData = groupDoc.data();
-
-          if (groupData.members[uid || ""][1] == "leader") {
-            router.push(`/workout/group-view?workoutId=${workoutId}`);
-            return;
-          }
-        }
-      } catch (e) {
-        console.log("there was an error getting the owner group", e);
-      }
+    if (data?.ownerType == "group" && canModify) {
+      router.push(`/workout/group-view?workoutId=${workoutId}`);
+    } else {
+      router.push(`/workout/modify?workoutId=${workoutId}&userId=${uid}`);
     }
-    router.push(`/workout/modify?workoutId=${workoutId}&userId=${uid}`);
+
+    // if (data?.ownerType == "group") {
+    //   try {
+    //     const groupRef = doc(db, "Groups", data?.owner);
+    //     const groupDoc = await getDoc(groupRef);
+    //     if (groupDoc.exists()) {
+    //       const groupData = groupDoc.data();
+
+    //       if (groupData.members[uid || ""][1] == "leader") {
+    //         router.push(`/workout/group-view?workoutId=${workoutId}`);
+    //         return;
+    //       }
+    //     }
+    //   } catch (e) {
+    //     console.log("there was an error getting the owner group", e);
+    //   }
+    // }
   };
 
   const modifyNavigation = () => {
@@ -281,5 +287,13 @@ export default function ViewEvent() {
         </CardFooter>
       </Card>
     </div>
+  );
+};
+
+export default function ViewEvent() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ViewEventPage />
+    </Suspense>
   );
 }

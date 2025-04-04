@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { db } from "@/utils/firebaseConfig";
 import { getDoc, doc, DocumentData } from "@firebase/firestore";
 
@@ -17,11 +17,11 @@ import { Label } from "@radix-ui/react-label";
 import UserLog from "@/components/ui/user-log";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 
-export default function GroupLogs() {
+const GroupLogsPage = () => {
   const auth = getAuth();
   const router = useRouter();
 
-  const workoutId = useSearchParams().get("workoutId") || "";
+  const workoutId = useSearchParams()?.get("workoutId") ?? "";
 
   const [workoutData, setWorkoutData] = useState<DocumentData | null>(null);
   const [userMap, setUserMap] = useState<{ [key: string]: string } | null>(
@@ -122,5 +122,13 @@ export default function GroupLogs() {
         </CardContent>
       </Card>
     </div>
+  );
+};
+
+export default function GroupLogs() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <GroupLogsPage />
+    </Suspense>
   );
 }

@@ -1,20 +1,12 @@
 "use client";
 
+import React from "react"; // Add React import
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { useEffect, useState } from "react"; 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 const NavBar = () => {
-    const [isDarkMode, setIsDarkMode] = useState(() => {
-        const theme = localStorage.getItem("theme");
-        return theme === "dark";
-    });
-
-    useEffect(() => {
-        setIsDarkMode(localStorage.getItem("theme") === "dark");
-    }, []);
-
     return (
         <div className={`navbar fixed bottom-0 left-0 w-full items-center shadow-md flex justify-around h-[10vh] border-t z-10 p-0 min-h-[20]`}>
             <NavBarItem href="/search" icon="/nav_bar_icons/Search.png" active={false} />
@@ -28,7 +20,7 @@ const NavBar = () => {
 
 const NavBarItem = ({ href, icon, active }: { href: string; icon: string; active: boolean }) => {
     const router = useRouter();
-    const isDarkMode = localStorage.getItem("theme") === "dark";
+    const isDarkMode = useState(false);
 
     // Dynamically change the icon based on the theme
     const iconSrc = isDarkMode ? icon.replace(".png", "-White.png") : icon;

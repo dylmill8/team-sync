@@ -1,17 +1,22 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getDocs, query, where, setDoc, doc} from "firebase/firestore";
+import { getDocs, query, where, setDoc, doc } from "firebase/firestore";
 import { collection } from "firebase/firestore";
-import { auth, db } from "../../utils/firebaseConfig"; 
+import {
+  auth,
+  db,
+  requestPermissionAndGetToken,
+} from "../../utils/firebaseConfig";
+import { updateDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function Register() {
+const RegisterPage = () => {
   const profilePicInputRef = useRef(null);
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [email, setEmail] = useState("");
@@ -22,15 +27,15 @@ export default function Register() {
   const router = useRouter(); // Initialize useRouter for navigation
 
   useEffect(() => {
-    const emailParam = searchParams.get("email");
+    const emailParam = searchParams?.get("email") || "";
     console.log("hi");
     if (emailParam) {
       setEmail(emailParam);
     }
   }, [searchParams]);
 
-  /* 
-   * Function that handles register button on click. Checks if email already exists and 
+  /*
+   * Function that handles register button on click. Checks if email already exists and
    * creates new user with docID as email. Profile picture is saved with Marco's API calls
    */
 
@@ -52,9 +57,11 @@ export default function Register() {
       return;
     }
     try {
-
       /* Check if email already exists in the Firestore database */
-      const userQuery = query(collection(db, "Users"), where("email", "==", email));
+      const userQuery = query(
+        collection(db, "Users"),
+        where("email", "==", email)
+      );
       const querySnapshot = await getDocs(userQuery);
       if (!querySnapshot.empty) {
         alert("Email is already registered. Please use a different email.");
@@ -62,7 +69,11 @@ export default function Register() {
       }
 
       /* firebase authentication */
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       const user = userCredential.user;
 
       /* email, username, password send to database. userID is docRef */
@@ -70,11 +81,18 @@ export default function Register() {
         email: email,
         username: username,
         isLightTheme: false,
-      });  
-      
+      });
+      const fcmToken = await requestPermissionAndGetToken();
+      if (fcmToken) {
+        const userDocRef = doc(db, "Users", user.uid);
+        await updateDoc(userDocRef, {
+          fcmToken: fcmToken,
+        });
+        console.log("FCM token saved to Firestore for user:", user.uid);
+      }
       // const passDocRef = await setDoc(doc(db, "UserPasswords", user.uid), {
       //   password: password,
-      // });  
+      // });
 
       /* profile picture save with Marco API */
       if (profilePicture) {
@@ -85,7 +103,7 @@ export default function Register() {
             method: "POST",
             body: formData,
           });
-  
+
           if (res.ok) {
             alert("Upload successful!");
           } else {
@@ -116,16 +134,18 @@ export default function Register() {
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <Card className="w-full max-w-md p-6 shadow-lg bg-white rounded-xl">
         <CardHeader>
-          <CardTitle className="text-center text-2xl font-semibold">Register</CardTitle>
+          <CardTitle className="text-center text-2xl font-semibold">
+            Register
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {/* Username */}
           <div className="mb-4">
             <Label className="text-sm font-medium">Email</Label>
-            <Input 
-              type="text" 
-              placeholder="Enter email" 
-              value={email} 
+            <Input
+              type="text"
+              placeholder="Enter email"
+              value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="mt-1"
             />
@@ -134,10 +154,10 @@ export default function Register() {
           {/* Display Name */}
           <div className="mb-4">
             <Label className="text-sm font-medium">Display Name</Label>
-            <Input 
-              type="text" 
-              placeholder="Enter username name" 
-              value={username} 
+            <Input
+              type="text"
+              placeholder="Enter username name"
+              value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="mt-1"
             />
@@ -146,10 +166,10 @@ export default function Register() {
           {/* Password */}
           <div className="mb-4">
             <Label className="text-sm font-medium">Password</Label>
-            <Input 
-              type="password" 
-              placeholder="Enter password" 
-              value={password} 
+            <Input
+              type="password"
+              placeholder="Enter password"
+              value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="mt-1"
             />
@@ -158,10 +178,10 @@ export default function Register() {
           {/* Confirm Password */}
           <div className="mb-4">
             <Label className="text-sm font-medium">Confirm Password</Label>
-            <Input 
-              type="password" 
-              placeholder="Confirm password" 
-              value={confirmPassword} 
+            <Input
+              type="password"
+              placeholder="Confirm password"
+              value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="mt-1"
             />
@@ -171,29 +191,29 @@ export default function Register() {
 
           <div className="mb-4 flex flex-col items-center">
             <Label className="text-sm font-medium">Profile Picture</Label>
-            <Input 
+            <Input
               type="file"
               accept="image/*"
-              className="mt-2" 
+              className="mt-2"
               ref={profilePicInputRef} // Attach ref to the file input
               onChange={(e) => {
                 if (e.target.files && e.target.files[0]) {
                   setProfilePicture(e.target.files[0]); // Save the file in state
                 }
-              }} 
-              />
+              }}
+            />
           </div>
 
           {/* Register Button */}
-          <Button 
-            onClick={handleRegister} 
+          <Button
+            onClick={handleRegister}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-all"
           >
             Register
           </Button>
           {/* Back Button */}
-          <Button 
-            onClick={() => router.push("/")} 
+          <Button
+            onClick={() => router.push("/")}
             className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition-all mt-4"
           >
             Back to login
@@ -201,5 +221,13 @@ export default function Register() {
         </CardContent>
       </Card>
     </div>
+  );
+};
+
+export default function Register() {
+  return (
+    <Suspense fallback={<div>Loading</div>}>
+      <RegisterPage />
+    </Suspense>
   );
 }

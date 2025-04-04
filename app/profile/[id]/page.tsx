@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { notifyUsers } from "@/utils/notification";
+
 import {
   doc,
   getDoc,
@@ -13,6 +15,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../../../utils/firebaseConfig.js";
 import NavBar from "@/components/ui/navigation-bar";
 import { DocumentReference } from "firebase/firestore";
+import Image from "next/image";
 
 
 interface EventData {
@@ -43,7 +46,8 @@ interface CalendarEvent {
 
 export default function Profile() {
   const router = useRouter();
-  const { id } = useParams();
+  const params = useParams();
+  const id = (params && typeof params === "object" && "id" in params ? params.id : "") as string;
   const [userId, setUserId] = useState("");
   const [profileId, setProfileId] = useState<string>("");
   const [userData, setUserData] = useState({ email: "", username: "" });
@@ -78,7 +82,7 @@ export default function Profile() {
       }
     });
     return () => unsubscribe();
-  }, [profileId]);
+  }, [profileId, id, router]);
 
   useEffect(() => {
     setIsFriend(friendList.includes(profileId));
@@ -190,16 +194,33 @@ export default function Profile() {
     try {
       const currentUserDocRef = doc(db, "Users", userId);
       const profileUserDocRef = doc(db, "Users", profileId);
-
+  
+      // Add incoming request to profile user's document
       await updateDoc(profileUserDocRef, {
         incomingFriendRequests: arrayUnion(currentUserDocRef),
       });
-
+  
+      // Fetch sender's username
+      const currentUserDoc = await getDoc(currentUserDocRef);
+      let senderUsername = "Someone";
+      if (currentUserDoc.exists()) {
+        const currentUserData = currentUserDoc.data();
+        senderUsername = currentUserData.username || "Someone";
+      }
+  
+      // Notify the receiver
+      await notifyUsers(
+        [profileId],
+        "FriendRequest",
+        `${senderUsername} has sent you a friend request.`
+      );
+  
       alert("Friend request sent!");
     } catch (error) {
       console.error("Error sending friend request:", error);
     }
   };
+  
 
   const removeFriend = async () => {
     try {
@@ -234,10 +255,11 @@ export default function Profile() {
       }}
     >
       <h1>Profile Page</h1>
-      <img
+      <Image
         src={preview}
         alt="Profile"
         width="150"
+        height="150"
         style={{
           display: "block",
           margin: "0 auto",
@@ -269,7 +291,22 @@ export default function Profile() {
               width: "80%",
             }}
           >
-            Go to Settings
+            Account Settings
+          </button>
+          <button
+            onClick={() => router.push("/notification-settings")}
+            style={{
+              marginTop: "20px",
+              padding: "10px 20px",
+              backgroundColor: "#0070f3",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              width: "80%",
+            }}
+          >
+            Notification Settings
           </button>
           <button
             onClick={() => router.push("/messages")}

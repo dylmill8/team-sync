@@ -12,10 +12,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { db } from "@/utils/firebaseConfig";
+import { notifyUsers } from "@/utils/notification";
+
 import {
   collection,
   addDoc,
@@ -23,13 +25,14 @@ import {
   updateDoc,
   arrayUnion,
   DocumentReference,
-  serverTimestamp
+  serverTimestamp,
+  getDoc,
 } from "firebase/firestore";
 
-export default function CreateAnnouncement() {
+const CreateAnnouncementPage = () => {
   const router = useRouter();
 
-  const groupId = useSearchParams().get("groupId");
+  const groupId = useSearchParams()?.get("groupId") ?? "";
   const [groupRef, setGroupRef] = useState<DocumentReference | null>(null);
 
   const [title, setTitle] = useState("");
@@ -69,6 +72,15 @@ export default function CreateAnnouncement() {
         await updateDoc(groupRef, {
           announcements: arrayUnion(docRef),
         });
+        const groupSnap = await getDoc(groupRef);
+        if (groupSnap.exists()) {
+          const groupData = groupSnap.data();
+          const members = groupData.members || [];
+
+          // 3. Send a notification to all group members
+          //    Example: category = "Announcement", message = the new title
+          await notifyUsers(members, "Announcement", `${title}: ${body}`);
+        }
       }
 
       alert("Announcement successfully created!");
@@ -80,6 +92,10 @@ export default function CreateAnnouncement() {
       setLoading(false);
     }
   };
+
+  if (!groupRef) {
+    return <p>Loading...</p>;
+  }
 
   return (
     <div className="flex items-center justify-center mt-4">
@@ -131,5 +147,13 @@ export default function CreateAnnouncement() {
         </CardFooter>
       </Card>
     </div>
+  );
+};
+
+export default function CreateAnnouncement() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CreateAnnouncementPage />
+    </Suspense>
   );
 }

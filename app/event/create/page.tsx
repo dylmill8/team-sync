@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/utils/firebaseConfig";
 import {
@@ -44,11 +44,11 @@ import { useSearchParams } from "next/navigation";
 //   workouts: string;
 // }
 
-export default function CreateEvent() {
+const CreateEventPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const group = searchParams.get("group");
-  const groupId = group === "true" ? searchParams.get("groupId") : "";
+  const group = searchParams?.get("group");
+  const groupId = group ? searchParams?.get("groupId") : "";
 
   const [eventName, setEventName] = useState("");
   const [description, setDescription] = useState("");
@@ -215,6 +215,7 @@ export default function CreateEvent() {
                 value={eventName}
                 onChange={(e) => setEventName(e.target.value)}
                 className="mt-1"
+                data-testid="name-input"
               ></Input>
             </div>
 
@@ -244,6 +245,7 @@ export default function CreateEvent() {
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 className="mt-1"
+                data-testid="start-input"
               ></Input>
             </div>
 
@@ -254,6 +256,7 @@ export default function CreateEvent() {
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="mt-1"
+                data-testid="end-input"
               ></Input>
             </div>
 
@@ -280,11 +283,20 @@ export default function CreateEvent() {
             onClick={eventCreation}
             disabled={loading}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-all mx-3 my-0"
+            data-testid="createButton"
           >
             Create Event
           </Button>
         </CardFooter>
       </Card>
     </div>
+  );
+};
+
+export default function CreateEvent() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CreateEventPage />
+    </Suspense>
   );
 }
