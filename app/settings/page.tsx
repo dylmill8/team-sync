@@ -30,10 +30,9 @@ export default function Settings() {
   const [showAccounts, setShowAccounts] = useState(false);
   const [otherAccounts, setOtherAccounts] = useState([]);
 
-  const [isLightMode, setIsLightMode] = useState(() => {
-    return localStorage.getItem("theme") === "light";
-  });
-    const [newPassword, setNewPassword] = useState("");
+  //TODO: make this actually take state from database
+  const [isLightMode, setIsLightMode] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -217,17 +216,15 @@ export default function Settings() {
 
     if (user) {
       const userDocRef = doc(db, "Users", user.uid);
-      setDoc(userDocRef, { isLightTheme: !isLightMode }, { merge: true });
+      setDoc(userDocRef, { isLightTheme: isLightMode }, { merge: true });
       if (isLightMode) {
-        localStorage.setItem("theme", "light");
         document.body.classList.remove("dark-mode");
         document.body.classList.add("light-mode");
       } else {
         document.body.classList.remove("light-mode");
-        localStorage.setItem("theme", "dark");
         document.body.classList.add("dark-mode");
       }
-      console.log("Theme updated!" + localStorage.getItem("theme"));
+      console.log("Theme updated!");
     }
   };
 
