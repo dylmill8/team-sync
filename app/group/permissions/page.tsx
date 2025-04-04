@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { updateDoc, doc, getDoc, DocumentData } from "firebase/firestore";
@@ -15,7 +15,8 @@ interface Member {
   permission: string;
 }
 
-export default function Permissions() {
+function Permissions() {
+
     //const auth = getAuth();
     //const userId = auth.currentUser?.uid;
     const [data, setData] = useState<DocumentData | null>(null);
@@ -219,3 +220,10 @@ export default function Permissions() {
     );
   }
   
+  export default function GroupPermissions() {
+    return (
+      <Suspense fallback={<p>Loading permissions...</p>}>
+        <Permissions />
+      </Suspense>
+    );
+  }
