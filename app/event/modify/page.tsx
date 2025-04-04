@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { db } from "../../../utils/firebaseConfig";
 import {
@@ -30,7 +30,7 @@ import {
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-export default function ModifyEvent() {
+const ModifyEventPage = () => {
   const router = useRouter();
   const docId = useSearchParams()?.get("docId") ?? "";
   const [inviteLink, setInviteLink] = useState<string | null>(null); // Use state for inviteLink
@@ -311,7 +311,10 @@ export default function ModifyEvent() {
     <div className="flex items-center justify-center">
       <Card className="w-full max-w-md p-6 shadow-lg bg-white rounded-xl">
         <CardHeader>
-          <CardTitle className="text-center text-2xl font-semibold" data-testid="modify-event-title">
+          <CardTitle
+            className="text-center text-2xl font-semibold"
+            data-testid="modify-event-title"
+          >
             Modify Event
           </CardTitle>
         </CardHeader>
@@ -488,5 +491,13 @@ export default function ModifyEvent() {
         </CardFooter>
       </Card>
     </div>
+  );
+};
+
+export default function ModifyEvent() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ModifyEventPage />
+    </Suspense>
   );
 }

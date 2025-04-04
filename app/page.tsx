@@ -1,13 +1,26 @@
-"use client"
+"use client";
 import Image from "next/image";
-import { getAuth, signInWithEmailAndPassword, setPersistence, browserSessionPersistence } from "firebase/auth";
-import React, { useState } from 'react';
-import { db } from "../utils/firebaseConfig"; 
-import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  setPersistence,
+  browserSessionPersistence,
+} from "firebase/auth";
+import React, { Suspense, useState } from "react";
+import { db } from "../utils/firebaseConfig";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation"; //TJ added
 
-
-export default function Home() {
+const HomePage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,14 +33,15 @@ export default function Home() {
   const changeEmailInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);
   };
-  
+
   const changePasswordInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPassword(e.target.value);
   };
-  
 
   const handleLogin = async () => {
-    console.log("trying login with EMAIL:" + email + " | PASSWORD:" + password + "\n");
+    console.log(
+      "trying login with EMAIL:" + email + " | PASSWORD:" + password + "\n"
+    );
     //console.log(addAccount + "\n");
     setError("");
 
@@ -55,24 +69,19 @@ export default function Home() {
       await setPersistence(auth, browserSessionPersistence);
 
       // Sign in
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
 
       const user = userCredential.user;
       // Get FCM token and store it
-      const fcmToken = await requestPermissionAndGetToken();
-      if (fcmToken) {
-        const userDocRef = doc(db, "Users", user.uid);
-        await updateDoc(userDocRef, {
-          fcmToken: fcmToken
-        });
-        console.log("FCM token saved to Firestore for user:", user.uid);
-      }
 
       console.log("Successfully logged in!");
       setDoc(doc(db, "UserPasswords", user.uid), {
         password: password,
-      });  
+      });
       //console.log("User ID (UID):", user.uid);
       //console.log("User Email:", user.email);
 
@@ -98,15 +107,24 @@ export default function Home() {
 
           const updatedAccounts = primaryUserData.otherAccounts || [];
           updatedAccounts.push(newUserRef);
-          await updateDoc(primaryUserDocRef, { otherAccounts: updatedAccounts });
+          await updateDoc(primaryUserDocRef, {
+            otherAccounts: updatedAccounts,
+          });
 
           if (secondaryUserDocSnap.exists()) {
             const secondaryUserData = secondaryUserDocSnap.data();
-            const updatedSecondaryAccounts = secondaryUserData.otherAccounts || [];
+            const updatedSecondaryAccounts =
+              secondaryUserData.otherAccounts || [];
 
-            if (!updatedSecondaryAccounts.some((ref: { id: string; }) => ref.id === primaryUser.uid)) {
+            if (
+              !updatedSecondaryAccounts.some(
+                (ref: { id: string }) => ref.id === primaryUser.uid
+              )
+            ) {
               updatedSecondaryAccounts.push(primaryUserRef);
-              await updateDoc(secondaryUserDocRef, { otherAccounts: updatedSecondaryAccounts });
+              await updateDoc(secondaryUserDocRef, {
+                otherAccounts: updatedSecondaryAccounts,
+              });
             }
           } else {
             console.log("No secondary user document found in Firestore.");
@@ -132,38 +150,44 @@ export default function Home() {
         console.log("Error updating password!");
       }
       setError("Invalid email or password.");
-
     }
-};
-
+  };
 
   return (
     <div className="bg-[rgb(230,230,230)] grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <main className="flex flex-col gap-8 row-start-2 items-center">
-          <h1 className="text-black text-center text-5xl underline text-bold">Team Sync</h1>
+        <h1 className="text-black text-center text-5xl underline text-bold">
+          Team Sync
+        </h1>
 
         <ul className="list-inside text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="text-black mb-2 flex justify-between items-center gap-2" >
+          <li className="text-black mb-2 flex justify-between items-center gap-2">
             <span>Email:</span>
             <input
-            type="text"
-            style={{ backgroundColor: "rgb(180, 180, 180)" , borderColor: "rgb(100, 100, 100)"}}
-            className="border rounded px-2 py-1 text-black placeholder-[rgb(70,70,70)]"
-            placeholder="Enter email"
-            value={email}
-            onChange={changeEmailInput}
+              type="text"
+              style={{
+                backgroundColor: "rgb(180, 180, 180)",
+                borderColor: "rgb(100, 100, 100)",
+              }}
+              className="border rounded px-2 py-1 text-black placeholder-[rgb(70,70,70)]"
+              placeholder="Enter email"
+              value={email}
+              onChange={changeEmailInput}
             />
           </li>
 
-          <li className="text-black mb-2 flex justify-between items-center gap-2" >
+          <li className="text-black mb-2 flex justify-between items-center gap-2">
             <span>Password:</span>
             <input
-            type="password"
-            style={{ backgroundColor: "rgb(180, 180, 180)" , borderColor: "rgb(100, 100, 100)"}}
-            className="border rounded px-2 py-1 text-black placeholder-[rgb(70,70,70)]"
-            placeholder="Enter password"
-            value={password}
-            onChange={changePasswordInput}
+              type="password"
+              style={{
+                backgroundColor: "rgb(180, 180, 180)",
+                borderColor: "rgb(100, 100, 100)",
+              }}
+              className="border rounded px-2 py-1 text-black placeholder-[rgb(70,70,70)]"
+              placeholder="Enter password"
+              value={password}
+              onChange={changePasswordInput}
             />
           </li>
         </ul>
@@ -186,7 +210,9 @@ export default function Home() {
             {addAccount ? "Add an Account" : "Log in"}
           </a>
           <button //TJ replaced link with button
-            onClick={() => router.push(`/registration?email=${encodeURIComponent(email)}`)}
+            onClick={() =>
+              router.push(`/registration?email=${encodeURIComponent(email)}`)
+            }
             className="rounded-full border border-solid border-black/[.08] dark:border-black/[.70] text-black transition-colors flex items-center justify-center hover:bg-[#222222] hover:text-[#ffffff] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
           >
             Sign up
@@ -197,7 +223,14 @@ export default function Home() {
           {error}
         </div>
       </main>
-      
     </div>
+  );
+};
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HomePage />
+    </Suspense>
   );
 }
