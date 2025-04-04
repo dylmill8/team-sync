@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react"; //useRef
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -15,8 +15,8 @@ import { onAuthStateChanged } from "firebase/auth";
 
 
 export default function CreateGroup() {
-  const groupPicInputRef = useRef(null);
-  const [groupPicture, setGroupPicture] = useState<File | null>(null);
+  //const groupPicInputRef = useRef(null);
+ // const [groupPicture, setGroupPicture] = useState<File | null>(null);
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
   const [userData, setUserData] = useState({ email: "", username: "" });
@@ -80,31 +80,31 @@ export default function CreateGroup() {
           });
         }
 
-        if (groupPicture) {
-            const formData = new FormData();
-            formData.append("image", groupPicture);
-            try {
-            const res = await fetch(`/api/uploadGroup?groupId=${docRef.id}`, {
-                method: "POST",
-                body: formData,
-            });
+        // if (groupPicture) {
+        //     const formData = new FormData();
+        //     formData.append("image", groupPicture);
+        //     try {
+        //     const res = await fetch(`/api/uploadGroup?groupId=${docRef.id}`, {
+        //         method: "POST",
+        //         body: formData,
+        //     });
     
-            if (res.ok) {
-                alert("Upload successful!");
-            } else {
-                const errorData = await res.json();
-                alert(`Upload failed! ${errorData.error || "Unknown error"}`);
-            }
-            } catch (error) {
-              if (error) {
-                alert("Upload failed! Network error.");
-              } 
-            }
-        }
+        //     if (res.ok) {
+        //         alert("Upload successful!");
+        //     } else {
+        //         const errorData = await res.json();
+        //         alert(`Upload failed! ${errorData.error || "Unknown error"}`);
+        //     }
+        //     } catch (error) {
+        //       if (error) {
+        //         alert("Upload failed! Network error.");
+        //       } 
+        //     }
+        // }
       
         setGroupName("");
         setGroupDescription("");
-        setGroupPicture(null);
+        //setGroupPicture(null);
         alert("Group Created Successfully");
         router.push(`/group/view?groupId=${docRef.id}`);
         } catch (e) {
@@ -156,7 +156,7 @@ export default function CreateGroup() {
 
 
 
-          <div className="mb-4 flex flex-col items-center">
+          {/* <div className="mb-4 flex flex-col items-center">
             <Label className="text-sm font-medium">Group Picture</Label>
             <Input 
               type="file"
@@ -169,7 +169,7 @@ export default function CreateGroup() {
                 }
               }} 
             />
-          </div>
+          </div> */}
 
           <Button 
             onClick={handleCreateGroup} 
