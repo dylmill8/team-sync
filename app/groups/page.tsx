@@ -17,7 +17,7 @@ import NavBar from "@/components/ui/navigation-bar";
 import { firebaseApp } from "@/utils/firebaseConfig";
 import { db } from '@/utils/firebaseConfig';
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { doc, DocumentReference, getDoc, query, collection, orderBy, startAfter, limit, getDocs, QueryDocumentSnapshot, DocumentData, onSnapshot, Timestamp } from "firebase/firestore";
+import { doc, DocumentReference, getDoc, query, collection, orderBy, startAfter, limit, getDocs, QueryDocumentSnapshot, DocumentData, onSnapshot, Timestamp, deleteDoc } from "firebase/firestore";
 import { useState, useEffect, useRef } from "react";
 import { setDocument, viewDocument } from "../../utils/firebaseHelper.js";
 
@@ -81,7 +81,7 @@ export default function Groups() {
   const uid = auth.currentUser?.uid;
   const router = useRouter();
   const searchParams = useSearchParams();
-  const docId = searchParams.get("docId");
+  const docId = searchParams?.get("docId") ?? "";
   const calendarRef = useRef<FullCalendar>(null);
   const userCache = useRef<Record<string, string>>({})
   const batchSize = 10
@@ -98,6 +98,9 @@ export default function Groups() {
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [sortedAnnouncements, setSortedAnnouncements] = useState<(AnnouncementData & { id: string })[]>([]);
+  const [createAnnouncement, setCreateAnnouncement] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
 
   useEffect(() => {
     const updateChatPosition = () => {
@@ -182,7 +185,6 @@ export default function Groups() {
           return [name, role, key];
         });
       setGroupMembers(sortedMembers);
-      console.log("Group members:", sortedMembers);
     }
   }, [groupData?.members]);
 
@@ -310,6 +312,15 @@ export default function Groups() {
     }
   }
 
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!chatId || !messageId) return;
+    try {
+      await deleteDoc(doc(db, "Chats", chatId, "messages", messageId));
+    } catch (error) {
+      console.error("Error deleting message:", error);
+    }
+  };
+
   const populateUsernames = async (msgs: Message[]) => {
     const promises = msgs.map(async (msg: Message) => {
       const uid = msg.userId
@@ -341,12 +352,26 @@ export default function Groups() {
     )
     try {
       const snapshot = await getDocs(olderQuery)
-      const olderMsgs: Message[] = snapshot.docs.map((doc) => ({
+      const olderMsgs: Message[] = snapshot.docs
+      .filter((doc) => doc.id !== "_placeholder")
+      .map((doc) => ({
         id: doc.id,
         ...(doc.data() as Omit<Message, "id">),
-      })).reverse()
+      }))
+      .reverse()
       await populateUsernames(olderMsgs)
-      setMessages((prev) => [...olderMsgs, ...prev])
+      setMessages((prev) => {
+        // Combine old + new
+        const combined = [...olderMsgs, ...prev]
+        
+        // Filter out duplicates by id
+        const unique = combined.filter(
+          (message, index, self) =>
+            index === self.findIndex((m) => m.id === message.id)
+        )
+      
+        return unique
+      })
       if (snapshot.docs.length > 0) {
         setLastVisible(snapshot.docs[snapshot.docs.length - 1])
       }
@@ -371,6 +396,28 @@ export default function Groups() {
       console.error("Failed to send message:", error)
     }
   }
+
+  useEffect(() => {
+    if (chatRef.current) {
+      const chatMessagesEl = chatRef.current.querySelector('.chat-messages');
+      if (chatMessagesEl) {
+        chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+      }
+    }
+  }, [messages]);
+
+  // use effect for announcement permissions
+  useEffect(() => {
+    if (uid && groupData) {
+      const members = groupData.members;
+      setUserRole(members[uid][1]);
+      if (members[uid][1] == "leader" || members[uid][1] == "owner") {
+        setCreateAnnouncement(true);
+      } else {
+        setCreateAnnouncement(false);
+      }
+    }
+  }, [uid, groupData]);
 
   return (
     <>
@@ -425,9 +472,9 @@ export default function Groups() {
           </TabsList>
           <TabsContent value="announcements" className="tabs-content">
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-              <Button onClick={() => router.push(`/announcement/create?groupId=${docId}`)}>
+              {createAnnouncement && (<Button onClick={() => router.push(`/announcement/create?groupId=${docId}`)}>
                 Create Announcement
-              </Button>
+              </Button>)}
             </div>
             <div className="chat-messages">
               {sortedAnnouncements.length > 0 ? (
@@ -441,19 +488,28 @@ export default function Groups() {
           </TabsContent>
           <TabsContent value="chat" className="tabs-content">
             <div className="chat" ref={chatRef}>
-
               <div className="chat-messages space-y-2 mb-4 mt-4">
-              <Button onClick={loadMoreMessages} disabled={loadingMore}>
-                {loadingMore ? "Loading..." : "Load Previous Messages"}
-              </Button>
+                <Button onClick={loadMoreMessages} disabled={loadingMore}>
+                  {loadingMore ? "Loading..." : "Load Previous Messages"}
+                </Button>
                 {messages.map((msg: Message) => (
                   <div key={msg.id} className="border rounded p-2 shadow-sm bg-white">
-                    <div className="text-sm text-gray-500">
-                      {msg.username} •{" "}
-                      {msg.timestamp?.toDate?.().toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                    <div className="text-sm text-gray-500 flex justify-between">
+                      <div>
+                        {msg.username} •{" "}
+                        {msg.timestamp?.toDate?.().toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                      {(userRole === "leader" || userRole === "owner") && (
+                        <button
+                          onClick={() => handleDeleteMessage(msg.id)}
+                          className="text-red-500 hover:underline text-xs ml-2"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                     <div>{msg.text}</div>
                   </div>

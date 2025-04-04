@@ -32,8 +32,9 @@ import { getAuth } from "firebase/auth";
 
 export default function ModifyEvent() {
   const router = useRouter();
-  const docId = useSearchParams().get("docId");
+  const docId = useSearchParams()?.get("docId") ?? "";
   const [inviteLink, setInviteLink] = useState<string | null>(null); // Use state for inviteLink
+  const [recipientEmail, setRecipientEmail] = useState<string>(""); // Use state for recipient email
 
   // fetch data on load
   const [data, setData] = useState<DocumentData | null>(null);
@@ -60,10 +61,6 @@ export default function ModifyEvent() {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
-
-    // if (allDay) {
-    //   return `${year}-${month}-${day}`;
-    // }
 
     const hours = String(date.getHours()).padStart(2, "0");
     const mins = String(date.getMinutes()).padStart(2, "0");
@@ -269,16 +266,52 @@ export default function ModifyEvent() {
       event: eventRef,
     });
 
-    const generatedLink = `localhost:3000/invite/${inviteRef.id}`;
+    const generatedLink = `http://localhost:3000/invite/${inviteRef.id}`;
     setInviteLink(generatedLink);
     alert(`Your invite link has been generated!`);
+  };
+
+  // Send invite email
+  const sendInviteEmail = async () => {
+    if (!inviteLink || !recipientEmail) {
+      alert("Please generate an invite link and provide an email address.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/sendInviteEmail", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: recipientEmail,
+          inviteLink,
+        }),
+      });
+
+      if (response.ok) {
+        alert("Invite email sent successfully!");
+      } else {
+        try {
+          const errorData = await response.json();
+          alert(`Failed to send email: ${errorData.error}`);
+        } catch (err) {
+          console.error("Error parsing error response:", err);
+          alert("Failed to send email: An unknown error occurred.");
+        }
+      }
+    } catch (error) {
+      console.error("Error sending invite email:", error);
+      alert("An error occurred while sending the email.");
+    }
   };
 
   return (
     <div className="flex items-center justify-center">
       <Card className="w-full max-w-md p-6 shadow-lg bg-white rounded-xl">
         <CardHeader>
-          <CardTitle className="text-center text-2xl font-semibold">
+          <CardTitle className="text-center text-2xl font-semibold" data-testid="modify-event-title">
             Modify Event
           </CardTitle>
         </CardHeader>
@@ -385,23 +418,6 @@ export default function ModifyEvent() {
           </div>
 
           <div className="flex w-full">
-            <Button
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all"
-              onClick={createInviteLink}
-            >
-              Create Event Invite Link
-            </Button>
-          </div>
-
-          <div className="flex w-full">
-            {inviteLink && (
-              <div className="w-full justify-center flex mb-2 mx-2 mt-0">
-                Invite Link: {inviteLink}
-              </div>
-            )}
-          </div>
-
-          <div className="flex w-full">
             {!deleteEvent && (
               <Button
                 className="w-full bg-red-600 hover:bg-red-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all"
@@ -426,6 +442,46 @@ export default function ModifyEvent() {
                 >
                   Confirm
                 </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex w-full mt-4">
+            <Button
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all"
+              onClick={createInviteLink}
+            >
+              Create Event Invite Link
+            </Button>
+          </div>
+
+          <div className="flex w-full">
+            <Label className="text-sm font-medium">Invite Recipient:</Label>
+          </div>
+
+          <div className="flex w-full">
+            <Input
+              type="email"
+              placeholder="Enter recipient's email"
+              value={recipientEmail}
+              onChange={(e) => setRecipientEmail(e.target.value)}
+              className="mb-2 mx-2 mt-0"
+            />
+          </div>
+
+          <div className="flex w-full">
+            <Button
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold mb-2 mx-2 mt-0 rounded transition-all"
+              onClick={sendInviteEmail}
+            >
+              Send Invite Email
+            </Button>
+          </div>
+
+          <div className="flex w-full">
+            {inviteLink && (
+              <div className="w-full justify-center flex mb-2 mx-2 mt-0">
+                Invite Link: {inviteLink}
               </div>
             )}
           </div>

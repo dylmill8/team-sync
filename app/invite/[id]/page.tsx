@@ -10,8 +10,7 @@ import { useRouter, useParams } from "next/navigation";
 
 export default function InviteRedirect() {
   const router = useRouter();
-  const { id } = useParams();
-  //const searchParams = useSearchParams();
+  const { id } = useParams() as { id: string };
   const [error, setError] = useState("Loading...");
 
   useEffect(() => {
@@ -24,6 +23,7 @@ export default function InviteRedirect() {
 
       if (!id) {
         setError("Invalid invite link.");
+        setTimeout(() => router.push("/calendar"), 5000); // Redirect after 5 seconds
         return;
       }
 
@@ -51,7 +51,7 @@ export default function InviteRedirect() {
         group = typeof groupRef === "object" && groupRef.id ? groupRef.id : groupRef; // Use .id if it's a DocumentReference
       } else {
         setError("Invalid invite link. Does not exist as either an event invite or a group invite.");
-        //TODO: Sleep 5 seconds, redirect to calendar
+        setTimeout(() => router.push("/calendar"), 5000); // Redirect after 5 seconds
         return;
       }
 
@@ -64,6 +64,7 @@ export default function InviteRedirect() {
         if (typeof inviteId !== "string" || typeof inviteType !== "string") {
           console.error("Invalid inviteId or inviteType:", { inviteId, inviteType });
           setError("An error occurred while processing the invite.");
+          setTimeout(() => router.push("/calendar"), 5000); // Redirect after 5 seconds
           return;
         }
 
@@ -75,14 +76,19 @@ export default function InviteRedirect() {
         if (!inviteSnap.exists()) {
           console.error("Invite document does not exist:", { inviteId, inviteType });
           setError("This invite link is invalid or expired.");
+          setTimeout(() => router.push("/calendar"), 5000); // Redirect after 5 seconds
           return;
         }
 
         console.log("Invite document data:", inviteSnap.data());
         //console.log("3");
 
-        const user = auth.currentUser;
-        const userDocRef = doc(db, "Users", user.uid);
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          setError("User not authenticated.");
+          return;
+        }
+        const userDocRef = doc(db, "Users", currentUser.uid);
         const userDocSnap = await getDoc(userDocRef);
 
         //console.log("4");
@@ -96,6 +102,7 @@ export default function InviteRedirect() {
             console.log("5");
           } else {
             setError("User not found.");
+            setTimeout(() => router.push("/calendar"), 5000); // Redirect after 5 seconds
             return;
           }
         } else {
@@ -104,6 +111,11 @@ export default function InviteRedirect() {
           
           const userSnap = await getDoc(userDocRef);      
           const userData = userSnap.data();
+          
+          if (!userData) {
+            setError("User data not found.");
+            return;
+          }
     
           // Add user to members map of the group
           await updateDoc(groupRef, {
@@ -120,6 +132,7 @@ export default function InviteRedirect() {
       } catch (err) {
         setError("An error occurred while processing the invite.");
         console.error(err);
+        setTimeout(() => router.push("/calendar"), 5000); // Redirect after 5 seconds
       }
     });
 
