@@ -81,6 +81,10 @@ export default function CreateAnnouncement() {
     }
   };
 
+  if (!groupRef) {
+    return <p>Loading...</p>;
+  }
+
   return (
     <div className="flex items-center justify-center mt-4">
       <Card className="w-full max-w-md p-6 shadow-lg bg-white rounded-xl">
