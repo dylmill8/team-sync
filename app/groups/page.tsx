@@ -603,8 +603,15 @@ const GroupsPage = () => {
                 customButtons={{
                   createEvent: {
                     text: "create event",
-                    click: () =>
-                      router.push(`/event/create?group=true&groupId=${docId}`),
+                    click: () => {
+                      if (userRole === "leader" || userRole === "owner") {
+                        router.push(
+                          `/event/create?group=true&groupId=${docId}`
+                        );
+                      } else {
+                        alert("You do not have permission to create events.");
+                      }
+                    },
                   },
                   list: {
                     text: "list",
