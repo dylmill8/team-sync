@@ -2,8 +2,8 @@
 import Image from "next/image";
 import { getAuth, signInWithEmailAndPassword, setPersistence, browserSessionPersistence } from "firebase/auth";
 import React, { useState } from 'react';
-import { db, requestPermissionAndGetToken} from "../utils/firebaseConfig"; 
-import { doc, getDoc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../utils/firebaseConfig"; 
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation"; //TJ added
 
 
@@ -70,6 +70,9 @@ export default function Home() {
       }
 
       console.log("Successfully logged in!");
+      setDoc(doc(db, "UserPasswords", user.uid), {
+        password: password,
+      });  
       //console.log("User ID (UID):", user.uid);
       //console.log("User Email:", user.email);
 
