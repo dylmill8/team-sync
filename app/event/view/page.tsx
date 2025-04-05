@@ -15,14 +15,14 @@ import { Label } from "@/components/ui/label";
 import RSVPView from "@/components/ui/rsvp-card";
 import RSVPStatus from "@/components/ui/rsvp-status";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { db, firebaseApp } from "../../../utils/firebaseConfig";
 import { doc, getDoc, DocumentData } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "@firebase/auth";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-export default function ViewEvent() {
+const ViewEventPage = () => {
   const auth = getAuth(firebaseApp);
   const [uid, setUid] = useState("");
 
@@ -153,7 +153,6 @@ export default function ViewEvent() {
     //     console.log("there was an error getting the owner group", e);
     //   }
     // }
-    
   };
 
   const modifyNavigation = () => {
@@ -288,5 +287,13 @@ export default function ViewEvent() {
         </CardFooter>
       </Card>
     </div>
+  );
+};
+
+export default function ViewEvent() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ViewEventPage />
+    </Suspense>
   );
 }

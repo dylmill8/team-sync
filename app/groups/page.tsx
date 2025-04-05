@@ -2,12 +2,17 @@
 
 import "./groups.css";
 
-import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
-import listPlugin from '@fullcalendar/list';
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import listPlugin from "@fullcalendar/list";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import UserAnnouncementCard from "@/components/ui/user-announcement-card";
@@ -15,24 +20,38 @@ import UserAnnouncementCard from "@/components/ui/user-announcement-card";
 import { useRouter, useSearchParams } from "next/navigation";
 import NavBar from "@/components/ui/navigation-bar";
 import { firebaseApp } from "@/utils/firebaseConfig";
-import { db } from '@/utils/firebaseConfig';
+import { db } from "@/utils/firebaseConfig";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { doc, DocumentReference, getDoc, query, collection, orderBy, startAfter, limit, getDocs, QueryDocumentSnapshot, DocumentData, onSnapshot, Timestamp, deleteDoc } from "firebase/firestore";
-import { useState, useEffect, useRef } from "react";
+import {
+  doc,
+  DocumentReference,
+  getDoc,
+  query,
+  collection,
+  orderBy,
+  startAfter,
+  limit,
+  getDocs,
+  QueryDocumentSnapshot,
+  DocumentData,
+  onSnapshot,
+  Timestamp,
+  deleteDoc,
+} from "firebase/firestore";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { setDocument, viewDocument } from "../../utils/firebaseHelper.js";
-
 
 interface EventData {
   name: string;
   allDay: boolean;
-  start: { seconds: number; };
-  end: { seconds: number; };
+  start: { seconds: number };
+  end: { seconds: number };
   description: string;
   location: string;
   docID: string;
   ownerType: string;
   owner: string;
-  RSVP: { [key: string]: string; };
+  RSVP: { [key: string]: string };
   workouts: string;
 }
 
@@ -55,8 +74,8 @@ interface GroupData {
   description: string;
   picture: string;
   privacy: boolean;
-  members: { [key: string]: string; };
-  events: Array<{ id: string; }>;
+  members: { [key: string]: string };
+  events: Array<{ id: string }>;
   chat: DocumentReference;
   announcements: DocumentReference[]; // changed from DocumentReference to an array
 }
@@ -69,22 +88,22 @@ interface AnnouncementData {
 }
 
 type Message = {
-  id: string
-  text: string
-  userId: string
-  username?: string
-  timestamp?: Timestamp
-}
+  id: string;
+  text: string;
+  userId: string;
+  username?: string;
+  timestamp?: Timestamp;
+};
 
-export default function Groups() {
+const GroupsPage = () => {
   const auth = getAuth(firebaseApp);
   const uid = auth.currentUser?.uid;
   const router = useRouter();
   const searchParams = useSearchParams();
   const docId = searchParams?.get("docId") ?? "";
   const calendarRef = useRef<FullCalendar>(null);
-  const userCache = useRef<Record<string, string>>({})
-  const batchSize = 10
+  const userCache = useRef<Record<string, string>>({});
+  const batchSize = 10;
 
   const chatRef = useRef<HTMLDivElement>(null);
   const tabsListRef = useRef<HTMLDivElement>(null);
@@ -92,15 +111,17 @@ export default function Groups() {
   const [eventList, setEventList] = useState<CalendarEvent[]>([]);
   const [groupData, setGroupData] = useState<GroupData | null>(null);
   const [groupMembers, setGroupMembers] = useState<Array<Array<string>>>([]);
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [chatId, setChatId] = useState<string | null>(null)
-  const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
-  const [newMessage, setNewMessage] = useState("")
-  const [sortedAnnouncements, setSortedAnnouncements] = useState<(AnnouncementData & { id: string })[]>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [chatId, setChatId] = useState<string | null>(null);
+  const [lastVisible, setLastVisible] =
+    useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [sortedAnnouncements, setSortedAnnouncements] = useState<
+    (AnnouncementData & { id: string })[]
+  >([]);
   const [createAnnouncement, setCreateAnnouncement] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
-
 
   useEffect(() => {
     const updateChatPosition = () => {
@@ -134,7 +155,7 @@ export default function Groups() {
         return;
       }
       if (typeof docId === "string") {
-        setChatId("group" + docId)
+        setChatId("group" + docId);
       }
       const groupRef = doc(db, "Groups", docId);
       const groupDoc = await getDoc(groupRef);
@@ -146,8 +167,6 @@ export default function Groups() {
     }
     fetchGroup();
   }, [docId, uid]);
-
-
 
   //! TODO: maybe remove
   useEffect(() => {
@@ -173,8 +192,8 @@ export default function Groups() {
       const sortedMembers = entries
         .sort(([, a], [, b]) => {
           const roleOrder = (role: string) => {
-            if (role === 'owner') return 0;
-            if (role === 'leader') return 1;
+            if (role === "owner") return 0;
+            if (role === "leader") return 1;
             return 2;
           };
           return roleOrder(a[1]) - roleOrder(b[1]);
@@ -188,49 +207,53 @@ export default function Groups() {
     }
   }, [groupData?.members]);
 
-  
-
   useEffect(() => {
-    if (!chatId) return
-  
+    if (!chatId) return;
+
     const initMessages = async () => {
-      const messagesRef = collection(db, "Chats", chatId, "messages")
-      const initialQuery = query(messagesRef, orderBy("timestamp", "desc"), limit(batchSize))
-      const snapshot = await getDocs(initialQuery)
-  
+      const messagesRef = collection(db, "Chats", chatId, "messages");
+      const initialQuery = query(
+        messagesRef,
+        orderBy("timestamp", "desc"),
+        limit(batchSize)
+      );
+      const snapshot = await getDocs(initialQuery);
+
       if (snapshot.empty) {
         await setDocument(`Chats/${chatId}/messages`, "_placeholder", {
           text: "",
           userId: "system",
           timestamp: new Date(0),
-        })
-        setMessages([])
-        return
+        });
+        setMessages([]);
+        return;
       }
-  
+
       const msgs: Message[] = snapshot.docs
         .filter((doc) => doc.id !== "_placeholder")
         .map((doc) => ({
           id: doc.id,
           ...(doc.data() as Omit<Message, "id">),
         }))
-        .reverse()
-  
-      await populateUsernames(msgs)
-      setMessages(msgs)
-  
+        .reverse();
+
+      await populateUsernames(msgs);
+      setMessages(msgs);
+
       if (snapshot.docs.length > 0) {
-        setLastVisible(snapshot.docs[snapshot.docs.length - 1])
+        setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
       }
-    }
-  
-    initMessages().catch((err) => console.error("Error loading messages:", err))
-  }, [chatId])
+    };
+
+    initMessages().catch((err) =>
+      console.error("Error loading messages:", err)
+    );
+  }, [chatId]);
 
   useEffect(() => {
-    if (!chatId) return
+    if (!chatId) return;
 
-    const messagesRef = collection(db, "Chats", chatId, "messages")
+    const messagesRef = collection(db, "Chats", chatId, "messages");
     const unsubscribe = onSnapshot(
       query(messagesRef, orderBy("timestamp", "asc")),
       async (snapshot) => {
@@ -239,17 +262,17 @@ export default function Groups() {
           .map((doc) => ({
             id: doc.id,
             ...(doc.data() as Omit<Message, "id">),
-          }))
+          }));
         if (newMsgs.length > 0) {
-          await populateUsernames(newMsgs)
-          setMessages(newMsgs)
+          await populateUsernames(newMsgs);
+          setMessages(newMsgs);
         }
       }
-    )
+    );
 
-    return () => unsubscribe()
-  }, [chatId])
-      
+    return () => unsubscribe();
+  }, [chatId]);
+
   useEffect(() => {
     if (groupData?.announcements) {
       const fetchAndSortAnnouncements = async () => {
@@ -257,12 +280,18 @@ export default function Groups() {
           groupData.announcements.map(async (annRef) => {
             const annSnap = await getDoc(annRef);
             return annSnap.exists()
-              ? ({ id: annSnap.id, ...annSnap.data() } as AnnouncementData & { id: string })
+              ? ({ id: annSnap.id, ...annSnap.data() } as AnnouncementData & {
+                  id: string;
+                })
               : null;
           })
         );
-        const validDocs = docs.filter((doc) => doc !== null) as (AnnouncementData & { id: string })[];
-        validDocs.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+        const validDocs = docs.filter(
+          (doc) => doc !== null
+        ) as (AnnouncementData & { id: string })[];
+        validDocs.sort(
+          (a, b) => b.createdAt.toMillis() - a.createdAt.toMillis()
+        );
         setSortedAnnouncements(validDocs);
       };
       fetchAndSortAnnouncements();
@@ -304,7 +333,7 @@ export default function Groups() {
             ownerType: eventData.ownerType,
             owner: eventData.owner,
             RSVPStatus: userRSVPStatus,
-            workout: eventData.workouts
+            workout: eventData.workouts,
           };
         })
       );
@@ -323,83 +352,83 @@ export default function Groups() {
 
   const populateUsernames = async (msgs: Message[]) => {
     const promises = msgs.map(async (msg: Message) => {
-      const uid = msg.userId
+      const uid = msg.userId;
       if (userCache.current[uid]) {
-        msg.username = userCache.current[uid]
+        msg.username = userCache.current[uid];
       } else {
         try {
-          const userData = await viewDocument("Users", uid)
-          const username = userData?.username || uid
-          userCache.current[uid] = username
-          msg.username = username
+          const userData = await viewDocument("Users", uid);
+          const username = userData?.username || uid;
+          userCache.current[uid] = username;
+          msg.username = username;
         } catch (error) {
-          console.error("Error fetching user data:", error)
-          msg.username = uid
+          console.error("Error fetching user data:", error);
+          msg.username = uid;
         }
       }
-    })
-    await Promise.all(promises)
-  }
+    });
+    await Promise.all(promises);
+  };
 
   const loadMoreMessages = async () => {
-    if (!chatId || !lastVisible) return
-    setLoadingMore(true)
+    if (!chatId || !lastVisible) return;
+    setLoadingMore(true);
     const olderQuery = query(
       collection(db, "Chats", chatId, "messages"),
       orderBy("timestamp", "desc"),
       startAfter(lastVisible),
       limit(batchSize)
-    )
+    );
     try {
-      const snapshot = await getDocs(olderQuery)
+      const snapshot = await getDocs(olderQuery);
       const olderMsgs: Message[] = snapshot.docs
-      .filter((doc) => doc.id !== "_placeholder")
-      .map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<Message, "id">),
-      }))
-      .reverse()
-      await populateUsernames(olderMsgs)
+        .filter((doc) => doc.id !== "_placeholder")
+        .map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<Message, "id">),
+        }))
+        .reverse();
+      await populateUsernames(olderMsgs);
       setMessages((prev) => {
         // Combine old + new
-        const combined = [...olderMsgs, ...prev]
-        
+        const combined = [...olderMsgs, ...prev];
+
         // Filter out duplicates by id
         const unique = combined.filter(
           (message, index, self) =>
             index === self.findIndex((m) => m.id === message.id)
-        )
-      
-        return unique
-      })
+        );
+
+        return unique;
+      });
       if (snapshot.docs.length > 0) {
-        setLastVisible(snapshot.docs[snapshot.docs.length - 1])
+        setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
       }
     } catch (error) {
-      console.error("Error loading older messages:", error)
+      console.error("Error loading older messages:", error);
     }
-    setLoadingMore(false)
-  }
+    setLoadingMore(false);
+  };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !uid || !chatId) return
-    const newMsgId = `${Date.now()}_${uid}`
+    if (!newMessage.trim() || !uid || !chatId) return;
+    const newMsgId = `${Date.now()}_${uid}`;
     const newMsgData = {
       text: newMessage,
       userId: uid,
       timestamp: new Date(),
-    }
+    };
     try {
-      await setDocument(`Chats/${chatId}/messages`, newMsgId, newMsgData)
-      setNewMessage("")
+      await setDocument(`Chats/${chatId}/messages`, newMsgId, newMsgData);
+      setNewMessage("");
     } catch (error) {
-      console.error("Failed to send message:", error)
+      console.error("Failed to send message:", error);
     }
-  }
+  };
 
   useEffect(() => {
     if (chatRef.current) {
-      const chatMessagesEl = chatRef.current.querySelector('.chat-messages');
+      const chatMessagesEl = chatRef.current.querySelector(".chat-messages");
       if (chatMessagesEl) {
         chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
       }
@@ -422,27 +451,38 @@ export default function Groups() {
   return (
     <>
       <div className="group-header-background">
-        <div className="group-header" onClick={() => { if (docId) router.push(`/group/view?groupId=${docId}`); }}>
-          {
-          groupData?.name || 'Loading...'
-          }
+        <div
+          className="group-header"
+          onClick={() => {
+            if (docId) router.push(`/group/view?groupId=${docId}`);
+          }}
+        >
+          {groupData?.name || "Loading..."}
           <div className="members-button" onClick={(e) => e.stopPropagation()}>
             <Sheet>
               <SheetTrigger>+</SheetTrigger>
               <SheetContent>
                 <div className="member-sheet-content">
-                  <SheetTitle style={{fontWeight: 'bold'}}>Members</SheetTitle>
+                  <SheetTitle style={{ fontWeight: "bold" }}>
+                    Members
+                  </SheetTitle>
                   <div className="member-list">
                     {Array.isArray(groupMembers) ? (
-                      groupMembers.map((member: Array<string>, index: number) => (
-                        <li key={index} className="member-name" onClick={() => router.push(`/profile/${member[2]}`)}>
-                          <div className="member-username">{member[0]}</div>
-                          <div className="member-permission">{member[1]}</div>
-                          <hr className="member-divider" />
-                        </li>
-                      ))
+                      groupMembers.map(
+                        (member: Array<string>, index: number) => (
+                          <li
+                            key={index}
+                            className="member-name"
+                            onClick={() => router.push(`/profile/${member[2]}`)}
+                          >
+                            <div className="member-username">{member[0]}</div>
+                            <div className="member-permission">{member[1]}</div>
+                            <hr className="member-divider" />
+                          </li>
+                        )
+                      )
                     ) : (
-                      <li style={{fontSize: '0.9em', color: 'grey'}}>
+                      <li style={{ fontSize: "0.9em", color: "grey" }}>
                         No members found
                       </li>
                     )}
@@ -454,11 +494,14 @@ export default function Groups() {
         </div>
       </div>
       <div className="tabs-container">
-        <Tabs defaultValue="chat" onValueChange={(value) => {
-          if (value === "calendar") {
-            handleCalendarTabClick();
-          }
-        }}>
+        <Tabs
+          defaultValue="chat"
+          onValueChange={(value) => {
+            if (value === "calendar") {
+              handleCalendarTabClick();
+            }
+          }}
+        >
           <TabsList className="tabs-list" ref={tabsListRef}>
             <TabsTrigger value="announcements" className="tabs-trigger">
               announcements
@@ -471,15 +514,30 @@ export default function Groups() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="announcements" className="tabs-content">
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-              {createAnnouncement && (<Button onClick={() => router.push(`/announcement/create?groupId=${docId}`)}>
-                Create Announcement
-              </Button>)}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                marginBottom: "1rem",
+              }}
+            >
+              {createAnnouncement && (
+                <Button
+                  onClick={() =>
+                    router.push(`/announcement/create?groupId=${docId}`)
+                  }
+                >
+                  Create Announcement
+                </Button>
+              )}
             </div>
             <div className="chat-messages">
               {sortedAnnouncements.length > 0 ? (
                 sortedAnnouncements.map((announcement) => (
-                  <UserAnnouncementCard announcementData={announcement} key={announcement.id} />
+                  <UserAnnouncementCard
+                    announcementData={announcement}
+                    key={announcement.id}
+                  />
                 ))
               ) : (
                 <p>No announcements found</p>
@@ -493,7 +551,10 @@ export default function Groups() {
                   {loadingMore ? "Loading..." : "Load Previous Messages"}
                 </Button>
                 {messages.map((msg: Message) => (
-                  <div key={msg.id} className="border rounded p-2 shadow-sm bg-white">
+                  <div
+                    key={msg.id}
+                    className="border rounded p-2 shadow-sm bg-white"
+                  >
                     <div className="text-sm text-gray-500 flex justify-between">
                       <div>
                         {msg.username} •{" "}
@@ -527,8 +588,8 @@ export default function Groups() {
             </div>
           </TabsContent>
           <TabsContent value="calendar" className="tabs-content">
-            <NavBar/>
-            <div style={{ height: 'calc(78vh)' }}>
+            <NavBar />
+            <div style={{ height: "calc(78vh)" }}>
               <FullCalendar
                 ref={calendarRef}
                 themeSystem="standard"
@@ -541,102 +602,127 @@ export default function Groups() {
                 contentHeight="100%"
                 customButtons={{
                   createEvent: {
-                    text: 'create event',
-                    click: () => router.push(`/event/create?group=true&groupId=${docId}`),
+                    text: "create event",
+                    click: () => {
+                      if (userRole === "leader" || userRole === "owner") {
+                        router.push(
+                          `/event/create?group=true&groupId=${docId}`
+                        );
+                      } else {
+                        alert("You do not have permission to create events.");
+                      }
+                    },
                   },
                   list: {
-                    text: 'list',
+                    text: "list",
                     click: () => {
                       const calendarApi = calendarRef.current?.getApi();
-                      if (calendarApi?.view.type === 'timeGridDay') {
-                        calendarApi.changeView('listDay');
-                      } else if (calendarApi?.view.type === 'timeGridWeek') {
-                        calendarApi.changeView('listWeek');
-                      } else if (calendarApi?.view.type === 'dayGridMonth') {
-                        calendarApi.changeView('listMonth');
-                      } else if (calendarApi?.view.type === 'listDay') {
-                        calendarApi.changeView('timeGridDay');
-                      } else if (calendarApi?.view.type === 'listWeek') {
-                        calendarApi.changeView('timeGridWeek');
-                      } else if (calendarApi?.view.type === 'listMonth') {
-                        calendarApi.changeView('dayGridMonth');
+                      if (calendarApi?.view.type === "timeGridDay") {
+                        calendarApi.changeView("listDay");
+                      } else if (calendarApi?.view.type === "timeGridWeek") {
+                        calendarApi.changeView("listWeek");
+                      } else if (calendarApi?.view.type === "dayGridMonth") {
+                        calendarApi.changeView("listMonth");
+                      } else if (calendarApi?.view.type === "listDay") {
+                        calendarApi.changeView("timeGridDay");
+                      } else if (calendarApi?.view.type === "listWeek") {
+                        calendarApi.changeView("timeGridWeek");
+                      } else if (calendarApi?.view.type === "listMonth") {
+                        calendarApi.changeView("dayGridMonth");
                       }
-                    }
-                  }
+                    },
+                  },
                 }}
                 headerToolbar={{
-                  left: 'list timeGridDay,timeGridWeek,dayGridMonth',
-                  center: 'title',
-                  right: 'createEvent today prevYear,prev,next,nextYear'
+                  left: "list timeGridDay,timeGridWeek,dayGridMonth",
+                  center: "title",
+                  right: "createEvent today prevYear,prev,next,nextYear",
                 }}
                 events={eventList}
                 eventDidMount={(info) => {
-                  if (info.event.extendedProps.description && info.view.type !== 'dayGridMonth') {
-                    const descEl = document.createElement('div');
+                  if (
+                    info.event.extendedProps.description &&
+                    info.view.type !== "dayGridMonth"
+                  ) {
+                    const descEl = document.createElement("div");
 
                     let desc;
                     if (info.event.extendedProps.description) {
                       desc = info.event.extendedProps.description;
                     } else {
-                      desc = 'None';
+                      desc = "None";
                     }
 
                     descEl.innerHTML = `
-                      <strong>Location:</strong> ${info.event.extendedProps.location || 'N/A'}<br/>
+                      <strong>Location:</strong> ${
+                        info.event.extendedProps.location || "N/A"
+                      }<br/>
                       <strong>Description:</strong> ${desc}<br/>
-                      <strong>RSVP Status:</strong> ${info.event.extendedProps.RSVPStatus}<br/>
-                      <strong>Workout:</strong> ${info.event.extendedProps.workout}
+                      <strong>RSVP Status:</strong> ${
+                        info.event.extendedProps.RSVPStatus
+                      }<br/>
+                      <strong>Workout:</strong> ${
+                        info.event.extendedProps.workout
+                      }
                       ... <strong>and more</strong>
                       <br/>
                       <em>Click for more details</em>
                       <br/>
                     `;
-                    descEl.style.fontSize = '0.9em';
-                    descEl.style.color = 'black';
-                    descEl.style.whiteSpace = 'normal';
-                    descEl.style.overflowWrap = 'anywhere';
-                    descEl.style.margin = '0';
-                    descEl.style.backgroundColor = '#ffffff';
-                    descEl.style.padding = '4px';
-                    descEl.style.borderRadius = '3px';
-                    info.el.querySelector('.fc-event-title')?.appendChild(descEl);
+                    descEl.style.fontSize = "0.9em";
+                    descEl.style.color = "black";
+                    descEl.style.whiteSpace = "normal";
+                    descEl.style.overflowWrap = "anywhere";
+                    descEl.style.margin = "0";
+                    descEl.style.backgroundColor = "#ffffff";
+                    descEl.style.padding = "4px";
+                    descEl.style.borderRadius = "3px";
+                    info.el
+                      .querySelector(".fc-event-title")
+                      ?.appendChild(descEl);
                   }
                 }}
                 eventMouseEnter={(info) => {
-                  if (info.view.type === 'dayGridMonth') {
+                  if (info.view.type === "dayGridMonth") {
                     const rect = info.el.getBoundingClientRect();
-                    const tooltipEl = document.createElement('div');
-                    tooltipEl.classList.add('my-event-tooltip');
+                    const tooltipEl = document.createElement("div");
+                    tooltipEl.classList.add("my-event-tooltip");
 
                     let desc;
                     if (info.event.extendedProps.description) {
                       desc = info.event.extendedProps.description;
                     } else {
-                      desc = 'None';
+                      desc = "None";
                     }
 
                     tooltipEl.innerHTML = `
-                      <strong>Location:</strong> ${info.event.extendedProps.location || 'N/A'}<br/>
+                      <strong>Location:</strong> ${
+                        info.event.extendedProps.location || "N/A"
+                      }<br/>
                       <strong>Description:</strong> ${desc}<br/>
-                      <strong>RSVP Status:</strong> ${info.event.extendedProps.RSVPStatus}<br/>
-                      <strong>Workout:</strong> ${info.event.extendedProps.workout}
+                      <strong>RSVP Status:</strong> ${
+                        info.event.extendedProps.RSVPStatus
+                      }<br/>
+                      <strong>Workout:</strong> ${
+                        info.event.extendedProps.workout
+                      }
                       ... <strong>and more</strong>
                       <br/>
                       <em>Click for more details</em>
                       <br/>
                     `;
-                    tooltipEl.style.position = 'fixed';
-                    tooltipEl.style.color = 'black';
-                    tooltipEl.style.fontSize = '0.8em';
+                    tooltipEl.style.position = "fixed";
+                    tooltipEl.style.color = "black";
+                    tooltipEl.style.fontSize = "0.8em";
                     tooltipEl.style.left = `${rect.left}px`;
                     tooltipEl.style.top = `${rect.bottom}px`;
-                    tooltipEl.style.zIndex = '9999';
-                    tooltipEl.style.backgroundColor = 'white';
-                    tooltipEl.style.border = '1px solid #ccc';
-                    tooltipEl.style.padding = '5px';
-                    tooltipEl.style.whiteSpace = 'normal';
+                    tooltipEl.style.zIndex = "9999";
+                    tooltipEl.style.backgroundColor = "white";
+                    tooltipEl.style.border = "1px solid #ccc";
+                    tooltipEl.style.padding = "5px";
+                    tooltipEl.style.whiteSpace = "normal";
                     document.body.appendChild(tooltipEl);
-                    info.event.setExtendedProp('tooltipEl', tooltipEl);
+                    info.event.setExtendedProp("tooltipEl", tooltipEl);
                   }
                 }}
                 eventMouseLeave={(info) => {
@@ -650,23 +736,37 @@ export default function Groups() {
                   if (info.event.extendedProps.tooltipEl) {
                     info.event.extendedProps.tooltipEl.remove();
                   }
-                  if (auth.currentUser?.uid === info.event.extendedProps.owner) {
-                    router.push(`/event/modify?docId=${info.event.extendedProps.docID}`);
+                  if (
+                    auth.currentUser?.uid === info.event.extendedProps.owner
+                  ) {
+                    router.push(
+                      `/event/modify?docId=${info.event.extendedProps.docID}`
+                    );
                   } else {
-                    router.push(`/event/view?docId=${info.event.extendedProps.docID}`);
+                    router.push(
+                      `/event/view?docId=${info.event.extendedProps.docID}`
+                    );
                   }
                 }}
               />
             </div>
             <style jsx global>{`
               .fc .fc-toolbar-title {
-              font-weight: bold;
+                font-weight: bold;
               }
             `}</style>
           </TabsContent>
         </Tabs>
       </div>
-      <NavBar/>
+      <NavBar />
     </>
+  );
+};
+
+export default function Groups() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <GroupsPage />
+    </Suspense>
   );
 }

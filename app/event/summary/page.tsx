@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../../utils/firebaseConfig";
@@ -21,7 +21,7 @@ interface EventData {
   workouts: string;
 }
 
-export default function EventSummary() {
+const EventSummaryPage = () => {
   const searchParams = useSearchParams();
   const eventId = searchParams?.get("docId") ?? ""; // Get event ID from URL
   const router = useRouter();
@@ -127,5 +127,13 @@ export default function EventSummary() {
       </Card>
       {/* Back Button */}
     </div>
+  );
+};
+
+export default function EventSummary() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <EventSummaryPage />
+    </Suspense>
   );
 }

@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { db } from "@/utils/firebaseConfig";
@@ -26,10 +26,10 @@ import {
   arrayUnion,
   DocumentReference,
   serverTimestamp,
-  getDoc
+  getDoc,
 } from "firebase/firestore";
 
-export default function CreateAnnouncement() {
+const CreateAnnouncementPage = () => {
   const router = useRouter();
 
   const groupId = useSearchParams()?.get("groupId") ?? "";
@@ -147,5 +147,13 @@ export default function CreateAnnouncement() {
         </CardFooter>
       </Card>
     </div>
+  );
+};
+
+export default function CreateAnnouncement() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CreateAnnouncementPage />
+    </Suspense>
   );
 }

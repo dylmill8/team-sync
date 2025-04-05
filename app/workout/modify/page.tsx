@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { db } from "../../../utils/firebaseConfig";
@@ -16,14 +15,14 @@ interface Workout {
   eventId: string;
 }
 
-export default function ModifyWorkout() {
+const ModifyWorkoutPage = () => {
   const [exercises, setExercises] = useState<string[]>([]);
   const [personalLogs, setPersonalLogs] = useState<string[]>([]);
   const [workout, setWorkout] = useState<Workout | null>(null); // Specify the type for workout
   const router = useRouter();
   const searchParams = useSearchParams();
-  const workoutId = searchParams?.get('workoutId') ?? "";  // Get workoutId from query params
-  const userId = searchParams?.get('userId') ?? "";  // Get userId from query params
+  const workoutId = searchParams?.get("workoutId") ?? ""; // Get workoutId from query params
+  const userId = searchParams?.get("userId") ?? ""; // Get userId from query params
 
   // Fetch the workout document
   useEffect(() => {
@@ -74,7 +73,6 @@ export default function ModifyWorkout() {
     }
   }, [workout, userId]);
 
-
   // Handle personal description change
   const handlePersonalDescriptionChange = (index: number, value: string) => {
     const updatedLogs = [...personalLogs];
@@ -85,12 +83,12 @@ export default function ModifyWorkout() {
   // Save personal logs and update workout with map
   const handleSaveLogs = async () => {
     if (!userId) {
-        alert("Error: Missing user ID.");
-        return;
+      alert("Error: Missing user ID.");
+      return;
     }
     if (!workoutId) {
-        alert("Error: Missing workout ID.");
-        return;
+      alert("Error: Missing workout ID.");
+      return;
     }
     if (!workout) return;
 
@@ -116,7 +114,7 @@ export default function ModifyWorkout() {
       const userRef = doc(db, "Users", userId);
       const userSnap = await getDoc(userRef);
       const workouts = userSnap.exists() ? userSnap.data().workouts || [] : [];
-      
+
       // Add the workoutId if it isn't already in the array
       if (!workouts.includes(workoutId)) {
         workouts.push(workoutId);
@@ -130,7 +128,6 @@ export default function ModifyWorkout() {
 
       // Route to the event view page with the event's docId
       router.push(`/event/view?docId=${eventId}`);
-
     } catch (error) {
       console.error("Error saving logs", error);
     }
@@ -154,7 +151,9 @@ export default function ModifyWorkout() {
             <textarea
               placeholder={`Describe what you did for ${exercise}`}
               value={personalLogs[index] || ""}
-              onChange={(e) => handlePersonalDescriptionChange(index, e.target.value)}
+              onChange={(e) =>
+                handlePersonalDescriptionChange(index, e.target.value)
+              }
               className="w-full mt-2 p-2 bg-gray-100 rounded-md"
             />
           </div>
@@ -170,5 +169,13 @@ export default function ModifyWorkout() {
         </div>
       </div>
     </div>
+  );
+};
+
+export default function ModifyWorkout() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ModifyWorkoutPage />
+    </Suspense>
   );
 }
