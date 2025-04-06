@@ -36,7 +36,7 @@ const ViewGroupPage = () => {
   const [data, setData] = useState<DocumentData | null>(null);
   const groupId = useSearchParams()?.get("groupId") ?? "";
   const [loading, setLoading] = useState(true);
-  const [preview, setPreview] = useState("/default.png");
+  //const [preview, setPreview] = useState("/default.png");
   const router = useRouter();
 
   const [inviteLink, setInviteLink] = useState<string | null>(null);
@@ -81,20 +81,20 @@ const ViewGroupPage = () => {
       }
     };
 
-    const fetchProfileImage = async () => {
-      try {
-        const res = await fetch(`/api/getGroupProfile?groupId=${groupId}`);
-        const data = await res.json();
-        if (res.ok && data.file) {
-          setPreview(`/uploads/groups/${data.file}?timestamp=${Date.now()}`);
-        }
-      } catch {
-        setPreview("/uploads/testuser.png");
-      }
-    };
+    // const fetchProfileImage = async () => {
+    //   try {
+    //     const res = await fetch(`/api/getGroupProfile?groupId=${groupId}`);
+    //     const data = await res.json();
+    //     if (res.ok && data.file) {
+    //       setPreview(`/uploads/groups/${data.file}?timestamp=${Date.now()}`);
+    //     }
+    //   } catch {
+    //     setPreview("/uploads/testuser.png");
+    //   }
+    // };
 
     fetchGroup();
-    fetchProfileImage();
+    //fetchProfileImage();
   }, [groupId]);
 
   // Leave group button
@@ -202,6 +202,14 @@ const ViewGroupPage = () => {
     }
   };
 
+  const handleBack = () => {
+    if (isMember) {
+      router.push(`/groups?docId=${groupId}`);
+    } else {
+      router.push('/search');
+    }
+  };
+
   // Create invite link
   const createInviteLink = async () => {
     setInviteLink(null);
@@ -282,7 +290,7 @@ const ViewGroupPage = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <Card className="w-full max-w-md p-6 shadow-lg bg-white rounded-xl">
-        <img
+        {/* <img
           src={preview}
           alt="Profile"
           width="150"
@@ -294,7 +302,7 @@ const ViewGroupPage = () => {
             border: "3px solid #0070f3",
           }}
           onError={(e) => (e.currentTarget.src = "/default.png")}
-        />
+        /> */}
         <CardHeader>
           <CardTitle className="text-2xl font-semibold">
             {data?.name || "Error loading group name."}
@@ -395,7 +403,7 @@ const ViewGroupPage = () => {
           )}
 
           <Button
-            onClick={() => router.push(`/groups?docId=${groupId}`)}
+              onClick={handleBack}
             className="mt-2 w-full bg-gray-500 hover:bg-gray-600 text-white font-bold rounded transition-all"
           >
             Back
@@ -405,6 +413,7 @@ const ViewGroupPage = () => {
     </div>
   );
 };
+
 
 export default function ViewGroup() {
   return (
