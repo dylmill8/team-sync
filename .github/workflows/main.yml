@@ -1,9 +1,10 @@
 name: Run Jest Tests on Pull Request
-    on:
+
+on:
       pull_request:
         branches:
           - main
-    jobs:
+jobs:
       test:
         runs-on: ubuntu-latest
         steps:
