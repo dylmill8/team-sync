@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDocs, query, where, setDoc, doc } from "firebase/firestore";
 import { collection } from "firebase/firestore";
+import { FirebaseError } from "firebase/app";
 import {
   auth,
   db,
@@ -126,8 +127,18 @@ const RegisterPage = () => {
       alert(`Email Registered: ${email}, username: ${username}`);
       router.push("/profile"); // Redirect to profile page
     } catch (e) {
-      console.error("Error adding document:", e);
-      alert("Error adding document:");
+      if (e instanceof FirebaseError) {
+        if (e.code === 'auth/invalid-email') {
+          alert("Please enter a valid email");
+        } else if (e.code === 'auth/weak-password') {
+          alert("Password should be at least 6 characters");
+        } else {
+          alert("An unknown error occurred. Please try again.");
+        }
+      } else {
+        // Handle the case where the error isn't a FirebaseError
+        alert("An unexpected error occurred.");
+      }
     }
   };
   return (
