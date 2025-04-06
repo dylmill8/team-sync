@@ -81,7 +81,7 @@ const RegisterPage = () => {
       await setDoc(doc(db, "Users", user.uid), {
         email: email,
         username: username,
-        isLightTheme: false,
+        isLightTheme: true,
       });
       const fcmToken = await requestPermissionAndGetToken();
       if (fcmToken) {
@@ -91,9 +91,11 @@ const RegisterPage = () => {
         });
         console.log("FCM token saved to Firestore for user:", user.uid);
       }
-      // const passDocRef = await setDoc(doc(db, "UserPasswords", user.uid), {
-      //   password: password,
-      // });
+
+      // Stefan's code relating to account switching; do not comment out
+      await setDoc(doc(db, "UserPasswords", user.uid), {
+        password: password,
+      });
 
       /* profile picture save with Marco API */
       if (profilePicture) {
