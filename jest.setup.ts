@@ -1,15 +1,14 @@
-import '@testing-library/jest-dom'
+// jest.setup.ts
+import '@testing-library/jest-dom/extend-expect';
 
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: jest.fn(),
-    replace: jest.fn(),
-    prefetch: jest.fn(),
-    back: jest.fn(),
-    forward: jest.fn(),
-  }),
-  usePathname: () => '/mock-path',
-  useSearchParams: () => ({
-    get: jest.fn(),
-  }),
-}))
+jest.mock('firebase/auth', () => ({
+  getAuth: jest.fn(() => ({})),
+  signInWithPopup: jest.fn(() =>
+    Promise.resolve({ user: { uid: 'mock-user-id' } })
+  ),
+  signOut: jest.fn(() => Promise.resolve()),
+  onAuthStateChanged: jest.fn((auth, callback) =>
+    callback({ uid: 'mock-user-id', email: 'mock@example.com' })
+  ),
+  GoogleAuthProvider: jest.fn(() => ({})),
+}));
