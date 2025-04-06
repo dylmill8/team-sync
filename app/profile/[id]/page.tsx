@@ -255,20 +255,29 @@ export default function Profile() {
       }}
     >
       <h1>Profile Page</h1>
-      <Image
-        src={preview}
-        alt="Profile"
-        width="150"
-        height="150"
-        style={{
-          display: "block",
-          margin: "0 auto",
-          borderRadius: "50%",
-          objectFit: "cover",
-          border: "3px solid #0070f3",
-        }}
-        onError={(e) => (e.currentTarget.src = "/default.png")}
-      />
+      <div
+  style={{
+    width: "150px",
+    height: "150px",
+    borderRadius: "50%",
+    overflow: "hidden",
+    margin: "0 auto",
+    border: "3px solid #0070f3",
+  }}
+>
+  <Image
+    src={preview}
+    alt="Profile"
+    width={150}
+    height={150}
+    style={{
+      width: "100%",
+      height: "100%",
+      objectFit: "cover",
+    }}
+    onError={(e) => (e.currentTarget.src = "/default.png")}
+  />
+</div>
       {/*<h2>User ID: {userId}</h2>*/}
       <p>
         <strong>Email:</strong> {userData.email}

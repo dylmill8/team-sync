@@ -151,7 +151,7 @@ const GroupsPage = () => {
   useEffect(() => {
     async function fetchGroup() {
       if (!docId) {
-        console.error("Invalid group ID");
+        router.push("/groupslist"); // Redirect to groups list page
         return;
       }
       if (typeof docId === "string") {
@@ -160,13 +160,13 @@ const GroupsPage = () => {
       const groupRef = doc(db, "Groups", docId);
       const groupDoc = await getDoc(groupRef);
       if (!groupDoc.exists()) {
-        console.error("Group not found");
+        router.push("/groupslist"); // Redirect to groups list page
         return;
       }
       setGroupData(groupDoc.data() as GroupData);
     }
     fetchGroup();
-  }, [docId, uid]);
+  }, [docId, uid, router]);
 
   //! TODO: maybe remove
   useEffect(() => {
@@ -246,7 +246,7 @@ const GroupsPage = () => {
     };
 
     initMessages().catch((err) =>
-      console.error("Error loading messages:", err)
+      console.log("Error loading messages:", err)
     );
   }, [chatId]);
 
@@ -299,13 +299,15 @@ const GroupsPage = () => {
 
   async function handleCalendarTabClick() {
     if (!docId) {
-      console.error("Invalid group ID");
+      router.push("/groupslist");
+      console.log("Invalid group ID");
       return;
     }
     const groupRef = doc(db, "Groups", docId);
     const groupDoc = await getDoc(groupRef);
     if (!groupDoc.exists()) {
-      console.error("Group not found");
+      router.push("/groupslist");
+      console.log("Group not found");
       return;
     }
     const data = groupDoc.data(); // store the fetched data
@@ -345,7 +347,7 @@ const GroupsPage = () => {
     try {
       await deleteDoc(doc(db, "Chats", chatId, "messages", messageId));
     } catch (error) {
-      console.error("Error deleting message:", error);
+      console.log("Error deleting message:", error);
     }
   };
 
@@ -361,7 +363,7 @@ const GroupsPage = () => {
           userCache.current[uid] = username;
           msg.username = username;
         } catch (error) {
-          console.error("Error fetching user data:", error);
+          console.log("Error fetching user data:", error);
           msg.username = uid;
         }
       }
@@ -404,7 +406,7 @@ const GroupsPage = () => {
         setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
       }
     } catch (error) {
-      console.error("Error loading older messages:", error);
+      console.log("Error loading older messages:", error);
     }
     setLoadingMore(false);
   };
@@ -421,7 +423,7 @@ const GroupsPage = () => {
       await setDocument(`Chats/${chatId}/messages`, newMsgId, newMsgData);
       setNewMessage("");
     } catch (error) {
-      console.error("Failed to send message:", error);
+      console.log("Failed to send message:", error);
     }
   };
 

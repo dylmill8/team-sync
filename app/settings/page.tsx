@@ -56,7 +56,7 @@ export default function Settings() {
             username: data.username || "",
             isLightTheme: data.isLightTheme || false,
           });
-          setIsLightMode(data.isLightTheme || false);
+          setIsLightMode(!data.isLightTheme || false);
         }
       }
     };
@@ -357,15 +357,8 @@ export default function Settings() {
         <img
           src={preview}
           alt="Profile"
-          width="150"
-          style={{
-            display: "block",
-            margin: "0 auto",
-            borderRadius: "50%",
-            objectFit: "cover",
-            border: "3px solid #0070f3",
-          }}
-        />
+          className="w-32 h-32 rounded-full object-cover border border-gray-300 shadow-md block mx-auto"
+          />
       </div>
       <form onSubmit={handleUpload} style={{ marginBottom: "20px" }}>
         <input
