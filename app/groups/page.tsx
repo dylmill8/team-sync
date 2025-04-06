@@ -252,7 +252,6 @@ const GroupsPage = () => {
 
   useEffect(() => {
     if (!chatId) return;
-
     const messagesRef = collection(db, "Chats", chatId, "messages");
     const unsubscribe = onSnapshot(
       query(messagesRef, orderBy("timestamp", "asc")),
