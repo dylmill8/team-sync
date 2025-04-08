@@ -1,18 +1,12 @@
 import { render, screen } from "@testing-library/react";
+import "@testing-library/jest-dom";
 import CreateAnnouncement from "../app/announcement/create/page";
 
-// set up alert mock
-beforeEach(() => {
-  jest.spyOn(window, "alert").mockImplementation(() => {});
-});
-
-afterEach(() => {
-  jest.restoreAllMocks();
-});
-
-describe("CreateAnnouncement Page", () => {
+describe("Create Announcement Page", () => {
   // tests all the elements are on the page
   test("renders all elements", () => {
     render(<CreateAnnouncement />);
+
+    expect(screen.getByText("Loading...")).toBeInTheDocument();
   });
 });
