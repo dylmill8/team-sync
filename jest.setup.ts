@@ -29,7 +29,10 @@ jest.mock("next/navigation", () => {
 
 // firebase mocks
 jest.mock("firebase/app", () => ({
-  initializeApp: jest.fn(),
+  initializeApp: jest.fn(() => ({
+    name: "mock-app",
+    options: {},
+  })),
 }));
 
 jest.mock("firebase/firestore", () => ({
@@ -39,19 +42,30 @@ jest.mock("firebase/firestore", () => ({
     path: `${collection}/${id}`,
     collection,
   })),
-  getDoc: jest.fn(),
+  getDoc: jest.fn(() => ({
+    exists: jest.fn(() => true),
+    data: jest.fn(() => ({
+      groups: [],
+    })),
+  })),
   updateDoc: jest.fn(),
 }));
 
 jest.mock("firebase/auth", () => ({
-  getAuth: jest.fn(() => ({
-    currentUser: null,
-  })),
+  getAuth: jest.fn((app) => {
+    console.log("getAuth called with app", app);
+    return {
+      currentUser: null,
+      getProvider: jest.fn(() => {
+        console.log("get provider mock called");
+        return { providerId: "mock-provider-id" };
+      }),
+    };
+  }),
   setPersistence: jest.fn(() => Promise.resolve()),
   browserLocalPersistence: {},
   onAuthStateChanged: jest.fn((auth, callback) => {
     callback({ uid: "mock-uid" });
-
     return jest.fn();
   }),
 }));
