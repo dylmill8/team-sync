@@ -2,19 +2,30 @@ import "@testing-library/react";
 // import { initialize } from 'next/dist/server/lib/render-server';
 
 // next mock
-jest.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: jest.fn(),
-    replace: jest.fn(),
-    prefetch: jest.fn(),
-    back: jest.fn(),
-    forward: jest.fn(),
-  }),
-  usePathname: () => "/mock-path",
-  useSearchParams: () => ({
-    get: jest.fn(),
-  }),
-}));
+jest.mock("next/navigation", () => {
+  let params = new URLSearchParams();
+
+  return {
+    useRouter: () => ({
+      push: jest.fn(),
+      replace: jest.fn(),
+      prefetch: jest.fn(),
+      back: jest.fn(),
+      forward: jest.fn(),
+    }),
+    usePathname: () => "/mock-path",
+    useSearchParams: jest.fn(() => {
+      return {
+        get: (key: string) => params.get(key),
+        set: (key: string, value: string) => params.set(key, value),
+        toString: () => params.toString(),
+        reset: () => {
+          params = new URLSearchParams();
+        },
+      };
+    }),
+  };
+});
 
 // firebase mocks
 jest.mock("firebase/app", () => ({
@@ -23,7 +34,11 @@ jest.mock("firebase/app", () => ({
 
 jest.mock("firebase/firestore", () => ({
   getFirestore: jest.fn(),
-  doc: jest.fn(),
+  doc: jest.fn((db, collection, id) => ({
+    id,
+    path: `${collection}/${id}`,
+    collection,
+  })),
   getDoc: jest.fn(),
   updateDoc: jest.fn(),
 }));
@@ -34,7 +49,11 @@ jest.mock("firebase/auth", () => ({
   })),
   setPersistence: jest.fn(() => Promise.resolve()),
   browserLocalPersistence: {},
-  onAuthStateChanged: jest.fn(),
+  onAuthStateChanged: jest.fn((auth, callback) => {
+    callback({ uid: "mock-uid" });
+
+    return jest.fn();
+  }),
 }));
 
 jest.mock("firebase/messaging", () => ({
