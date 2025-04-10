@@ -1,12 +1,17 @@
 "use client";
 
+<<<<<<< Updated upstream
 import React from "react"; // Add React import
+=======
+import React, { useEffect, useState } from "react";
+>>>>>>> Stashed changes
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 const NavBar = () => {
+<<<<<<< Updated upstream
     return (
         <div className={`navbar fixed bottom-0 left-0 w-full items-center shadow-md flex justify-around h-[10vh] border-t z-10 p-0 min-h-[20]`}>
             <NavBarItem href="/search" icon="/nav_bar_icons/Search.png" active={false} />
@@ -14,6 +19,25 @@ const NavBar = () => {
             <NavBarItem href="/calendar" icon="/nav_bar_icons/Calendar.png" active={false} />
             <NavBarItem href="/settings" icon="/nav_bar_icons/Settings.png" active={false} />
             <NavBarItem href="/profile" icon="/nav_bar_icons/Profile.png" active={false} />
+=======
+    const { isLightMode } = useTheme(); // Use ThemeContext to track theme changes
+
+    const [theme, setTheme] = useState(isLightMode);
+
+    // Update the local theme state when isLightMode changes
+    useEffect(() => {
+        setTheme(isLightMode);
+    }, [isLightMode]);
+
+
+    return (
+        <div className="navbar fixed bottom-0 left-0 w-full items-center shadow-md flex justify-around h-[10vh] border-t z-10 p-0 min-h-[20]">
+            <NavBarItem href="/search" icon="/nav_bar_icons/Search.png" isLightMode={theme} />
+            <NavBarItem href="/groupslist" icon="/nav_bar_icons/Groups.png" isLightMode={theme} />
+            <NavBarItem href="/calendar" icon="/nav_bar_icons/Calendar.png" isLightMode={theme} />
+            <NavBarItem href="/settings" icon="/nav_bar_icons/Settings.png" isLightMode={theme} />
+            <NavBarItem href="/profile" icon="/nav_bar_icons/Profile.png" isLightMode={theme} />
+>>>>>>> Stashed changes
         </div>
     );
 };
