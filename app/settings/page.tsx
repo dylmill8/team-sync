@@ -56,7 +56,7 @@ export default function Settings() {
             username: data.username || "",
             isLightTheme: data.isLightTheme || false,
           });
-          setIsLightMode(data.isLightTheme || false);
+          setIsLightMode(!data.isLightTheme || false);
         }
       }
     };
