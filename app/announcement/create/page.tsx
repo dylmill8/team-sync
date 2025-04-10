@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense, ChangeEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { db } from "@/utils/firebaseConfig";
@@ -28,6 +28,7 @@ import {
   serverTimestamp,
   getDoc,
 } from "firebase/firestore";
+import { PutBlobResult } from "@vercel/blob";
 
 const CreateAnnouncementPage = () => {
   const router = useRouter();
@@ -37,6 +38,8 @@ const CreateAnnouncementPage = () => {
 
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [image, setImage] = useState<File | null>(null);
+  const imageRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
 
   // get group reference
@@ -46,7 +49,25 @@ const CreateAnnouncementPage = () => {
     }
   }, [groupId]);
 
-  // TODO: implement cancel button that routes user back to the group page
+  // set image to be the selected image
+  const changeImage = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files && event.currentTarget.files[0];
+    if (!file) {
+      setImage(null);
+    } else {
+      const maxBytes = 1024 * 1024;
+      if (file.size > maxBytes) {
+        alert("Images must be under 1MB, please try again.");
+        setImage(null);
+
+        if (imageRef.current) {
+          imageRef.current.value = "";
+        }
+      } else {
+        setImage(file);
+      }
+    }
+  };
 
   const createButton = async () => {
     if (!title) {
@@ -57,12 +78,29 @@ const CreateAnnouncementPage = () => {
     setLoading(true);
 
     try {
+      // add images and attachements to Vercel storage, save urls to store in firebase
+      let imageUrl = null;
+      if (image) {
+        await fetch(`${window.location.origin}/api/blob/upload`, {
+          method: "POST",
+          headers: {
+            "content-type": image.type,
+          },
+          body: image,
+        }).then(async (result) => {
+          const { url } = (await result.json()) as PutBlobResult;
+          console.log("url:", url);
+          imageUrl = url;
+        });
+      }
+
       // create and add to database
       const docRef = await addDoc(collection(db, "Announcements"), {
         title,
         body,
         groupRef,
         createdAt: serverTimestamp(),
+        imageUrl,
       });
       setTitle("");
       setBody("");
@@ -126,6 +164,16 @@ const CreateAnnouncementPage = () => {
                 onChange={(e) => setBody(e.target.value)}
                 className="mt-1"
               ></Textarea>
+            </div>
+
+            <div>
+              <Label>Upload Image</Label>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={changeImage}
+                ref={imageRef}
+              />
             </div>
           </form>
         </CardContent>

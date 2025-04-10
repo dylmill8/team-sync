@@ -6,8 +6,8 @@ import {
   setPersistence,
   browserSessionPersistence,
 } from "firebase/auth";
-import React, { Suspense, useState } from "react";
-import { db } from "../utils/firebaseConfig";
+import React, { Suspense, useState, useEffect } from "react";
+import { db, initAuthPersistence } from "../utils/firebaseConfig";
 import {
   doc,
   getDoc,
@@ -29,6 +29,10 @@ const HomePage = () => {
   const addAccount = searchParams?.get("addAccount") === "true";
 
   const auth = getAuth();
+
+  useEffect(() => {
+    initAuthPersistence();
+  }, []);
 
   const changeEmailInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);
