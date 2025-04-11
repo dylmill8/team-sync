@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDocs, query, where, setDoc, doc } from "firebase/firestore";
 import { collection } from "firebase/firestore";
 import { FirebaseError } from "firebase/app";
+import { PutBlobResult } from "@vercel/blob";
+
 import {
   auth,
   db,
@@ -26,6 +28,8 @@ const RegisterPage = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const searchParams = useSearchParams();
   const router = useRouter(); // Initialize useRouter for navigation
+  //const [file, setFile] = useState<File | null>(null);
+  const [url, setUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const emailParam = searchParams?.get("email") || "";
@@ -76,13 +80,6 @@ const RegisterPage = () => {
         password
       );
       const user = userCredential.user;
-
-      /* email, username, password send to database. userID is docRef */
-      await setDoc(doc(db, "Users", user.uid), {
-        email: email,
-        username: username,
-        isLightTheme: true,
-      });
       const fcmToken = await requestPermissionAndGetToken();
       if (fcmToken) {
         const userDocRef = doc(db, "Users", user.uid);
@@ -99,25 +96,30 @@ const RegisterPage = () => {
 
       /* profile picture save with Marco API */
       if (profilePicture) {
-        const formData = new FormData();
-        formData.append("image", profilePicture);
+        // const formData = new FormData();
+        // formData.append("image", profilePicture);
         try {
-          const res = await fetch(`/api/upload?userId=${user.uid}`, {
+          fetch("api/blob/upload", {
             method: "POST",
-            body: formData,
+            headers: {
+              "content-type": profilePicture?.type || "application/octet-stream",
+            },
+            body: profilePicture,
+          }).then(async (result) => {
+            const { url } = (await result.json()) as PutBlobResult;
+            setUrl(url);
+            await setDoc(doc(db, "Users", user.uid), {
+              email: email,
+              username: username,
+              isLightTheme: true,
+              profilePic: url,
+            });
           });
-
-          if (res.ok) {
-            alert("Upload successful!");
-          } else {
-            const errorData = await res.json();
-            alert(`Upload failed! ${errorData.error || "Unknown error"}`);
-          }
         } catch (error) {
           console.error("uppload failed", error);
         }
       }
-
+      
       /* reset form fields */
       setEmail("");
       setUsername("");
@@ -126,7 +128,6 @@ const RegisterPage = () => {
       setProfilePicture(null);
 
       /* redirect to profile page*/
-      alert(`Email Registered: ${email}, username: ${username}`);
       router.push("/profile"); // Redirect to profile page
     } catch (e) {
       if (e instanceof FirebaseError) {
@@ -139,6 +140,8 @@ const RegisterPage = () => {
         }
       } else {
         // Handle the case where the error isn't a FirebaseError
+        console.log("error fetching workout", e);
+
         alert("An unexpected error occurred.");
       }
     }
