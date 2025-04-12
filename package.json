@@ -26,12 +26,13 @@
     "@radix-ui/react-tabs": "^1.1.3",
     "@radix-ui/react-toast": "^1.2.6",
     "@radix-ui/react-tooltip": "^1.1.8",
+    "@vercel/blob": "^0.27.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "firebase": "^11.3.1",
     "fullcalendar": "^6.1.15",
     "lucide-react": "^0.475.0",
-    "next": "15.1.6",
+    "next": "^15.2.4",
     "nodemailer": "^6.10.0",
     "radix-ui": "^1.1.3",
     "react": "^19.0.0",
@@ -43,7 +44,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.2.0",
+    "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
     "@types/jest": "^29.5.14",
     "@types/node": "^20",
@@ -58,7 +59,7 @@
     "postcss": "^8",
     "shadcn-ui": "^0.9.4",
     "tailwindcss": "^3.4.1",
-    "ts-jest": "^29.2.6",
-    "typescript": "^5"
+    "ts-jest": "^29.3.1",
+    "typescript": "^5.8.3"
   }
 }
