@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown";
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -50,6 +51,19 @@ const ModifyEventPage = () => {
   const [loading, setLoading] = useState(true);
   const [deleteEvent, setDeleteEvent] = useState(false);
 
+  const [tags, setTags] = useState<string[]>([]); // State for selected tags
+  //const availableTags = ["Team", "Club", "Beginner", "Intermediate", "Advanced", "Sports", "Basketball", "American Football", "Soccer", "Volleyball", "Baseball", "Track/Field", "Climbing", "Training", "Fitness", "Gym", "Workouts"]; // Available tags
+  // eslint-disable-next-line prefer-const
+  let availableTags = ["Mandatory", "Match", "Tournament", "Exercise", "Workout", "Training", "Practice", "Meetup", "Hangout", "Wellness"];
+
+  const toggleTag = (tag: string) => {
+    setTags((prevTags) =>
+      prevTags.includes(tag)
+        ? prevTags.filter((t) => t !== tag) // Remove tag if already selected
+        : [...prevTags, tag] // Add tag if not selected
+    );
+  };
+
   // format datetime variable for displaying
   const formatDatetime = (timestamp: Timestamp) => {
     if (!timestamp) {
@@ -82,6 +96,7 @@ const ModifyEventPage = () => {
           const fetchedData = docSnap.data();
           setData(fetchedData);
           setAllDay(fetchedData.allDay);
+          setTags(fetchedData.tags || []); // Initialize tags state with the "tags" field from Firestore
           setUpdatedData((prevData) => ({
             name: prevData.name || fetchedData.name || "",
             description: prevData.description || fetchedData.description || "",
@@ -165,7 +180,7 @@ const ModifyEventPage = () => {
       console.log("start:", updatedData.start);
       console.log("end:", updatedData.end);
       console.log("start formatted:", localStartDate);
-      console.log("end formatteed:", localEndDate);
+      console.log("end formatted:", localEndDate);
       console.log("all day:", allDay);
 
       await updateDoc(docRef, {
@@ -179,6 +194,7 @@ const ModifyEventPage = () => {
           ? Timestamp.fromDate(new Date(localEndDate))
           : Timestamp.fromDate(new Date(updatedData.end)),
         location: updatedData.location,
+        tags,
       });
 
       alert("Event successfully updated.");
@@ -389,6 +405,31 @@ const ModifyEventPage = () => {
                 onChange={handleDataChange}
                 className="mt-1"
               ></Input>
+            </div>
+
+            <div className="mb-4">
+              <Label className="text-sm font-medium">Tags</Label>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full">
+                    ▼ Select Tags ▼
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                  {availableTags.map((tag) => (
+                    <DropdownMenuItem
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                      className={tags.includes(tag) ? "bg-gray-200 dark:bg-gray-700" : ""}
+                    >
+                      {tags.includes(tag) ? `✓ ${tag}` : tag}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <div className="mt-2">
+                Selected Tags: {tags.length > 0 ? tags.join(", ") : "None"}
+              </div>
             </div>
           </form>
 
