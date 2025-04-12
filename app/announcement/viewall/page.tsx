@@ -67,7 +67,7 @@ export default function AnnouncementViewAll() {
 
   return (
     <div className="flex items-center justify-center">
-      <Card className="my-4 w-full max-w-md p-6 shadow-lg bg-white rounded-xl">
+      <Card className="my-4 max-w-xl p-6 shadow-lg bg-white rounded-xl">
         <CardHeader>
           <Button
             className="mb-2 mx-2 w-1/4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition-all"
