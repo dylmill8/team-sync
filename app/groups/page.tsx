@@ -86,6 +86,7 @@ interface AnnouncementData {
   groupRef: DocumentReference;
   title: string;
   imageUrl: string;
+  imageDims: [];
 }
 
 type Message = {
