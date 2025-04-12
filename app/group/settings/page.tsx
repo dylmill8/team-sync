@@ -7,16 +7,18 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { useState, useEffect, Suspense } from "react";
+import { useRef, useState, useEffect, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { getAuth } from "firebase/auth";
-import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { setDoc, DocumentData, doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../../../utils/firebaseConfig";
 import { useRouter, useSearchParams } from "next/navigation";
 import { arrayRemove } from "firebase/firestore";
 import { Label } from "@/components/ui/label";
+import { PutBlobResult } from "@vercel/blob";
+
 
 interface GroupData {
   name: string;
@@ -35,10 +37,28 @@ function GroupSettingsContent() {
   const [loading, setLoading] = useState(true);
   const groupId = useSearchParams()?.get("groupId") || "";
   const router = useRouter();
-  //const [uploading, setUploading] = useState(false);
-  //const [image, setImage] = useState<File | null>(null);
-
+  const groupPicInputRef = useRef(null);
+  const [groupPicture, setGroupPicture] = useState<File | null>(null);
+  const [data, setData] = useState<DocumentData | null>(null);
   const [isPrivate, setIsPrivate] = useState(false); // Track privacy setting
+
+  // Fetch group data
+  useEffect(() => {
+    const fetchGroup = async () => {
+      if (!groupId) {
+        return;
+      }
+      const docRef = doc(db, "Groups", groupId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setData(docSnap.data());
+        setLoading(false);
+      } else {
+        console.log("Group not found.");
+      }
+    };
+    fetchGroup();
+  }, [groupId]);
 
   // Fetch the group data
   useEffect(() => {
@@ -117,6 +137,38 @@ function GroupSettingsContent() {
         isPrivate: isPrivate, // Update privacy setting
         // Add logic to handle the group picture if necessary
       });
+      if (groupPicture) {
+        try {
+          console.log("groupPicture:", groupPicture);
+          console.log("type:", groupPicture.type);
+          console.log("name:", groupPicture.name);
+          console.log("size:", groupPicture.size);
+          fetch("../api/blob/upload", {
+            method: "POST",
+            headers: {
+              "content-type": groupPicture?.type || "application/octet-stream",
+            },
+            body: groupPicture,
+          })
+            .then(async (result) => {
+              // Check if the result is successful
+              if (!result.ok) {
+                throw new Error("Failed to upload the picture");
+              }
+              const { url } = await result.json() as PutBlobResult;
+      
+              // Now update the group document with the picture URL and other data
+              await setDoc(doc(db, "Groups", groupId), {
+                groupPic: url,
+              }, { merge: true });
+            })
+            .catch((error) => {
+              console.error("Upload failed", error);
+            });
+        } catch (error) {
+          console.error("uppload failed", error);
+        }
+      }
       alert("Group settings updated!");
       router.push("/groupslist");
     } catch (error) {
@@ -206,34 +258,20 @@ function GroupSettingsContent() {
             />
           </div>
 
-          {/* <div className="mb-4">
-            <label className="text-sm font-medium">Group Profile Picture</label>
-          </div> */}
-
-          {/* <form onSubmit={handleUpload} style={{ marginBottom: "20px" }}>
-            <input
+          <div className="mb-4 flex flex-col">
+            <Label className="text-sm font-medium">Group Picture</Label>
+            <Input
               type="file"
               accept="image/*"
-              onChange={handleFileChange}
-              required
-              style={{ display: "block", margin: "10px auto" }}
-            />
-            <button
-              type="submit"
-              disabled={uploading}
-              style={{
-                padding: "10px 15px",
-                backgroundColor: uploading ? "#ccc" : "#0070f3",
-                color: "#fff",
-                border: "none",
-                borderRadius: "5px",
-                cursor: uploading ? "not-allowed" : "pointer",
-                width: "100%",
+              className="mt-2"
+              ref={groupPicInputRef} // Attach ref to the file input
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  setGroupPicture(e.target.files[0]); // Save the file in state
+                }
               }}
-            >
-              {uploading ? "Uploading..." : "Upload New Image"}
-            </button>
-          </form> */}
+            />
+          </div>
 
           <div className="mb-4 flex items-center justify-between">
             <Label className="text-sm font-medium">Private Group</Label>
