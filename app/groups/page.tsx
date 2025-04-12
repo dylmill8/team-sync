@@ -85,6 +85,7 @@ interface AnnouncementData {
   createdAt: Timestamp;
   groupRef: DocumentReference;
   title: string;
+  imageUrl: string;
 }
 
 type Message = {
