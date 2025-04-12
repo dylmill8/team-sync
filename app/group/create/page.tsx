@@ -1,22 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react"; //useRef
+import { useRef, useState, useEffect } from "react"; //useRef
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { updateDoc, arrayUnion, doc, getDoc, collection, addDoc } from "firebase/firestore";
+import { setDoc, updateDoc, arrayUnion, doc, getDoc, collection, addDoc } from "firebase/firestore";
 import { db } from "../../../utils/firebaseConfig";
 import { useRouter } from "next/navigation";
 import { getAuth } from "firebase/auth";
 import { firebaseApp } from "@/utils/firebaseConfig";
 import { viewDocument } from "../../../utils/firebaseHelper.js";
 import { onAuthStateChanged } from "firebase/auth";
-
+import { PutBlobResult } from "@vercel/blob";
 
 export default function CreateGroup() {
-  //const groupPicInputRef = useRef(null);
- // const [groupPicture, setGroupPicture] = useState<File | null>(null);
+  const groupPicInputRef = useRef(null);
+  const [groupPicture, setGroupPicture] = useState<File | null>(null);
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
   const [userData, setUserData] = useState({ email: "", username: "" });
@@ -61,15 +61,16 @@ export default function CreateGroup() {
     try {
         const docRef = await addDoc(collection(db, "Groups"), {
           name: groupName,
+          groupPic: "",
           description: groupDescription,
           owner: userId,
-          isPrivate, // Store privacy setting in Firestore
+          isPrivate,
           members: {
             [userId]: [userData.username, "owner"], // Store as an array with name and role
           },
         });
 
-        // Add group to the user's groups array
+        //Add group to the user's groups array
         const userDocRef = doc(db, "Users", userId);
         const userDoc = await getDoc(userDocRef);
         
@@ -80,31 +81,45 @@ export default function CreateGroup() {
           });
         }
 
-        // if (groupPicture) {
-        //     const formData = new FormData();
-        //     formData.append("image", groupPicture);
-        //     try {
-        //     const res = await fetch(`/api/uploadGroup?groupId=${docRef.id}`, {
-        //         method: "POST",
-        //         body: formData,
-        //     });
-    
-        //     if (res.ok) {
-        //         alert("Upload successful!");
-        //     } else {
-        //         const errorData = await res.json();
-        //         alert(`Upload failed! ${errorData.error || "Unknown error"}`);
-        //     }
-        //     } catch (error) {
-        //       if (error) {
-        //         alert("Upload failed! Network error.");
-        //       } 
-        //     }
-        // }
+        if (groupPicture) {
+          try {
+            fetch("../api/blob/upload", {
+              method: "POST",
+              headers: {
+                "content-type": groupPicture?.type || "application/octet-stream",
+              },
+              body: groupPicture,
+            })
+              .then(async (result) => {
+                // Check if the result is successful
+                if (!result.ok) {
+                  throw new Error("Failed to upload the picture");
+                }
+                const { url } = await result.json() as PutBlobResult;
+        
+                // Now update the group document with the picture URL and other data
+                await setDoc(doc(db, "Groups", docRef.id), {
+                  groupPic: url,
+                  name: groupName,
+                  description: groupDescription,
+                  owner: userId,
+                  isPrivate,
+                  members: {
+                    [userId]: [userData.username, "owner"],
+                  },
+                }, { merge: true });
+              })
+              .catch((error) => {
+                console.error("Upload failed", error);
+              });
+          } catch (error) {
+            console.error("uppload failed", error);
+          }
+        }
       
         setGroupName("");
         setGroupDescription("");
-        //setGroupPicture(null);
+        setGroupPicture(null);
         alert("Group Created Successfully");
         router.push(`/group/view?groupId=${docRef.id}`);
         } catch (e) {
@@ -131,7 +146,6 @@ export default function CreateGroup() {
               className="mt-1"
             />
           </div>
-
           <div className="mb-4">
             <Label className="text-sm font-medium">Group Description</Label>
               <textarea
@@ -153,31 +167,26 @@ export default function CreateGroup() {
               className="toggle-checkbox h-5 w-5 cursor-pointer"
             />
           </div>
-
-
-
-          {/* <div className="mb-4 flex flex-col items-center">
+          <div className="mb-4 flex flex-col">
             <Label className="text-sm font-medium">Group Picture</Label>
-            <Input 
+            <Input
               type="file"
               accept="image/*"
-              className="mt-2" 
-              ref={groupPicInputRef}
+              className="mt-2"
+              ref={groupPicInputRef} // Attach ref to the file input
               onChange={(e) => {
                 if (e.target.files && e.target.files[0]) {
-                  setGroupPicture(e.target.files[0]);
+                  setGroupPicture(e.target.files[0]); // Save the file in state
                 }
-              }} 
+              }}
             />
-          </div> */}
-
+          </div>
           <Button 
             onClick={handleCreateGroup} 
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-all"
           >
             Create Group
-          </Button>
-          
+          </Button>    
           <Button 
             onClick={() => router.push("/groupslist")} 
             className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition-all mt-4"
