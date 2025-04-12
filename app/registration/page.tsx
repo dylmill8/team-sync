@@ -13,9 +13,7 @@ import { PutBlobResult } from "@vercel/blob";
 import {
   auth,
   db,
-  requestPermissionAndGetToken,
 } from "../../utils/firebaseConfig";
-import { updateDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -75,14 +73,23 @@ const RegisterPage = () => {
         password
       );
       const user = userCredential.user;
-      const fcmToken = await requestPermissionAndGetToken();
+      //const fcmToken = await requestPermissionAndGetToken();
+
+      /* email, username, password send to database. userID is docRef */
+      await setDoc(doc(db, "Users", user.uid), {
+        email: email,
+        username: username,
+        isLightTheme: true,
+      });
+      /*const fcmToken = await requestPermissionAndGetToken();
       if (fcmToken) {
         const userDocRef = doc(db, "Users", user.uid);
         await updateDoc(userDocRef, {
           fcmToken: fcmToken,
         });
         console.log("FCM token saved to Firestore for user:", user.uid);
-      }
+      }*/ 
+     // removed code causing issues
 
       // Stefan's code relating to account switching; do not comment out
       await setDoc(doc(db, "UserPasswords", user.uid), {
@@ -91,14 +98,10 @@ const RegisterPage = () => {
 
       /* profile picture save with Vercel Storage */
       if (profilePicture) {
-        console.log("groupPicture:", profilePicture);
-            console.log("type:", profilePicture.type);
-            console.log("name:", profilePicture.name);
-            console.log("size:", profilePicture.size);
-        // const formData = new FormData();
-        // formData.append("image", profilePicture);
+        const formData = new FormData();
+        formData.append("image", profilePicture);
         try {
-          fetch("api/blob/upload", {
+          fetch("/api/blob/upload", {
             method: "POST",
             headers: {
               "content-type": profilePicture?.type || "application/octet-stream",

@@ -13,8 +13,6 @@ import { firebaseApp } from "@/utils/firebaseConfig";
 import { viewDocument } from "../../../utils/firebaseHelper.js";
 import { onAuthStateChanged } from "firebase/auth";
 import { PutBlobResult } from "@vercel/blob";
-import { group } from "console";
-
 
 export default function CreateGroup() {
   const groupPicInputRef = useRef(null);
@@ -85,10 +83,6 @@ export default function CreateGroup() {
 
         if (groupPicture) {
           try {
-            console.log("groupPicture:", groupPicture);
-            console.log("type:", groupPicture.type);
-            console.log("name:", groupPicture.name);
-            console.log("size:", groupPicture.size);
             fetch("../api/blob/upload", {
               method: "POST",
               headers: {
@@ -152,7 +146,6 @@ export default function CreateGroup() {
               className="mt-1"
             />
           </div>
-
           <div className="mb-4">
             <Label className="text-sm font-medium">Group Description</Label>
               <textarea
@@ -174,11 +167,8 @@ export default function CreateGroup() {
               className="toggle-checkbox h-5 w-5 cursor-pointer"
             />
           </div>
-
-
-
-          <div className="mb-4 flex flex-col items-center">
-            <Label className="text-sm font-medium">Profile Picture</Label>
+          <div className="mb-4 flex flex-col">
+            <Label className="text-sm font-medium">Group Picture</Label>
             <Input
               type="file"
               accept="image/*"
@@ -191,16 +181,12 @@ export default function CreateGroup() {
               }}
             />
           </div>
-
-          
-
           <Button 
             onClick={handleCreateGroup} 
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-all"
           >
             Create Group
-          </Button>
-          
+          </Button>    
           <Button 
             onClick={() => router.push("/groupslist")} 
             className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition-all mt-4"
