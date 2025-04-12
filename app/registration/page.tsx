@@ -11,9 +11,7 @@ import { FirebaseError } from "firebase/app";
 import {
   auth,
   db,
-  requestPermissionAndGetToken,
 } from "../../utils/firebaseConfig";
-import { updateDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -83,14 +81,15 @@ const RegisterPage = () => {
         username: username,
         isLightTheme: true,
       });
-      const fcmToken = await requestPermissionAndGetToken();
+      /*const fcmToken = await requestPermissionAndGetToken();
       if (fcmToken) {
         const userDocRef = doc(db, "Users", user.uid);
         await updateDoc(userDocRef, {
           fcmToken: fcmToken,
         });
         console.log("FCM token saved to Firestore for user:", user.uid);
-      }
+      }*/ 
+     // removed code causing issues
 
       // Stefan's code relating to account switching; do not comment out
       await setDoc(doc(db, "UserPasswords", user.uid), {
