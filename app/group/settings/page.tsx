@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { getAuth } from "firebase/auth";
-import { setDoc, DocumentData, doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { setDoc, doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../../../utils/firebaseConfig";
 import { useRouter, useSearchParams } from "next/navigation";
 import { arrayRemove } from "firebase/firestore";
@@ -39,26 +39,7 @@ function GroupSettingsContent() {
   const router = useRouter();
   const groupPicInputRef = useRef(null);
   const [groupPicture, setGroupPicture] = useState<File | null>(null);
-  const [data, setData] = useState<DocumentData | null>(null);
   const [isPrivate, setIsPrivate] = useState(false); // Track privacy setting
-
-  // Fetch group data
-  useEffect(() => {
-    const fetchGroup = async () => {
-      if (!groupId) {
-        return;
-      }
-      const docRef = doc(db, "Groups", groupId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setData(docSnap.data());
-        setLoading(false);
-      } else {
-        console.log("Group not found.");
-      }
-    };
-    fetchGroup();
-  }, [groupId]);
 
   // Fetch the group data
   useEffect(() => {
