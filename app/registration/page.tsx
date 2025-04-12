@@ -28,22 +28,16 @@ const RegisterPage = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const searchParams = useSearchParams();
   const router = useRouter(); // Initialize useRouter for navigation
-  //const [file, setFile] = useState<File | null>(null);
-  const [url, setUrl] = useState<string | null>(null);
 
+  // Autofill email
   useEffect(() => {
     const emailParam = searchParams?.get("email") || "";
-    console.log("hi");
     if (emailParam) {
       setEmail(emailParam);
     }
   }, [searchParams]);
 
-  /*
-   * Function that handles register button on click. Checks if email already exists and
-   * creates new user with docID as email. Profile picture is saved with Marco's API calls
-   */
-
+  // Register button on click
   const handleRegister = async () => {
     if (!email.trim()) {
       alert("Email cannot be blank.");
@@ -62,7 +56,8 @@ const RegisterPage = () => {
       return;
     }
     try {
-      /* Check if email already exists in the Firestore database */
+
+      // Check if email already exists in the Firestore database
       const userQuery = query(
         collection(db, "Users"),
         where("email", "==", email)
@@ -107,7 +102,6 @@ const RegisterPage = () => {
             body: profilePicture,
           }).then(async (result) => {
             const { url } = (await result.json()) as PutBlobResult;
-            setUrl(url);
             await setDoc(doc(db, "Users", user.uid), {
               email: email,
               username: username,
@@ -128,7 +122,7 @@ const RegisterPage = () => {
       setProfilePicture(null);
 
       /* redirect to profile page*/
-      router.push("/profile"); // Redirect to profile page
+      router.push("/profile");
     } catch (e) {
       if (e instanceof FirebaseError) {
         if (e.code === 'auth/invalid-email') {
