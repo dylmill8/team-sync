@@ -29,21 +29,19 @@ interface Event {
 export default function GroupSearch() {
   const [searchMode, setSearchMode] = useState<"group" | "event">("group");
   const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false); // Toggle filter menu
+  const router = useRouter();
   
   // GROUPS SEARCH
-  const [minMembers, setMinMembers] = useState(""); // Minimum members filter
-  const [minEvents, setMinEvents] = useState(""); // Minimum events filter
+  const [minMembers, setMinMembers] = useState("");
+  const [minEvents, setMinEvents] = useState("");
   const [allGroups, setAllGroups] = useState<Group[]>([]);
   const [filteredGroups, setFilteredGroups] = useState<Group[]>([]);
-  const [showFilters, setShowFilters] = useState(false); // Toggle filter menu
 
   // EVENTS SEARCH
-  const [allEvents, setAllEvents] = useState<Group[]>([]);
-  const [filteredEvents, setFilteredEvents] = useState<Group[]>([]);
-  
-
-
-  const router = useRouter();
+  const [minRSVP, setMinRSVP] = useState("");
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
+  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
 
   useEffect(() => {
     const fetchGroups = async () => {
@@ -73,6 +71,8 @@ export default function GroupSearch() {
         const data = doc.data();
         const rsvpMap = data.RSVP || {};
         const rsvpYesCount = Object.values(rsvpMap).filter(status => status === "yes").length;
+        console.log("RSVP map:", rsvpMap);
+console.log("Counted yes responses:", rsvpYesCount);
         return {
           id: doc.id,
           name: data.name || "",
@@ -121,10 +121,10 @@ export default function GroupSearch() {
         );
       }
   
-      // if (minRSVPYes) {
-      //   const minYes = parseInt(minRSVPYes, 10);
-      //   filtered = filtered.filter(event => event.rsvpYes >= minYes);
-      // }
+      if (minRSVP) {
+        const minYes = parseInt(minRSVP, 10);
+        filtered = filtered.filter(event => event.rsvpYes >= minYes);
+      }
   
       setFilteredEvents(filtered);
     }
@@ -204,7 +204,20 @@ export default function GroupSearch() {
                 }}
                 className="mb-2"
               />
-              <Button onClick={handleSearch} className="w-full">Apply Filters</Button>
+            </div>
+          )}
+          {showFilters && searchMode === "event" && (
+            <div className="mt-3 p-3 bg-gray-100 rounded-lg shadow-md">
+              <Input
+                type="number"
+                placeholder="Min RSVP"
+                value={minRSVP}
+                onChange={(e) => {
+                  const value = Math.max(0, parseInt(e.target.value, 10) || 0);
+                  setMinRSVP(value.toString());
+                }}
+                className="mb-2"
+              />
             </div>
           )}
         </CardContent>
@@ -235,7 +248,7 @@ export default function GroupSearch() {
               <Card
                 key={event.id}
                 className="cursor-pointer hover:shadow-md transition"
-                onClick={() => router.push(`/event/view?eventId=${event.id}`)}
+                onClick={() => router.push(`/event/view?docId=${event.id}`)}
               >
                 <CardHeader>
                   <CardTitle className="text-lg">{event.name}</CardTitle>
