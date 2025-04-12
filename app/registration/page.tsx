@@ -89,8 +89,12 @@ const RegisterPage = () => {
         password: password,
       });
 
-      /* profile picture save with Marco API */
+      /* profile picture save with Vercel Storage */
       if (profilePicture) {
+        console.log("groupPicture:", profilePicture);
+            console.log("type:", profilePicture.type);
+            console.log("name:", profilePicture.name);
+            console.log("size:", profilePicture.size);
         // const formData = new FormData();
         // formData.append("image", profilePicture);
         try {
@@ -101,6 +105,9 @@ const RegisterPage = () => {
             },
             body: profilePicture,
           }).then(async (result) => {
+            if (!result.ok) {
+              throw new Error("Failed to upload the picture");
+            }
             const { url } = (await result.json()) as PutBlobResult;
             await setDoc(doc(db, "Users", user.uid), {
               email: email,
