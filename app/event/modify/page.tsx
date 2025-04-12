@@ -46,6 +46,7 @@ const ModifyEventPage = () => {
     start: "",
     end: "",
     location: "",
+    privateEvent: false,
   });
   const [loading, setLoading] = useState(true);
   const [deleteEvent, setDeleteEvent] = useState(false);
@@ -89,6 +90,7 @@ const ModifyEventPage = () => {
             start: prevData.start || formatDatetime(fetchedData.start) || "",
             end: prevData.end || formatDatetime(fetchedData.end) || "",
             location: prevData.location || fetchedData.location || "",
+            privateEvent: fetchedData.private || false,
           }));
         } else {
           console.error("Event not found.");
@@ -179,6 +181,7 @@ const ModifyEventPage = () => {
           ? Timestamp.fromDate(new Date(localEndDate))
           : Timestamp.fromDate(new Date(updatedData.end)),
         location: updatedData.location,
+        private: updatedData.privateEvent,
       });
 
       alert("Event successfully updated.");
@@ -390,6 +393,23 @@ const ModifyEventPage = () => {
                 className="mt-1"
               ></Input>
             </div>
+
+
+            <div className="mb-4 flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="privateEvent"
+                checked={updatedData.privateEvent}
+                onChange={(e) =>
+                  setUpdatedData((prevData) => ({
+                    ...prevData,
+                    privateEvent: e.target.checked,
+                  }))
+                }
+              />
+              <Label htmlFor="privateEvent">Private Event</Label>
+            </div>
+
           </form>
 
           <div className="mb-1 pt-2 flex justify-center items-center">

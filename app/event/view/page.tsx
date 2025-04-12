@@ -181,6 +181,13 @@ const ViewEventPage = () => {
           <CardTitle className="text-2xl font-semibold">
             {data?.name || "Error loading event name."}
           </CardTitle>
+
+
+          <p className="text-red-600 font-semibold mb-2">
+            {data?.private ? "Private Event" : "Public Event"}
+          </p>
+
+
           <CardDescription className="text-sm font-medium text-gray-600 mb-4">
             {data?.description || ""}
           </CardDescription>
