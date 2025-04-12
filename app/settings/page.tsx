@@ -290,6 +290,10 @@ export default function Settings() {
       }
       console.log("Theme updated!");
     }
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   };
 
   const handleLogout = async () => {
