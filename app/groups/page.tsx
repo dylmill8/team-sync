@@ -95,6 +95,7 @@ type Message = {
   userId: string;
   username?: string;
   timestamp?: Timestamp;
+  isImage?: boolean;
 };
 
 const GroupsPage = () => {
@@ -414,22 +415,49 @@ const GroupsPage = () => {
     setLoadingMore(false);
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !uid || !chatId) return;
+  const sendMessage = async (content: string = newMessage, isImage = false) => {
+    if (!content.trim() || !uid || !chatId) return;
     const newMsgId = `${Date.now()}_${uid}`;
     const newMsgData = {
-      text: newMessage,
+      text: content,
       userId: uid,
       timestamp: new Date(),
+      isImage,
     };
     try {
       await setDocument(`Chats/${chatId}/messages`, newMsgId, newMsgData);
-      setNewMessage("");
+      if (!isImage) setNewMessage("");
     } catch (error) {
       console.log("Failed to send message:", error);
     }
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const res = await fetch("/api/blob/upload", {
+        method: "POST",
+        headers: {
+          "content-type": file.type,
+        },
+        body: await file.arrayBuffer(),
+      });
+
+      const data = await res.json();
+      const imageUrl = data.url;
+
+      await sendMessage(imageUrl, true);
+    } catch (err) {
+      console.error("Image upload failed:", err);
+    }
+  };
+
+  
+  
   useEffect(() => {
     if (chatRef.current) {
       const chatMessagesEl = chatRef.current.querySelector(".chat-messages");
@@ -576,19 +604,37 @@ const GroupsPage = () => {
                         </button>
                       )}
                     </div>
+                    {msg.isImage ? (
+                    <img
+                      src={msg.text}
+                      alt="Uploaded"
+                      className="max-w-full max-h-64 mt-1 rounded"
+                    />
+                  ) : (
                     <div>{msg.text}</div>
+                  )}
+
                   </div>
                 ))}
               </div>
 
               <div className="flex space-x-2">
+              <input
+                type="file"
+                accept="image/*"
+                hidden
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+              />
+              <Button onClick={() => fileInputRef.current?.click()}>Upload Image</Button>
+
                 <Input
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type a message"
                 />
-                <Button onClick={sendMessage}>Send</Button>
-              </div>
+<Button onClick={() => sendMessage()}>Send</Button>
+</div>
             </div>
           </TabsContent>
           <TabsContent value="calendar" className="tabs-content">
