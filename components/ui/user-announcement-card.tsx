@@ -11,18 +11,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import Image from "next/image";
 
-import {
-  DocumentReference,
-  getDoc,
-  Timestamp,
-} from "firebase/firestore";
+import { DocumentReference, getDoc, Timestamp } from "firebase/firestore";
 
 interface AnnouncementData {
   title: string;
   groupRef: DocumentReference;
   body: string;
   createdAt: Timestamp;
+  imageUrl: string;
+  imageDims: [];
 }
 
 interface UserAnnouncementCardProps {
@@ -30,10 +29,15 @@ interface UserAnnouncementCardProps {
   announcementData?: AnnouncementData & { id: string };
 }
 
-function UserAnnouncementCard({ announcementRef, announcementData }: UserAnnouncementCardProps) {
+function UserAnnouncementCard({
+  announcementRef,
+  announcementData,
+}: UserAnnouncementCardProps) {
   const [title, setTitle] = useState("");
   const [group, setGroup] = useState("");
   const [body, setBody] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [imageDims, setImageDims] = useState([1, 1]);
   const [time, setTime] = useState("");
 
   useEffect(() => {
@@ -42,7 +46,13 @@ function UserAnnouncementCard({ announcementRef, announcementData }: UserAnnounc
         // Use provided announcementData
         setTitle(announcementData.title || "");
         setBody(announcementData.body || "");
-        setTime(announcementData.createdAt ? announcementData.createdAt.toDate().toLocaleString() : "");
+        setImageUrl(announcementData.imageUrl || "");
+        setImageDims(announcementData.imageDims || [1, 1]);
+        setTime(
+          announcementData.createdAt
+            ? announcementData.createdAt.toDate().toLocaleString()
+            : ""
+        );
         if (announcementData.groupRef) {
           const groupDoc = await getDoc(announcementData.groupRef);
           if (groupDoc.exists()) {
@@ -57,6 +67,8 @@ function UserAnnouncementCard({ announcementRef, announcementData }: UserAnnounc
           const data = docSnap.data() as AnnouncementData;
           setTitle(data.title || "");
           setBody(data.body || "");
+          setImageUrl(data.imageUrl || "");
+          setImageDims(data.imageDims || [1, 1]);
           setTime(data.createdAt?.toDate().toLocaleString() || "");
           if (data.groupRef) {
             const groupDoc = await getDoc(data.groupRef);
@@ -71,7 +83,9 @@ function UserAnnouncementCard({ announcementRef, announcementData }: UserAnnounc
       }
     };
 
-    fetchAnnouncementData().catch((error) => console.error("Error fetching announcement data:", error));
+    fetchAnnouncementData().catch((error) =>
+      console.error("Error fetching announcement data:", error)
+    );
   }, [announcementRef, announcementData]);
 
   return (
@@ -84,11 +98,21 @@ function UserAnnouncementCard({ announcementRef, announcementData }: UserAnnounc
           </CardDescription>
         </CardHeader>
 
-        {body && (
-          <CardContent>
-            <Label>{body}</Label>
-          </CardContent>
-        )}
+        <CardContent>
+          {body && <Label>{body}</Label>}
+
+          {imageUrl && (
+            <div className="mt-2 w-1/2">
+              <Image
+              src={imageUrl}
+              alt="announcement image"
+              width={imageDims[0]}
+              height={imageDims[1]}
+            />
+            </div>
+            
+          )}
+        </CardContent>
 
         <CardFooter>
           <Label>Posted at: {time}</Label>

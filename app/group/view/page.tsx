@@ -36,9 +36,7 @@ const ViewGroupPage = () => {
   const [data, setData] = useState<DocumentData | null>(null);
   const groupId = useSearchParams()?.get("groupId") ?? "";
   const [loading, setLoading] = useState(true);
-  //const [preview, setPreview] = useState("/default.png");
   const router = useRouter();
-
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [recipientEmail, setRecipientEmail] = useState<string>(""); // Use state for recipient email
 
@@ -80,21 +78,7 @@ const ViewGroupPage = () => {
         console.log("Group not found.");
       }
     };
-
-    // const fetchProfileImage = async () => {
-    //   try {
-    //     const res = await fetch(`/api/getGroupProfile?groupId=${groupId}`);
-    //     const data = await res.json();
-    //     if (res.ok && data.file) {
-    //       setPreview(`/uploads/groups/${data.file}?timestamp=${Date.now()}`);
-    //     }
-    //   } catch {
-    //     setPreview("/uploads/testuser.png");
-    //   }
-    // };
-
     fetchGroup();
-    //fetchProfileImage();
   }, [groupId]);
 
   // Leave group button
@@ -290,19 +274,15 @@ const ViewGroupPage = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <Card className="w-full max-w-md p-6 shadow-lg bg-white rounded-xl">
-        {/* <img
-          src={preview}
-          alt="Profile"
-          width="150"
-          style={{
-            display: "block",
-            margin: "0 auto",
-            borderRadius: "50%",
-            objectFit: "cover",
-            border: "3px solid #0070f3",
-          }}
-          onError={(e) => (e.currentTarget.src = "/default.png")}
-        /> */}
+
+        {/* group pic */}
+        {data?.groupPic && (
+          <img
+            src={data.groupPic}
+            alt="Group picture"
+            className="items-center w-80 h-40 object-cover mx-auto mb-4"
+          />
+        )}
         <CardHeader>
           <CardTitle className="text-2xl font-semibold">
             {data?.name || "Error loading group name."}
