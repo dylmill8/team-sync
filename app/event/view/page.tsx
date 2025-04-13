@@ -237,6 +237,23 @@ const ViewEventPage = () => {
             </Label>
           </div>
 
+          {/* Display tags */}
+          {data?.tags && data.tags.length > 0 && (
+            <div className="mb-4">
+              <Label className="text-sm font-medium">Tags:</Label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {data.tags.map((tag: string, index: number) => (
+                  <span
+                    key={index}
+                    className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-sm font-medium rounded-md"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="mt-4 mb-2">
             <Label>Your RSVP Status:</Label>
             <RSVPStatus eventId={docId || ""}></RSVPStatus>

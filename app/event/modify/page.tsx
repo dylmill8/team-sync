@@ -482,7 +482,17 @@ const ModifyEventPage = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
               <div className="mt-2">
-                Selected Tags: {tags.length > 0 ? tags.join(", ") : "None"}
+                <div className="text-sm font-medium mb-1"> Selected Tags:</div> {/* Ensure this stays on a separate line */}
+                <div className="flex flex-wrap gap-2">
+                  {tags.map((tag: string, index: number) => (
+                    <span
+                      key={index}
+                      className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-sm font-medium rounded-md"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </form>
