@@ -54,7 +54,7 @@ const ModifyEventPage = () => {
   const [tags, setTags] = useState<string[]>([]); // State for selected tags
   //const availableTags = ["Team", "Club", "Beginner", "Intermediate", "Advanced", "Sports", "Basketball", "American Football", "Soccer", "Volleyball", "Baseball", "Track/Field", "Climbing", "Training", "Fitness", "Gym", "Workouts"]; // Available tags
   // eslint-disable-next-line prefer-const
-  let availableTags = ["Mandatory", "Match", "Tournament", "Exercise", "Workout", "Training", "Practice", "Meetup", "Hangout", "Wellness"];
+  let [availableTags, setAvailableTags] = useState<string[]>(["Mandatory", "Match", "Tournament", "Exercise", "Workout", "Training", "Practice", "Meetup", "Hangout", "Wellness"]);
 
   const toggleTag = (tag: string) => {
     setTags((prevTags) =>
@@ -96,7 +96,16 @@ const ModifyEventPage = () => {
           const fetchedData = docSnap.data();
           setData(fetchedData);
           setAllDay(fetchedData.allDay);
-          setTags(fetchedData.tags || []); // Initialize tags state with the "tags" field from Firestore
+
+          const eventTags = fetchedData.tags || []; // Tags from the event
+          setTags(eventTags); // Initialize selected tags with the event's tags
+
+          // Merge event tags with availableTags, avoiding duplicates and sorting alphabetically
+          setAvailableTags((prevTags) => {
+            const mergedTags = [...new Set([...prevTags, ...eventTags])];
+            return mergedTags.sort((a, b) => a.localeCompare(b)); // Sort alphabetically
+          });
+
           setUpdatedData((prevData) => ({
             name: prevData.name || fetchedData.name || "",
             description: prevData.description || fetchedData.description || "",
@@ -408,23 +417,68 @@ const ModifyEventPage = () => {
             </div>
 
             <div className="mb-4">
-              <Label className="text-sm font-medium">Tags</Label>
+              <Label className="text-sm font-medium">Event Tags</Label>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="w-full">
-                    ▼ Select Tags ▼
+                    Select Tags
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56">
+                  {/* Existing tags */}
                   {availableTags.map((tag) => (
                     <DropdownMenuItem
                       key={tag}
-                      onClick={() => toggleTag(tag)}
+                      onSelect={(e) => {
+                        e.preventDefault(); // Prevent the dropdown from closing
+                        toggleTag(tag); // Toggle the tag selection
+                      }}
                       className={tags.includes(tag) ? "bg-gray-200 dark:bg-gray-700" : ""}
                     >
                       {tags.includes(tag) ? `✓ ${tag}` : tag}
                     </DropdownMenuItem>
                   ))}
+
+                  {/* Add new tag input */}
+                  <div className="mt-2 p-2 border-t border-gray-300">
+                    <div>
+                      <Input
+                        name="newTag"
+                        placeholder="Add new tag"
+                        className="w-full mb-2"
+                        onKeyDown={(e) => {
+                          e.stopPropagation(); // Prevent dropdown from moving away on type
+                          if (e.key === "Enter") {
+                            e.preventDefault(); 
+                            const newTagInput = e.currentTarget as HTMLInputElement;
+                            const newTag = newTagInput.value.trim();
+                            if (newTag && !availableTags.includes(newTag)) {
+                              setAvailableTags((prev) => [...prev, newTag]); // Add new tag to availableTags
+                              toggleTag(newTag); 
+                              newTagInput.value = ""; 
+                            }
+                          }
+                        }}
+                      />
+                      <Button
+                        onClick={(e) => {
+                          e.preventDefault(); // Prevent default button behavior
+                          const newTagInput = document.querySelector(
+                            'input[name="newTag"]'
+                          ) as HTMLInputElement;
+                          const newTag = newTagInput.value.trim();
+                          if (newTag && !availableTags.includes(newTag)) {
+                            setAvailableTags((prev) => [...prev, newTag]); // Add new tag to availableTags
+                            toggleTag(newTag); // Automatically select the new tag
+                            newTagInput.value = ""; // Clear the input field
+                          }
+                        }}
+                        className="w-full"
+                      >
+                        Add Tag
+                      </Button>
+                    </div>
+                  </div>
                 </DropdownMenuContent>
               </DropdownMenu>
               <div className="mt-2">

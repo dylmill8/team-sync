@@ -13,7 +13,7 @@ export const DropdownMenuContent = ({
 }: DropdownMenuPrimitive.MenuContentProps) => (
   <DropdownMenuPrimitive.Content
     className={cn(
-      "bg-white dark:bg-gray-800 shadow-md rounded-md p-2 border border-gray-200 dark:border-gray-700 max-h-48 overflow-y-auto", // Add max height and scrolling
+      "bg-white dark:bg-gray-800 shadow-md rounded-md p-2 border border-gray-200 dark:border-gray-700 max-h-48 overflow-y-auto",
       className
     )}
     {...props}
