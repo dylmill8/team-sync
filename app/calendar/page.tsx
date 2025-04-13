@@ -27,6 +27,7 @@ interface EventData {
   owner: string; // is either the group or user docId - depending on the ownerType
   RSVP: { [key: string]: string };
   workouts: string;
+  tags: string[];
 }
 
 interface CalendarEvent {
@@ -40,6 +41,7 @@ interface CalendarEvent {
   owner: string;
   RSVPStatus: string;
   workout: string;
+  tags: string[];
 }
 
 export default function Calendar() {
@@ -117,6 +119,7 @@ export default function Calendar() {
                   owner: eventData.owner,
                   RSVPStatus: userRSVPStatus,
                   workout: workoutData,
+                  tags: eventData.tags || [], // Ensure tags are included
                 });
               }
               setEventList(newEventList);
@@ -240,12 +243,11 @@ export default function Calendar() {
               const tooltipEl = document.createElement("div");
               tooltipEl.classList.add("my-event-tooltip");
 
-              let desc;
-              if (info.event.extendedProps.description) {
-                desc = info.event.extendedProps.description;
-              } else {
-                desc = "None";
-              }
+              const desc = info.event.extendedProps.description || "None";
+              const tags = info.event.extendedProps.tags || [];
+              const tagsDisplay = (tags.length > 3)
+                ? `${tags.slice(0, 3).join(", ")}, etc.` // Show up to 3 tags and add "etc." if there are more
+                : tags.join(", ") || "None";
 
               tooltipEl.innerHTML = `
                 <strong>Location:</strong> ${
@@ -255,11 +257,9 @@ export default function Calendar() {
                 <strong>RSVP Status:</strong> ${
                   info.event.extendedProps.RSVPStatus
                 }<br/>
-                <strong>Workout:</strong> ${info.event.extendedProps.workout}
-                ... <strong>and more</strong>
-                <br/>
+                <strong>Workout:</strong> ${info.event.extendedProps.workout}<br/>
+                <strong>Tags:</strong> ${tagsDisplay}<br/>
                 <em>Click for more details</em>
-                <br/>
               `;
               tooltipEl.style.position = "fixed";
               tooltipEl.style.color = "black";
