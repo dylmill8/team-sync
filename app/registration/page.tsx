@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDocs, query, where, setDoc, doc } from "firebase/firestore";
 import { collection } from "firebase/firestore";
 import { FirebaseError } from "firebase/app";
+import { PutBlobResult } from "@vercel/blob";
+
 import {
   auth,
   db,
@@ -25,19 +27,15 @@ const RegisterPage = () => {
   const searchParams = useSearchParams();
   const router = useRouter(); // Initialize useRouter for navigation
 
+  // Autofill email
   useEffect(() => {
     const emailParam = searchParams?.get("email") || "";
-    console.log("hi");
     if (emailParam) {
       setEmail(emailParam);
     }
   }, [searchParams]);
 
-  /*
-   * Function that handles register button on click. Checks if email already exists and
-   * creates new user with docID as email. Profile picture is saved with Marco's API calls
-   */
-
+  // Register button on click
   const handleRegister = async () => {
     if (!email.trim()) {
       alert("Email cannot be blank.");
@@ -56,7 +54,8 @@ const RegisterPage = () => {
       return;
     }
     try {
-      /* Check if email already exists in the Firestore database */
+
+      // Check if email already exists in the Firestore database
       const userQuery = query(
         collection(db, "Users"),
         where("email", "==", email)
@@ -74,6 +73,7 @@ const RegisterPage = () => {
         password
       );
       const user = userCredential.user;
+      //const fcmToken = await requestPermissionAndGetToken();
 
       /* email, username, password send to database. userID is docRef */
       await setDoc(doc(db, "Users", user.uid), {
@@ -96,27 +96,34 @@ const RegisterPage = () => {
         password: password,
       });
 
-      /* profile picture save with Marco API */
+      /* profile picture save with Vercel Storage */
       if (profilePicture) {
         const formData = new FormData();
         formData.append("image", profilePicture);
         try {
-          const res = await fetch(`/api/upload?userId=${user.uid}`, {
+          fetch("/api/blob/upload", {
             method: "POST",
-            body: formData,
+            headers: {
+              "content-type": profilePicture?.type || "application/octet-stream",
+            },
+            body: profilePicture,
+          }).then(async (result) => {
+            if (!result.ok) {
+              throw new Error("Failed to upload the picture");
+            }
+            const { url } = (await result.json()) as PutBlobResult;
+            await setDoc(doc(db, "Users", user.uid), {
+              email: email,
+              username: username,
+              isLightTheme: true,
+              profilePic: url,
+            });
           });
-
-          if (res.ok) {
-            alert("Upload successful!");
-          } else {
-            const errorData = await res.json();
-            alert(`Upload failed! ${errorData.error || "Unknown error"}`);
-          }
         } catch (error) {
           console.error("uppload failed", error);
         }
       }
-
+      
       /* reset form fields */
       setEmail("");
       setUsername("");
@@ -125,8 +132,7 @@ const RegisterPage = () => {
       setProfilePicture(null);
 
       /* redirect to profile page*/
-      alert(`Email Registered: ${email}, username: ${username}`);
-      router.push("/profile"); // Redirect to profile page
+      router.push("/profile");
     } catch (e) {
       if (e instanceof FirebaseError) {
         if (e.code === 'auth/invalid-email') {
@@ -138,6 +144,8 @@ const RegisterPage = () => {
         }
       } else {
         // Handle the case where the error isn't a FirebaseError
+        console.log("error fetching workout", e);
+
         alert("An unexpected error occurred.");
       }
     }

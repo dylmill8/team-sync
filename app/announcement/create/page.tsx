@@ -39,6 +39,8 @@ const CreateAnnouncementPage = () => {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [image, setImage] = useState<File | null>(null);
+  const [imageWidth, setImageWidth] = useState(0);
+  const [imageHeight, setImageHeight] = useState(0);
   const imageRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
 
@@ -65,6 +67,13 @@ const CreateAnnouncementPage = () => {
         }
       } else {
         setImage(file);
+
+        const img = new Image();
+        img.onload = () => {
+          setImageWidth(img.width);
+          setImageHeight(img.height);
+        };
+        img.src = URL.createObjectURL(file);
       }
     }
   };
@@ -101,6 +110,7 @@ const CreateAnnouncementPage = () => {
         groupRef,
         createdAt: serverTimestamp(),
         imageUrl,
+        imageDims: [imageWidth, imageHeight],
       });
       setTitle("");
       setBody("");
