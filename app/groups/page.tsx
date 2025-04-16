@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
@@ -255,7 +256,6 @@ const GroupsPage = () => {
 
   useEffect(() => {
     if (!chatId) return;
-
     const messagesRef = collection(db, "Chats", chatId, "messages");
     const unsubscribe = onSnapshot(
       query(messagesRef, orderBy("timestamp", "asc")),
@@ -498,6 +498,7 @@ const GroupsPage = () => {
                   <SheetTitle style={{ fontWeight: "bold" }}>
                     Members
                   </SheetTitle>
+                  <SheetDescription></SheetDescription>
                   <div className="member-list">
                     {Array.isArray(groupMembers) ? (
                       groupMembers.map(
