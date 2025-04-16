@@ -22,9 +22,7 @@ interface EventData {
   description: string;
   location: string;
   docID: string;
-  // add the following:
-  // ownerType: string; // is "user" when owner is user, is "group" when owner is group
-  owner: string; // is either the group or user docId - depending on the ownerType
+  owner: string;
   RSVP: { [key: string]: string };
   workouts: string;
 }
@@ -60,66 +58,60 @@ export default function Calendar() {
           if (userDoc.exists()) {
             const userData = userDoc.data();
             if (Array.isArray(userData.events)) {
-              const newEventList = [];
-
-              // Get the events for the user
-              for (let i = 0; i < userData.events.length; i++) {
-                const event = userData.events[i];
-
-                let eventDoc;
+              // Parallel fetching for events using Promise.all
+              const eventPromises = userData.events.map(async (eventRef) => {
                 try {
-                  eventDoc = await getDoc(event);
+                  const eventDoc = await getDoc(eventRef);
+                  if (!eventDoc.exists()) return null;
+                  const eventData = eventDoc.data() as EventData;
+
+                  // Get user RSVP status
+                  let userRSVPStatus = "None";
+                  for (const key in eventData.RSVP) {
+                    if (key === uid) {
+                      userRSVPStatus = eventData.RSVP[key];
+                      break;
+                    }
+                  }
+
+                  let workoutData = "None";
+                  if (eventData.workouts && eventData.workouts.length > 0) {
+                    const workoutDocRef = doc(
+                      db,
+                      "Workouts",
+                      eventData.workouts[0]
+                    );
+                    const workoutDoc = await getDoc(workoutDocRef);
+                    if (workoutDoc.exists()) {
+                      workoutData = workoutDoc.data().exercises[0];
+                    }
+                  }
+
+                  return {
+                    title: eventData.name,
+                    allDay: eventData.allDay,
+                    start:
+                      eventData.end == undefined
+                        ? undefined
+                        : eventData.start.seconds * 1000,
+                    end:
+                      eventData.end == undefined
+                        ? undefined
+                        : eventData.end.seconds * 1000,
+                    description: eventData.description,
+                    location: eventData.location,
+                    docID: eventDoc.id,
+                    owner: eventData.owner,
+                    RSVPStatus: userRSVPStatus,
+                    workout: workoutData,
+                  };
                 } catch (error) {
-                  console.error("Error getting document:", error);
+                  console.error("Error fetching event:", error);
+                  return null;
                 }
-                if (!eventDoc || !eventDoc.exists()) {
-                  continue;
-                }
-
-                const eventData = eventDoc.data() as EventData;
-
-                // get user RSVP status
-                let userRSVPStatus = "None";
-                for (const key in eventData.RSVP) {
-                  if (key === uid) {
-                    userRSVPStatus = eventData.RSVP[key];
-                    break;
-                  }
-                }
-
-                let workoutData = "None";
-                if (eventData.workouts && eventData.workouts.length > 0) {
-                  const workoutDocRef = doc(
-                    db,
-                    "Workouts",
-                    eventData.workouts[0]
-                  );
-                  const workoutDoc = await getDoc(workoutDocRef);
-                  if (workoutDoc.exists()) {
-                    workoutData = workoutDoc.data().exercises[0];
-                  }
-                }
-
-                newEventList.push({
-                  title: eventData.name,
-                  allDay: eventData.allDay,
-                  start:
-                    eventData.end == undefined
-                      ? undefined
-                      : eventData.start.seconds * 1000,
-                  end:
-                    eventData.end == undefined
-                      ? undefined
-                      : eventData.end.seconds * 1000,
-                  description: eventData.description,
-                  location: eventData.location,
-                  docID: eventDoc.id,
-                  owner: eventData.owner,
-                  RSVPStatus: userRSVPStatus,
-                  workout: workoutData,
-                });
-              }
-              setEventList(newEventList);
+              });
+              const events = await Promise.all(eventPromises);
+              setEventList(events.filter((e) => e !== null) as CalendarEvent[]);
             }
           } else {
             console.log("No such document!");
