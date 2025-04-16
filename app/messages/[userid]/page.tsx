@@ -29,6 +29,7 @@ type Message = {
   userId: string
   username?: string
   timestamp?: Timestamp
+  isImage?: boolean
 }
 
 type Friend = {
@@ -223,21 +224,23 @@ export default function ChatPage() {
     setLoadingMore(false)
   }
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !currentUserId || !chatId) return
+  const sendMessage = async (content: string = newMessage, isImage = false) => {
+    if (!content.trim() || !currentUserId || !chatId) return
     const newMsgId = `${Date.now()}_${userid}`
     const newMsgData = {
-      text: newMessage,
+      text: content,
       userId: currentUserId,
       timestamp: new Date(),
+      isImage,
     }
     try {
       await setDocument(`Chats/${chatId}/messages`, newMsgId, newMsgData)
-      setNewMessage("")
+      if (!isImage) setNewMessage("")
     } catch (error) {
       console.error("Failed to send message:", error)
     }
   }
+  
 
   const populateUsernames = async (msgs: Message[]) => {
     const promises = msgs.map(async (msg: Message) => {
@@ -280,6 +283,31 @@ export default function ChatPage() {
       console.error("Error adding friend:", err)
     }
   }
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      const res = await fetch("/api/blob/upload", {
+        method: "POST",
+        headers: {
+          "content-type": file.type,
+        },
+        body: await file.arrayBuffer(),
+      })
+
+      const data = await res.json()
+      const imageUrl = data.url
+
+      await sendMessage(imageUrl, true)
+    } catch (err) {
+      console.error("Image upload failed:", err)
+    }
+  }
+
 
   return (
     <div className="p-4 max-w-xl mx-auto">
@@ -324,28 +352,51 @@ export default function ChatPage() {
       </Button>
 
       <div className="space-y-2 mb-4 mt-4">
-        {messages.map((msg: Message) => (
-          <div key={msg.id} className="border rounded p-2 shadow-sm bg-white">
-            <div className="text-sm text-gray-500">
-              {msg.username} •{" "}
-              {msg.timestamp?.toDate?.().toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </div>
-            <div>{msg.text}</div>
+      {messages.map((msg: Message) => (
+        <div key={msg.id} className="border rounded p-2 shadow-sm bg-white">
+          <div className="text-sm text-gray-500">
+            {msg.username} •{" "}
+            {msg.timestamp?.toDate?.().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
           </div>
-        ))}
+          <div>
+          {msg.isImage ? (
+            <img
+              src={msg.text}
+              alt="Uploaded"
+              className="max-w-full max-h-64 mt-1 rounded"
+            />
+          ) : (
+            <div>{msg.text}</div>
+          )}
+
+          </div>
+        </div>
+      ))}
+
       </div>
 
+      
+
       <div className="flex space-x-2">
+      <input
+          type="file"
+          accept="image/*"
+          onChange={handleFileUpload}
+          hidden
+          ref={fileInputRef}
+        />
+        <Button onClick={() => fileInputRef.current?.click()}>Upload Image</Button>
+
         <Input
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder="Type a message"
         />
-        <Button onClick={sendMessage}>Send</Button>
-      </div>
+<Button onClick={() => sendMessage()}>Send</Button>
+</div>
     </div>
   )
 }
