@@ -42,6 +42,7 @@ function GroupSettingsContent() {
   const [groupPicture, setGroupPicture] = useState<File | null>(null);
   const [isPrivate, setIsPrivate] = useState(false); // Track privacy setting
   const [tags, setTags] = useState<string[]>([]);
+  // eslint-disable-next-line prefer-const
   let [availableTags, setAvailableTags] = useState<string[]>(["Team", "Club", "Sports", "Beginner", "Intermediate", "Advanced", "Professional", "Climbing", "Basketball", "Baseball", "Soccer", "Volleyball", "Hockey", "American Football", "Track/Field", "Training", "Gym", "Workouts", "Bodybuilding"]);
 
   const toggleTag = (tag: string) => {
