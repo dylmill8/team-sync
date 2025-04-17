@@ -2,10 +2,11 @@
 const withPWA = require('next-pwa')({
     dest: 'public',
     register: true,
-    skipWaiting: true
+    skipWaiting: true,
 });
   
 module.exports = withPWA({
     // next.js config
     reactStrictMode: false,
+    trailingSlash: true,
 });
