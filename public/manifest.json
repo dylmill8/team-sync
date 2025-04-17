@@ -3,13 +3,13 @@
     "short_name": "PWA App",
     "icons": [
       {
-        "src": "public/icon512_maskable.png",
+        "src": "icon512_maskable.png",
         "sizes": "512x512",
         "type": "image/png",
         "purpose": "maskable"
       },
       {
-        "src": "public/icon512_rounded.png",
+        "src": "icon512_rounded.png",
         "sizes": "512x512",
         "type": "image/png",
         "purpose": "any"
