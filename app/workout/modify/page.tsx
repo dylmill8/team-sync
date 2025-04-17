@@ -179,7 +179,7 @@ const ModifyWorkoutPage = () => {
             {/* Display the workout duration */}
             <div className="text-lg mb-4">
               <strong>Workout Duration: </strong>
-              {workout.workoutDuration || "0"} minutes
+              {workout.workoutDuration === "" ? "0" : workout.workoutDuration || "0"} minutes
             </div>
           </>
         ) : (
@@ -191,7 +191,7 @@ const ModifyWorkoutPage = () => {
             <div className="flex items-center gap-2">
               <Input
                 type="text"
-                value={`${exercise.name} (${exercise.duration} mins)`} // Display the name and duration
+                value={`${exercise.name}${exercise.duration ? ` (${exercise.duration} mins)` : ""}`}
                 readOnly
                 className="flex-grow bg-gray-100 p-2 rounded-md"
               />

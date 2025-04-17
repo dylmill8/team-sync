@@ -71,10 +71,7 @@ const WorkoutSettingsPage = () => {
     setExercises([...exercises, { name: "", duration: "" }]);
   };
 
-  const removeExercise = (index: number) => {
-    const updatedExercises = exercises.filter((_, i) => i !== index);
-    setExercises(updatedExercises);
-  };
+
 
   const handleSaveChanges = async () => {
     if (!workoutId) {
@@ -123,6 +120,7 @@ const WorkoutSettingsPage = () => {
             type="number"
             id="workoutDuration"
             value={workoutDuration}
+            min={0}
             onChange={handleWorkoutDurationChange}
             className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
           />
@@ -144,15 +142,11 @@ const WorkoutSettingsPage = () => {
               <Input
                 type="number"
                 placeholder="Duration (minutes)"
+                min={0}
                 value={exercise.duration}
                 onChange={(e) => handleExerciseDurationChange(index, e.target.value)}
                 className="shadow appearance-none border rounded w-1/4 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline mr-2"
               />
-              {exercises.length > 1 && (
-                <Button type="button" onClick={() => removeExercise(index)} className="bg-red-500 text-white py-2 px-3 rounded focus:outline-none focus:shadow-outline">
-                  Remove
-                </Button>
-              )}
             </div>
           ))}
           <Button type="button" onClick={addExercise} className="bg-green-500 text-white py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-2">

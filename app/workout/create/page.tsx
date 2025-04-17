@@ -126,6 +126,7 @@ const WorkoutPage = () => {
                 type="number"
                 placeholder="Minutes"
                 value={exercise.duration}
+                min={0}
                 onChange={(e) =>
                   handleExerciseChange(index, "duration", e.target.value)
                 }
