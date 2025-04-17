@@ -137,7 +137,7 @@ export default function GroupSearch() {
             className="cursor-pointer hover:shadow-md transition"
             onClick={() => router.push(`/group/view?groupId=${group.id}`)}
           >
-            <CardHeader style={{ padding: 16 }}>
+            <CardHeader style={{ padding: 16, paddingBottom: 0 }}>
               <CardTitle className="text-lg">{group.name}</CardTitle>
               <div className="flex flex-wrap">
                 {group.tags.map((tag: string, index: number) => (
