@@ -71,8 +71,6 @@ export default function GroupSearch() {
         const data = doc.data();
         const rsvpMap = data.RSVP || {};
         const rsvpYesCount = Object.values(rsvpMap).filter(status => status === "yes").length;
-        console.log("RSVP map:", rsvpMap);
-console.log("Counted yes responses:", rsvpYesCount);
         return {
           id: doc.id,
           name: data.name || "",
