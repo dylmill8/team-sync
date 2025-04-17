@@ -1,6 +1,6 @@
 {
-    "name": "My awesome PWA app",
-    "short_name": "PWA App",
+    "name": "Team Sync",
+    "short_name": "Team Sync",
     "icons": [
       {
         "src": "icon512_maskable.png",
@@ -12,7 +12,7 @@
         "src": "icon512_rounded.png",
         "sizes": "512x512",
         "type": "image/png",
-        "purpose": "any maskable"
+        "purpose": "any"
       }
     ],
     "theme_color": "#FFFFFF",
