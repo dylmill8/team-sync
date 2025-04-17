@@ -77,7 +77,7 @@ const ModifyWorkoutPage = () => {
         if (eventDocSnap.exists()) {
           setEventOwner(eventDocSnap.data()?.owner);
         } else {
-          console.error("Event not found for eventId:", workout.eventId);
+          console.log("Event not found for eventId:", workout.eventId);
           setEventOwner(null);
         }
       }
@@ -161,8 +161,12 @@ const ModifyWorkoutPage = () => {
       });
       const eventId = workout.eventId;
 
-      // Route to the event view page with the event's docId
-      router.push(`/event/view?docId=${eventId}`);
+      // Route to the event view page with the event's docId or past workouts
+      if (eventOwner) {
+        router.push(`/event/view?docId=${eventId}`);
+      } else {
+        router.push("/profile/pastworkouts");
+      }
     } catch (error) {
       console.error("Error saving logs", error);
     }
