@@ -454,16 +454,12 @@ const GroupsPage = () => {
     } catch (err) {
       console.error("Image upload failed:", err);
     }
-  };
-
-  
+  };  
   
   useEffect(() => {
-    if (chatRef.current) {
-      const chatMessagesEl = chatRef.current.querySelector(".chat-messages");
-      if (chatMessagesEl) {
-        chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
-      }
+    const chatEl = chatRef.current;
+    if (chatEl) {
+      chatEl.scrollTop = chatEl.scrollHeight;
     }
   }, [messages]);
 
@@ -546,7 +542,7 @@ const GroupsPage = () => {
               calendar
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="announcements" className="tabs-content">
+          <TabsContent value="announcements">
             <div
               style={{
                 display: "flex",
@@ -564,7 +560,7 @@ const GroupsPage = () => {
                 </Button>
               )}
             </div>
-            <div className="chat-messages">
+            <div className="announcements">
               {sortedAnnouncements.length > 0 ? (
                 sortedAnnouncements.map((announcement) => (
                   <UserAnnouncementCard
@@ -577,9 +573,9 @@ const GroupsPage = () => {
               )}
             </div>
           </TabsContent>
-          <TabsContent value="chat" className="tabs-content">
-            <div className="chat" ref={chatRef}>
-              <div className="chat-messages space-y-2 mb-4 mt-4">
+          <TabsContent value="chat">
+            <div>
+              <div className="chat space-y-2 mb-4 mt-4" ref={chatRef}>
                 <Button onClick={loadMoreMessages} disabled={loadingMore}>
                   {loadingMore ? "Loading..." : "Load Previous Messages"}
                 </Button>
@@ -618,8 +614,9 @@ const GroupsPage = () => {
                   </div>
                 ))}
               </div>
+            </div>
 
-              <div className="flex space-x-2">
+            <div className="flex space-x-2">
               <input
                 type="file"
                 accept="image/*"
@@ -634,12 +631,10 @@ const GroupsPage = () => {
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type a message"
                 />
-<Button onClick={() => sendMessage()}>Send</Button>
-</div>
+              <Button onClick={() => sendMessage()}>Send</Button>
             </div>
           </TabsContent>
           <TabsContent value="calendar" className="tabs-content">
-            <NavBar />
             <div style={{ height: "calc(78vh)" }}>
               <FullCalendar
                 ref={calendarRef}
