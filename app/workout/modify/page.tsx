@@ -6,23 +6,34 @@ import { Button } from "@/components/ui/button";
 import { db } from "../../../utils/firebaseConfig";
 import { doc, getDoc, updateDoc, collection, addDoc } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
+import { firebaseApp } from "@/utils/firebaseConfig";
+import { getAuth } from "firebase/auth";
 
 interface Workout {
   id: string;
   name: string;
-  exercises: string[];
+  exercises: Exercise[]; 
   Map: { [userId: string]: string };
   eventId: string;
+  workoutDuration: string;
 }
 
+interface Exercise {
+  name: string;
+  duration: string;
+} 
+
 const ModifyWorkoutPage = () => {
-  const [exercises, setExercises] = useState<string[]>([]);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
   const [personalLogs, setPersonalLogs] = useState<string[]>([]);
   const [workout, setWorkout] = useState<Workout | null>(null); // Specify the type for workout
   const router = useRouter();
   const searchParams = useSearchParams();
   const workoutId = searchParams?.get("workoutId") ?? ""; // Get workoutId from query params
-  const userId = searchParams?.get("userId") ?? ""; // Get userId from query params
+  const auth = getAuth(firebaseApp);
+  const userId = auth.currentUser?.uid; // Get userId from query params
+
+  const [eventOwner, setEventOwner] = useState<string | null>(null); // State to store the event owner
 
   // Fetch the workout document
   useEffect(() => {
@@ -32,15 +43,19 @@ const ModifyWorkoutPage = () => {
         const workoutDocSnap = await getDoc(workoutDocRef);
         if (workoutDocSnap.exists()) {
           const workoutData = workoutDocSnap.data();
-          const exerciseList = workoutData.exercises || [];
+          const exerciseList = workoutData.exercises && Array.isArray(workoutData.exercises) ? workoutData.exercises : [];
 
           // Manually set the fields of the workout object
           const workoutObject: Workout = {
             id: workoutDocSnap.id, // Using doc id as the workout ID
             name: workoutData.name || "",
-            exercises: workoutData.exercises || [],
+            exercises: exerciseList.map((exercise) => ({
+              name: exercise.name || "", // Ensure there's always a name, fallback to an empty string
+              duration: exercise.duration || "0" // Ensure there's always a duration, fallback to "0"
+          })),
             Map: workoutData.Map || {},
             eventId: workoutData.eventId || "",
+            workoutDuration: workoutData.workoutDuration
           };
           setWorkout(workoutObject); // Manually set the workout object
 
@@ -52,6 +67,26 @@ const ModifyWorkoutPage = () => {
 
     fetchWorkout();
   }, [workoutId]);
+
+  // Fetch the event owner
+  useEffect(() => {
+    const fetchEventOwner = async () => {
+      if (workout?.eventId) {
+        const eventDocRef = doc(db, "Event", workout.eventId);
+        const eventDocSnap = await getDoc(eventDocRef);
+        if (eventDocSnap.exists()) {
+          setEventOwner(eventDocSnap.data()?.owner);
+        } else {
+          console.log("Event not found for eventId:", workout.eventId);
+          setEventOwner(null);
+        }
+      }
+    };
+
+    if (workout) {
+      fetchEventOwner();
+    }
+  }, [workout?.eventId, workout]);
 
   // Fetch log if user is already mapped
   useEffect(() => {
@@ -126,8 +161,12 @@ const ModifyWorkoutPage = () => {
       });
       const eventId = workout.eventId;
 
-      // Route to the event view page with the event's docId
-      router.push(`/event/view?docId=${eventId}`);
+      // Route to the event view page with the event's docId or past workouts
+      if (eventOwner) {
+        router.push(`/event/view?docId=${eventId}`);
+      } else {
+        router.push("/profile/pastworkouts");
+      }
     } catch (error) {
       console.error("Error saving logs", error);
     }
@@ -136,20 +175,33 @@ const ModifyWorkoutPage = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="w-full max-w-lg p-6 shadow-lg bg-white rounded-xl">
-        <h2 className="text-2xl font-semibold mb-4">Modify Workout</h2>
+        <h2 className="text-2xl font-semibold mb-4">My Workout Log</h2>
+        {workout ? (
+          <>
+            <h2 className="text-2xl font-semibold mb-4">{workout.name || ""}</h2>
+
+            {/* Display the workout duration */}
+            <div className="text-lg mb-4">
+              <strong>Workout Duration: </strong>
+              {workout.workoutDuration === "" ? "0" : workout.workoutDuration || "0"} minutes
+            </div>
+          </>
+        ) : (
+          <div className="text-red-500">Workout data is not available.</div>
+        )}
 
         {exercises.map((exercise, index) => (
           <div key={index} className="mb-4">
             <div className="flex items-center gap-2">
               <Input
                 type="text"
-                value={exercise}
+                value={`${exercise.name}${exercise.duration ? ` (${exercise.duration} mins)` : ""}`}
                 readOnly
                 className="flex-grow bg-gray-100 p-2 rounded-md"
               />
             </div>
             <textarea
-              placeholder={`Describe what you did for ${exercise}`}
+              placeholder={`Describe what you did for "${exercise.name}"`}
               value={personalLogs[index] || ""}
               onChange={(e) =>
                 handlePersonalDescriptionChange(index, e.target.value)
@@ -159,7 +211,29 @@ const ModifyWorkoutPage = () => {
           </div>
         ))}
 
-        <div className="flex justify-end">
+        {/* Conditional button based on event owner */}
+        <div className="flex justify-end mb-4">
+          {eventOwner ? (
+            Array.isArray(eventOwner) ? (
+              eventOwner.includes(userId) ? (
+                <Button
+                  onClick={() => router.push(`/workout/settings?workoutId=${workoutId}`)}
+                  className="bg-green-500 text-white px-4 py-2 rounded mr-2" // Added mr-2 for spacing
+                >
+                  Workout Settings
+                </Button>
+              ) : null
+            ) : (
+              eventOwner === userId ? (
+                <Button
+                  onClick={() => router.push(`/workout/settings?workoutId=${workoutId}`)}
+                  className="bg-green-500 text-white px-4 py-2 rounded mr-2" // Added mr-2 for spacing
+                >
+                  Workout Settings
+                </Button>
+              ) : null
+            )
+          ) : null}
           <Button
             onClick={handleSaveLogs}
             className="bg-blue-600 text-white px-4 py-2 rounded"
