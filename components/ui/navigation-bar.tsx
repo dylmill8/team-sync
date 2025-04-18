@@ -29,7 +29,7 @@ const NavBarItem = ({ href, icon, isLightMode }: { href: string; icon: string; i
     return (
         <Button
             variant="ghost"
-            className="justify-center flex flex-col items-center w-[4vw] h-[4vh] max-w-[400] max-h-[400] relative"
+            className="justify-center flex flex-col items-center w-[4vw] h-[4vh] min-w-[70] min-h-[70] max-w-[400] max-h-[400] relative"
             onClick={() => router.push(href)}
         >
             <Image
