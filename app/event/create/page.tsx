@@ -60,6 +60,8 @@ const CreateEventPage = () => {
 
   const auth = getAuth(firebaseApp);
   const [uid, setUid] = useState<string | null>(null);
+  const [isPrivate, setIsPrivate] = useState(false);
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -137,6 +139,7 @@ const CreateEventPage = () => {
         owner: group == "true" ? groupId : [],
         RSVP: {},
         workouts: [],
+        private: isPrivate, // Add this line to store the private event status
       });
 
       if (group == "false") {
@@ -268,6 +271,16 @@ const CreateEventPage = () => {
                 onChange={(e) => setLocation(e.target.value)}
                 className="mt-1"
               ></Input>
+            </div>
+
+            {/* Privacy */}
+            <div className="mb-4">
+              <Label className="text-sm font-medium">Private Event</Label>
+              <input
+                type="checkbox"
+                onChange={() => setIsPrivate(!isPrivate)}
+                className="ml-3"
+              />
             </div>
           </form>
         </CardContent>
