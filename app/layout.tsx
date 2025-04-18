@@ -35,6 +35,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+      </meta>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased pb-[10vh]`}
       >

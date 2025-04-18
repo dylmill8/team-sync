@@ -7,14 +7,8 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "ns6ela3qh5m1napj.public.blob.vercel-storage.com",
-        pathname: "/**",
-      },
-    ],
+    domains: ["ns6ela3qh5m1napj.public.blob.vercel-storage.com", "placehold.co"],
   },
 };
 
-export default withPWA({nextConfig});
+export default withPWA(nextConfig); // Pass nextConfig directly
