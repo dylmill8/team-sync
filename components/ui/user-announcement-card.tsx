@@ -104,13 +104,12 @@ function UserAnnouncementCard({
           {imageUrl && (
             <div className="mt-2 w-1/2">
               <Image
-              src={imageUrl}
-              alt="announcement image"
-              width={imageDims[0]}
-              height={imageDims[1]}
-            />
+                src={imageUrl}
+                alt="announcement image"
+                width={imageDims[0]}
+                height={imageDims[1]}
+              />
             </div>
-            
           )}
         </CardContent>
 
