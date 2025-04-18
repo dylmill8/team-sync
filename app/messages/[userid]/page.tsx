@@ -30,6 +30,7 @@ type Message = {
   username?: string
   timestamp?: Timestamp
   isImage?: boolean
+  spoiler?: boolean
 }
 
 type Friend = {
@@ -224,22 +225,28 @@ export default function ChatPage() {
     setLoadingMore(false)
   }
 
-  const sendMessage = async (content: string = newMessage, isImage = false) => {
-    if (!content.trim() || !currentUserId || !chatId) return
-    const newMsgId = `${Date.now()}_${userid}`
+  const sendMessage = async (
+    content: string = newMessage,
+    isImage = false,
+    spoiler = false
+  ) => {
+    if (!content.trim() || !currentUserId || !chatId) return;
+    const newMsgId = `${Date.now()}_${currentUserId}`;
     const newMsgData = {
       text: content,
       userId: currentUserId,
       timestamp: new Date(),
       isImage,
-    }
+      spoiler,
+    };
     try {
-      await setDocument(`Chats/${chatId}/messages`, newMsgId, newMsgData)
-      if (!isImage) setNewMessage("")
+      await setDocument(`Chats/${chatId}/messages`, newMsgId, newMsgData);
+      if (!isImage) setNewMessage("");
     } catch (error) {
-      console.error("Failed to send message:", error)
+      console.log("Failed to send message:", error);
     }
-  }
+  };
+  
   
 
   const populateUsernames = async (msgs: Message[]) => {
@@ -302,7 +309,7 @@ export default function ChatPage() {
       const data = await res.json()
       const imageUrl = data.url
 
-      await sendMessage(imageUrl, true)
+      await sendMessage(imageUrl, true, fileInputRef.current?.dataset.spoiler === "true");
     } catch (err) {
       console.error("Image upload failed:", err)
     }
@@ -363,14 +370,40 @@ export default function ChatPage() {
           </div>
           <div>
           {msg.isImage ? (
-            <img
-              src={msg.text}
-              alt="Uploaded"
-              className="max-w-full max-h-64 mt-1 rounded"
-            />
-          ) : (
-            <div>{msg.text}</div>
-          )}
+              msg.spoiler ? (
+                <div
+                  className="relative max-w-full max-h-64 mt-1 rounded cursor-pointer group"
+                  onClick={(e) => {
+                    const img = e.currentTarget.querySelector("img");
+                    if (img) {
+                      img.classList.remove("blur");
+                    }
+                    const overlay = e.currentTarget.querySelector(".spoiler-overlay");
+                    if (overlay) {
+                      overlay.remove();
+                    }
+                  }}
+                >
+                  <img
+                    src={msg.text}
+                    alt="Spoiler Image"
+                    className="blur max-w-full max-h-64 rounded transition duration-300"
+                  />
+                  <div className="spoiler-overlay absolute inset-0 bg-black bg-opacity-70 text-white flex items-center justify-center text-sm font-semibold">
+                    Click to reveal spoiler
+                  </div>
+                </div>
+              ) : (
+                <img
+                  src={msg.text}
+                  alt="Uploaded"
+                  className="max-w-full max-h-64 mt-1 rounded"
+                />
+              )
+            ) : (
+              <div>{msg.text}</div>
+            )}
+
 
           </div>
         </div>
@@ -388,7 +421,18 @@ export default function ChatPage() {
           hidden
           ref={fileInputRef}
         />
-        <Button onClick={() => fileInputRef.current?.click()}>Upload Image</Button>
+<Button
+  onClick={() => {
+    const spoiler = confirm("Mark this image as a spoiler?");
+    if (fileInputRef.current) {
+      fileInputRef.current.dataset.spoiler = spoiler ? "true" : "false";
+      fileInputRef.current.click();
+    }
+    
+  }}
+>
+  Upload Image
+</Button>
 
         <Input
           value={newMessage}
