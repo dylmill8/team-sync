@@ -2,7 +2,8 @@
 import { Suspense, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { CardTitle, Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { db } from "../../../utils/firebaseConfig";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -14,8 +15,11 @@ import {
 } from "firebase/firestore";
 
 const WorkoutPage = () => {
-  const [workoutName, setWorkoutName] = useState("Workout Name");
-  const [exercises, setExercises] = useState<string[]>([]);
+  const [workoutName, setWorkoutName] = useState("");
+  const [workoutDuration, setWorkoutDuration] = useState(0);
+  const [exercises, setExercises] = useState<
+    { name: string; duration: string }[]
+  >([{ name: "", duration: "" }]);
 
   const router = useRouter();
   const docId = useSearchParams()?.get("docId") ?? ""; // Get the event docId from the URL
@@ -29,8 +33,9 @@ const WorkoutPage = () => {
     try {
       const workoutRef = await addDoc(collection(db, "Workouts"), {
         name: workoutName,
-        exercises: exercises.filter((ex) => ex.trim() !== ""), // Remove empty exercises
+        exercises: exercises.filter((ex) => ex.name.trim() !== ""), // changed this btw
         eventId: docId, // Include the event's docId
+        workoutDuration: workoutDuration
       });
 
       alert("Workout saved successfully!");
@@ -48,20 +53,19 @@ const WorkoutPage = () => {
     }
   };
 
-  /* Handling changing fields */
-  const handleWorkoutNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setWorkoutName(e.target.value);
-  };
-
-  const handleExerciseChange = (index: number, value: string) => {
-    const updatedExercises = [...exercises];
-    updatedExercises[index] = value;
-    setExercises(updatedExercises);
+  const handleExerciseChange = (
+    index: number,
+    field: "name" | "duration",
+    value: string
+  ) => {
+    const updated = [...exercises];
+    updated[index][field] = value;
+    setExercises(updated);
   };
 
   const addExercise = () => {
     if (exercises.length < 10) {
-      setExercises([...exercises, ""]);
+      setExercises([...exercises, { name: "", duration: "" }]);
     }
   };
 
@@ -74,32 +78,64 @@ const WorkoutPage = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <Card className="w-full max-w-lg p-6 shadow-lg bg-white rounded-xl">
-        {/* Workout Name */}
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Input
-              type="text"
-              placeholder="Workout Name"
-              onChange={handleWorkoutNameChange}
-              className="flex-grow font-semibold text-lg bg-gray-100 p-2 rounded-md"
-            />
-          </div>
-        </CardHeader>
+          <CardTitle className="text-center text-2xl font-semibold">Create Workout</CardTitle>
+        </CardHeader>      
         <CardContent>
+          <div className="mb-4">
+              <Label className="text-sm font-medium">Workout Name</Label>
+              <Input 
+                type="text" 
+                placeholder="Enter workout name" 
+                value={workoutName} 
+                onChange={(e) => setWorkoutName(e.target.value)}
+                className="mt-1"
+              />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="workoutDuration" className="block text-sm font-medium text-gray-700 mb-1">
+              Workout Duration (minutes)
+            </label>
+            <div className="w-20">
+              <Input
+                id="workoutDuration"
+                type="number"
+                placeholder="Workout duration"
+                min={0}
+                step={30}
+                value={workoutDuration}
+                onChange={(e) => setWorkoutDuration(Number(e.target.value))}
+                className="w-full"
+              />
+            </div>
+          </div>
+
           {/* Exercise Fields */}
           {exercises.map((exercise, index) => (
             <div key={index} className="flex items-center gap-2 mt-2">
               <Input
                 type="text"
                 placeholder={`Exercise ${index + 1}`}
-                value={exercise}
-                onChange={(e) => handleExerciseChange(index, e.target.value)}
+                value={exercise.name}
+                onChange={(e) =>
+                  handleExerciseChange(index, "name", e.target.value)
+                }
                 className="flex-grow bg-gray-100 p-2 rounded-md"
+              />
+              <Input
+                type="number"
+                placeholder="Minutes"
+                value={exercise.duration}
+                min={0}
+                onChange={(e) =>
+                  handleExerciseChange(index, "duration", e.target.value)
+                }
+                className="w-20 bg-gray-100 p-2 rounded-md"
               />
               <Button
                 onClick={() => removeExercise(index)}
                 className="bg-red-500 text-white px-2 py-1 rounded"
-                disabled={exercises.length === 1} // Disable if only one exercise
+                disabled={exercises.length === 1}
               >
                 Remove
               </Button>
