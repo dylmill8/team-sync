@@ -21,6 +21,15 @@ import {
 import { useRouter, useSearchParams } from "next/navigation"; //TJ added
 
 const HomePage = () => {
+  // ensure body background matches page, covering bottom padding area
+  useEffect(() => {
+    const prev = document.body.style.backgroundColor;
+    document.body.style.backgroundColor = "rgb(230, 230, 230)";
+    return () => {
+      document.body.style.backgroundColor = prev;
+    };
+  }, []);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -158,7 +167,9 @@ const HomePage = () => {
   };
 
   return (
-    <div className="bg-[rgb(230,230,230)] grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
+    <div
+      className="bg-[rgb(230,230,230)] grid grid-rows-[20px_1fr_20px] items-center justify-items-center h-[calc(100vh-10vh)] overflow-hidden p-8 sm:p-20 gap-16 font-[family-name:var(--font-geist-sans)]"
+    >
       <main className="flex flex-col gap-8 row-start-2 items-center">
         <h1 className="text-black text-center text-5xl underline text-bold">
           Team Sync
@@ -198,7 +209,7 @@ const HomePage = () => {
 
         <div className="flex gap-4 items-center flex-col sm:flex-row">
           <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-black/[.70] text-black transition-colors flex items-center justify-center hover:bg-[#222222] hover:text-[#ffffff] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-28"
+            className="rounded-full border border-solid border-black/[.08] dark:border-black/[.70] text-black transition-colors flex items-center justify-center hover:bg-[#222222] hover:text-[#ffffff] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-28 cursor-pointer"
             //href="/Calendar"
             //target="_blank"
             rel="noopener noreferrer"
@@ -217,7 +228,7 @@ const HomePage = () => {
             onClick={() =>
               router.push(`/registration?email=${encodeURIComponent(email)}`)
             }
-            className="rounded-full border border-solid border-black/[.08] dark:border-black/[.70] text-black transition-colors flex items-center justify-center hover:bg-[#222222] hover:text-[#ffffff] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
+            className="rounded-full border border-solid border-black/[.08] dark:border-black/[.70] text-black transition-colors flex items-center justify-center hover:bg-[#222222] hover:text-[#ffffff] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44 cursor-pointer"
           >
             Sign up
           </button>

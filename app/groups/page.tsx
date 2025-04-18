@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
@@ -85,6 +86,8 @@ interface AnnouncementData {
   createdAt: Timestamp;
   groupRef: DocumentReference;
   title: string;
+  imageUrl: string;
+  imageDims: [];
 }
 
 type Message = {
@@ -93,6 +96,7 @@ type Message = {
   userId: string;
   username?: string;
   timestamp?: Timestamp;
+  isImage?: boolean;
 };
 
 const GroupsPage = () => {
@@ -252,7 +256,6 @@ const GroupsPage = () => {
 
   useEffect(() => {
     if (!chatId) return;
-
     const messagesRef = collection(db, "Chats", chatId, "messages");
     const unsubscribe = onSnapshot(
       query(messagesRef, orderBy("timestamp", "asc")),
@@ -412,28 +415,51 @@ const GroupsPage = () => {
     setLoadingMore(false);
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !uid || !chatId) return;
+  const sendMessage = async (content: string = newMessage, isImage = false) => {
+    if (!content.trim() || !uid || !chatId) return;
     const newMsgId = `${Date.now()}_${uid}`;
     const newMsgData = {
-      text: newMessage,
+      text: content,
       userId: uid,
       timestamp: new Date(),
+      isImage,
     };
     try {
       await setDocument(`Chats/${chatId}/messages`, newMsgId, newMsgData);
-      setNewMessage("");
+      if (!isImage) setNewMessage("");
     } catch (error) {
       console.log("Failed to send message:", error);
     }
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const res = await fetch("/api/blob/upload", {
+        method: "POST",
+        headers: {
+          "content-type": file.type,
+        },
+        body: await file.arrayBuffer(),
+      });
+
+      const data = await res.json();
+      const imageUrl = data.url;
+
+      await sendMessage(imageUrl, true);
+    } catch (err) {
+      console.error("Image upload failed:", err);
+    }
+  };  
+  
   useEffect(() => {
-    if (chatRef.current) {
-      const chatMessagesEl = chatRef.current.querySelector(".chat-messages");
-      if (chatMessagesEl) {
-        chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
-      }
+    const chatEl = chatRef.current;
+    if (chatEl) {
+      chatEl.scrollTop = chatEl.scrollHeight;
     }
   }, [messages]);
 
@@ -468,6 +494,7 @@ const GroupsPage = () => {
                   <SheetTitle style={{ fontWeight: "bold" }}>
                     Members
                   </SheetTitle>
+                  <SheetDescription></SheetDescription>
                   <div className="member-list">
                     {Array.isArray(groupMembers) ? (
                       groupMembers.map(
@@ -515,7 +542,7 @@ const GroupsPage = () => {
               calendar
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="announcements" className="tabs-content">
+          <TabsContent value="announcements">
             <div
               style={{
                 display: "flex",
@@ -533,7 +560,7 @@ const GroupsPage = () => {
                 </Button>
               )}
             </div>
-            <div className="chat-messages">
+            <div className="announcements">
               {sortedAnnouncements.length > 0 ? (
                 sortedAnnouncements.map((announcement) => (
                   <UserAnnouncementCard
@@ -546,9 +573,9 @@ const GroupsPage = () => {
               )}
             </div>
           </TabsContent>
-          <TabsContent value="chat" className="tabs-content">
-            <div className="chat" ref={chatRef}>
-              <div className="chat-messages space-y-2 mb-4 mt-4">
+          <TabsContent value="chat">
+            <div>
+              <div className="chat space-y-2 mb-4 mt-4" ref={chatRef}>
                 <Button onClick={loadMoreMessages} disabled={loadingMore}>
                   {loadingMore ? "Loading..." : "Load Previous Messages"}
                 </Button>
@@ -574,23 +601,40 @@ const GroupsPage = () => {
                         </button>
                       )}
                     </div>
+                    {msg.isImage ? (
+                    <img
+                      src={msg.text}
+                      alt="Uploaded"
+                      className="max-w-full max-h-64 mt-1 rounded"
+                    />
+                  ) : (
                     <div>{msg.text}</div>
+                  )}
+
                   </div>
                 ))}
               </div>
+            </div>
 
-              <div className="flex space-x-2">
+            <div className="flex space-x-2">
+              <input
+                type="file"
+                accept="image/*"
+                hidden
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+              />
+              <Button onClick={() => fileInputRef.current?.click()}>Upload Image</Button>
+
                 <Input
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type a message"
                 />
-                <Button onClick={sendMessage}>Send</Button>
-              </div>
+              <Button onClick={() => sendMessage()}>Send</Button>
             </div>
           </TabsContent>
           <TabsContent value="calendar" className="tabs-content">
-            <NavBar />
             <div style={{ height: "calc(78vh)" }}>
               <FullCalendar
                 ref={calendarRef}
