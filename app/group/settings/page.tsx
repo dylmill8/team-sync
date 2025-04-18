@@ -18,6 +18,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { arrayRemove } from "firebase/firestore";
 import { Label } from "@/components/ui/label";
 import { PutBlobResult } from "@vercel/blob";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown";
 
 
 interface GroupData {
@@ -40,6 +41,17 @@ function GroupSettingsContent() {
   const groupPicInputRef = useRef(null);
   const [groupPicture, setGroupPicture] = useState<File | null>(null);
   const [isPrivate, setIsPrivate] = useState(false); // Track privacy setting
+  const [tags, setTags] = useState<string[]>([]);
+  // eslint-disable-next-line prefer-const
+  let [availableTags, setAvailableTags] = useState<string[]>(["Team", "Club", "Sports", "Beginner", "Intermediate", "Advanced", "Professional", "Climbing", "Basketball", "Baseball", "Soccer", "Volleyball", "Hockey", "American Football", "Track/Field", "Training", "Gym", "Workouts", "Bodybuilding"]);
+
+  const toggleTag = (tag: string) => {
+    setTags((prevTags) =>
+      prevTags.includes(tag)
+        ? prevTags.filter((t) => t !== tag) // Remove tag if already selected
+        : [...prevTags, tag] // Add tag if not selected
+    );
+  };
 
   // Fetch the group data
   useEffect(() => {
@@ -51,6 +63,15 @@ function GroupSettingsContent() {
 
       if (docSnap.exists()) {
         const group = docSnap.data();
+
+        const groupTags = group.tags || [];
+        setTags(groupTags); 
+
+        setAvailableTags((prevTags) => {
+          const mergedTags = [...new Set([...prevTags, ...groupTags])];
+          return mergedTags.sort((a, b) => a.localeCompare(b));
+        });
+        
         setGroupData({
           name: group.name || "",
           description: group.description || "",
@@ -116,6 +137,7 @@ function GroupSettingsContent() {
         name: groupName,
         description: groupDescription,
         isPrivate: isPrivate, // Update privacy setting
+        tags,
         // Add logic to handle the group picture if necessary
       });
       if (groupPicture) {
@@ -253,6 +275,87 @@ function GroupSettingsContent() {
               }}
             />
           </div>
+
+          <div className="mb-4">
+            <Label className="text-sm font-medium">Event Tags</Label>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full">
+                  Select Tags
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                {/* Existing tags */}
+                {availableTags.map((tag) => (
+                  <DropdownMenuItem
+                    key={tag}
+                    onSelect={(e) => {
+                      e.preventDefault(); // Prevent the dropdown from closing
+                      toggleTag(tag); // Toggle the tag selection
+                    }}
+                    className={tags.includes(tag) ? "bg-gray-200 dark:bg-gray-700" : ""}
+                  >
+                    {tags.includes(tag) ? `✓ ${tag}` : tag}
+                  </DropdownMenuItem>
+                ))}
+
+                {/* Add new tag input */}
+                <div className="mt-2 p-2 border-t border-gray-300">
+                  <div>
+                    <Input
+                      name="newTag"
+                      placeholder="Add new tag"
+                      className="w-full mb-2"
+                      onKeyDown={(e) => {
+                        e.stopPropagation(); // Prevent dropdown from moving away on type
+                        if (e.key === "Enter") {
+                          e.preventDefault(); 
+                          const newTagInput = e.currentTarget as HTMLInputElement;
+                          const newTag = newTagInput.value.trim();
+                          if (newTag && !availableTags.includes(newTag)) {
+                            setAvailableTags((prev) => [...prev, newTag]); // Add new tag to availableTags
+                            toggleTag(newTag); 
+                            newTagInput.value = ""; 
+                          }
+                        }
+                      }}
+                    />
+                    <Button
+                      onClick={(e) => {
+                        e.preventDefault(); // Prevent default button behavior
+                        const newTagInput = document.querySelector(
+                          'input[name="newTag"]'
+                        ) as HTMLInputElement;
+                        const newTag = newTagInput.value.trim();
+                        if (newTag && !availableTags.includes(newTag)) {
+                          setAvailableTags((prev) => [...prev, newTag]); // Add new tag to availableTags
+                          toggleTag(newTag); // Automatically select the new tag
+                          newTagInput.value = ""; // Clear the input field
+                        }
+                      }}
+                      className="w-full"
+                    >
+                      Add Tag
+                    </Button>
+                  </div>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <div className="mt-2">
+              <div className="text-sm font-medium mb-1"> Selected Tags:</div> {/* Ensure this stays on a separate line */}
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag: string, index: number) => (
+                  <span
+                    key={index}
+                    className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-sm font-medium rounded-md"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
 
           <div className="mb-4 flex items-center justify-between">
             <Label className="text-sm font-medium">Private Group</Label>

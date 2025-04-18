@@ -22,11 +22,10 @@ interface EventData {
   description: string;
   location: string;
   docID: string;
-  // add the following:
-  // ownerType: string; // is "user" when owner is user, is "group" when owner is group
-  owner: string; // is either the group or user docId - depending on the ownerType
+  owner: string;
   RSVP: { [key: string]: string };
   workouts: string;
+  tags: string[];
 }
 
 interface CalendarEvent {
@@ -40,6 +39,7 @@ interface CalendarEvent {
   owner: string;
   RSVPStatus: string;
   workout: string;
+  tags: string[];
 }
 
 export default function Calendar() {
@@ -60,66 +60,60 @@ export default function Calendar() {
           if (userDoc.exists()) {
             const userData = userDoc.data();
             if (Array.isArray(userData.events)) {
-              const newEventList = [];
-
-              // Get the events for the user
-              for (let i = 0; i < userData.events.length; i++) {
-                const event = userData.events[i];
-
-                let eventDoc;
+              // Parallel fetching for events using Promise.all
+              const eventPromises = userData.events.map(async (eventRef) => {
                 try {
-                  eventDoc = await getDoc(event);
+                  const eventDoc = await getDoc(eventRef);
+                  if (!eventDoc.exists()) return null;
+                  const eventData = eventDoc.data() as EventData;
+
+                  // Get user RSVP status
+                  let userRSVPStatus = "None";
+                  for (const key in eventData.RSVP) {
+                    if (key === uid) {
+                      userRSVPStatus = eventData.RSVP[key];
+                      break;
+                    }
+                  }
+
+                  let workoutData = "None";
+                  if (eventData.workouts && eventData.workouts.length > 0) {
+                    const workoutDocRef = doc(
+                      db,
+                      "Workouts",
+                      eventData.workouts[0]
+                    );
+                    const workoutDoc = await getDoc(workoutDocRef);
+                    if (workoutDoc.exists()) {
+                      workoutData = workoutDoc.data().exercises[0];
+                    }
+                  }
+                  return {
+                    title: eventData.name,
+                    allDay: eventData.allDay,
+                    start:
+                      eventData.end == undefined
+                        ? undefined
+                        : eventData.start.seconds * 1000,
+                    end:
+                      eventData.end == undefined
+                        ? undefined
+                        : eventData.end.seconds * 1000,
+                    description: eventData.description,
+                    location: eventData.location,
+                    docID: eventDoc.id,
+                    owner: eventData.owner,
+                    RSVPStatus: userRSVPStatus,
+                    workout: workoutData,
+                    tags: eventData.tags || [],
+                  };
                 } catch (error) {
-                  console.error("Error getting document:", error);
+                  console.error("Error fetching event:", error);
+                  return null;
                 }
-                if (!eventDoc || !eventDoc.exists()) {
-                  continue;
-                }
-
-                const eventData = eventDoc.data() as EventData;
-
-                // get user RSVP status
-                let userRSVPStatus = "None";
-                for (const key in eventData.RSVP) {
-                  if (key === uid) {
-                    userRSVPStatus = eventData.RSVP[key];
-                    break;
-                  }
-                }
-
-                let workoutData = "None";
-                if (eventData.workouts && eventData.workouts.length > 0) {
-                  const workoutDocRef = doc(
-                    db,
-                    "Workouts",
-                    eventData.workouts[0]
-                  );
-                  const workoutDoc = await getDoc(workoutDocRef);
-                  if (workoutDoc.exists()) {
-                    workoutData = workoutDoc.data().exercises[0];
-                  }
-                }
-
-                newEventList.push({
-                  title: eventData.name,
-                  allDay: eventData.allDay,
-                  start:
-                    eventData.end == undefined
-                      ? undefined
-                      : eventData.start.seconds * 1000,
-                  end:
-                    eventData.end == undefined
-                      ? undefined
-                      : eventData.end.seconds * 1000,
-                  description: eventData.description,
-                  location: eventData.location,
-                  docID: eventDoc.id,
-                  owner: eventData.owner,
-                  RSVPStatus: userRSVPStatus,
-                  workout: workoutData,
-                });
-              }
-              setEventList(newEventList);
+              });
+              const events = await Promise.all(eventPromises);
+              setEventList(events.filter((e) => e !== null) as CalendarEvent[]);
             }
           } else {
             console.log("No such document!");
@@ -240,12 +234,11 @@ export default function Calendar() {
               const tooltipEl = document.createElement("div");
               tooltipEl.classList.add("my-event-tooltip");
 
-              let desc;
-              if (info.event.extendedProps.description) {
-                desc = info.event.extendedProps.description;
-              } else {
-                desc = "None";
-              }
+              const desc = info.event.extendedProps.description || "None";
+              const tags = info.event.extendedProps.tags || [];
+              const tagsDisplay = (tags.length > 3)
+                ? `${tags.slice(0, 3).join(", ")}, etc.` // Show up to 3 tags and add "etc." if there are more
+                : tags.join(", ") || "None";
 
               tooltipEl.innerHTML = `
                 <strong>Location:</strong> ${
@@ -255,11 +248,9 @@ export default function Calendar() {
                 <strong>RSVP Status:</strong> ${
                   info.event.extendedProps.RSVPStatus
                 }<br/>
-                <strong>Workout:</strong> ${info.event.extendedProps.workout}
-                ... <strong>and more</strong>
-                <br/>
+                <strong>Workout:</strong> ${info.event.extendedProps.workout}<br/>
+                <strong>Tags:</strong> ${tagsDisplay}<br/>
                 <em>Click for more details</em>
-                <br/>
               `;
               tooltipEl.style.position = "fixed";
               tooltipEl.style.color = "black";

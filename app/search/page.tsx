@@ -16,6 +16,7 @@ interface Group {
   isPrivate: boolean;
   members?: Record<string, [string, string]>; // [username, permission]
   events?: string[];
+  tags: string[];
 }
 
 export default function GroupSearch() {
@@ -40,6 +41,7 @@ export default function GroupSearch() {
           isPrivate: data.isPrivate || false,
           members: data.members || {}, // Ensure members is always an object
           events: data.events || [], // Ensure events is always an array
+          tags: data.tags || [], // Ensure tags is always an array
         };
       });
       setAllGroups(groupList);
@@ -135,8 +137,18 @@ export default function GroupSearch() {
             className="cursor-pointer hover:shadow-md transition"
             onClick={() => router.push(`/group/view?groupId=${group.id}`)}
           >
-            <CardHeader>
+            <CardHeader style={{ padding: 16, paddingBottom: 0 }}>
               <CardTitle className="text-lg">{group.name}</CardTitle>
+              <div className="flex flex-wrap">
+                {group.tags.map((tag: string, index: number) => (
+                  <span
+                    key={index}
+                    className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-sm font-medium rounded-md mb-2 mr-2"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600">{group.description}</p>

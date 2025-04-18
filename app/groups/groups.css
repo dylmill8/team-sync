@@ -7,6 +7,10 @@
 .group-header-background {
     background-color: rgb(204, 204, 204);
     height: 5vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
 }
 
 /* GROUP HEADER */
@@ -81,6 +85,13 @@
   flex: auto;
   justify-content: center;
   align-items: center;
+  position: fixed;
+  top: 5vh;         /* matches header height */
+  left: 0;
+  width: 100%;
+  background: white; /* match content bg; adjust if needed */
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 /* TABS LIST */
@@ -114,24 +125,34 @@
 
 /* TABS CONTENT */
 .tabs-content {
+  padding-inline: 4px;
+  left: 50%;
+  bottom: 12%;
   max-width: 1100px;
-  margin: 10px auto;
+  width: 100%;
+  max-height: calc(85vh - 55px);
+  overflow-y: auto;
+  border-radius: 5px;
+}
+
+.announcements {
+  padding-inline: 4px;
+  left: 50%;
+  bottom: 12%;
+  max-width: 1100px;
+  width: 100%;
+  max-height: calc(85vh - 115px);
+  overflow-y: auto;
+  border-radius: 5px;
 }
 
 .chat {
   padding-inline: 4px;
-  position: fixed;
   left: 50%;
-  transform: translateX(-50%);
   bottom: 12%;
   max-width: 1100px;
   width: 100%;
-}
-
-.chat-messages {
-  max-height: 70vh;
+  max-height: calc(85vh - 115px);
   overflow-y: auto;
-  /* background-color: #f9f9f9; */
   border-radius: 5px;
-  /* box-shadow: 0 2px 5px rgba(0,0,0,0.1); */
 }
