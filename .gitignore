@@ -22,6 +22,7 @@
 
 # profiles
 /public/uploads/
+/public/gallery/
 
 # misc
 .DS_Store
