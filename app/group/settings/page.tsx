@@ -20,13 +20,16 @@ import { Label } from "@/components/ui/label";
 import { PutBlobResult } from "@vercel/blob";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown";
 
-
 interface GroupData {
   name: string;
   description: string;
   isPrivate: boolean;
   owner: string;
-  events?: { path: string }[]; // Assuming events contain references as paths
+  events?: { path: string }[];
+  announcements?: { path: string }[];
+  chat?: { path: string };
+  members?: Record<string, [string, 'owner'|'leader'|'member']>;
+  picture?: string;
 }
 
 function GroupSettingsContent() {
@@ -78,10 +81,15 @@ function GroupSettingsContent() {
           isPrivate: group.isPrivate || false,
           owner: group.owner || "",
           events: group.events || [],
+          announcements: group.announcements || [],
+          chat: group.chat ? { path: group.chat.path } : undefined,
+          members: group.members || {},
+          picture: group.picture || "",
         });
         setGroupName(group.name);
         setGroupDescription(group.description);
         setIsPrivate(group.isPrivate || false);
+        console.log("Group data!!!:", group.owner);
       } else {
         console.log("Group not found.");
       }
@@ -90,41 +98,6 @@ function GroupSettingsContent() {
 
     fetchGroupData();
   }, [groupId]);
-
-  // const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-  //   if (event.target.files && event.target.files.length > 0) {
-  //     const file = event.target.files[0];
-  //     setImage(file);
-  //   }
-  // };
-
-  // const handleUpload = async (event: React.FormEvent<HTMLFormElement>) => {
-  //   event.preventDefault();
-  //   if (!image) {
-  //     alert("Please select an image!");
-  //     return;
-  //   }
-
-  //   setUploading(true);
-  //   const formData = new FormData();
-  //   formData.append("image", image);
-
-  //   try {
-  //     const res = await fetch(`/api/uploadGroup?groupId=${groupId}`, {
-  //       method: "POST",
-  //       body: formData,
-  //     });
-  //     const data = await res.json();
-  //     if (!res.ok) {
-  //       throw new Error(data.error || "Upload failed");
-  //     }
-  //     alert("Upload successful!");
-  //   } catch (error) {
-  //     console.error("Error removing member:", error);
-  //   } finally {
-  //     setUploading(false);
-  //   }
-  // };
 
   const handleUpdateGroupSettings = async () => {
     if (!userId || !groupId || !groupData) {
@@ -227,7 +200,7 @@ function GroupSettingsContent() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+    <div className="flex items-center justify-center min-h-screen">
       <Card className="w-full max-w-md p-6 shadow-lg bg-white rounded-xl">
         <CardHeader>
           <CardTitle className="text-center text-2xl font-semibold">
@@ -382,8 +355,7 @@ function GroupSettingsContent() {
             </Button>
           </div>
           <div className="mt-4 text-center">
-            {/* Only show the button if the current user is the leader */}
-            {groupData.owner === userId && (
+            {userId && (groupData.members?.[userId]?.[1] === 'leader' || groupData.members?.[userId]?.[1] === 'owner') && (
               <Button
                 onClick={() =>
                   router.push(`/group/permissions?groupId=${groupId}`)
