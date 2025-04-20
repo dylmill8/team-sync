@@ -332,6 +332,21 @@ export default function Profile() {
           >
             Open Messages
            </button> 
+           <button
+            onClick={() => router.push("/profile/pastworkouts")}
+            style={{
+              marginTop: "20px",
+              padding: "10px 20px",
+              backgroundColor: "#0070f3",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              width: "80%",
+            }}
+          >
+            Past Workouts
+           </button> 
         </>
       )}
 
