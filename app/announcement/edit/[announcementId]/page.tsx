@@ -1,7 +1,8 @@
 "use client";
 
+import React from "react";
 import { useEffect, useState, useRef, ChangeEvent } from "react";
-import Image from "next/image";
+import NextImage from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,15 +20,17 @@ import {
   doc,
   getDoc,
   updateDoc,
-  deleteDoc,
-  arrayRemove,
 } from "firebase/firestore";
 
-export default function EditAnnouncementPage() {
+export default function EditAnnouncementPage({
+  params,
+}: {
+  params: Promise<{ announcementId: string }>;
+}) {
   const router = useRouter();
-  const params = useSearchParams();
-  const announcementId = params.get("announcementId");
-  const groupId = params.get("groupId");
+  const { announcementId } = React.use(params);
+  const searchParams = useSearchParams();
+  const groupId = searchParams?.get("groupId") ?? "";
 
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -64,12 +67,20 @@ export default function EditAnnouncementPage() {
     setImageFile(file);
     const url = URL.createObjectURL(file);
     setPreview(url);
-    const img = new Image();
+    const img = new window.Image();
     img.onload = () => {
       setImgW(img.width);
       setImgH(img.height);
     };
     img.src = url;
+  };
+
+  // add a proper payload type
+  type AnnouncementPayload = {
+    title: string;
+    body: string;
+    imageUrl?: string;
+    imageDims?: [number, number];
   };
 
   const onSave = async () => {
@@ -87,24 +98,17 @@ export default function EditAnnouncementPage() {
         const { url } = (await res.json()) as { url: string };
         imageUrl = url;
       }
-      const payload: any = { title, body };
-      if (imageUrl) payload.imageUrl = imageUrl, payload.imageDims = [imgW, imgH];
+      const payload: AnnouncementPayload = { title, body };
+      if (imageUrl) {
+        payload.imageUrl = imageUrl;
+        payload.imageDims = [imgW, imgH];
+      }
       await updateDoc(annRef, payload);
       alert("Announcement updated");
       router.push(`/groups?docId=${groupId}`);
     } finally {
       setLoading(false);
     }
-  };
-
-  const onDelete = async () => {
-    if (!announcementId || !groupId) return;
-    const annRef = doc(db, "Announcements", announcementId);
-    await deleteDoc(annRef);
-    const grpRef = doc(db, "Groups", groupId);
-    await updateDoc(grpRef, { announcements: arrayRemove(annRef) });
-    alert("Announcement deleted");
-    router.push(`/groups?docId=${groupId}`);
   };
 
   return (
@@ -133,19 +137,20 @@ export default function EditAnnouncementPage() {
           <div className="mb-4">
             <Label className="text-sm font-medium">Upload Image</Label>
             <Input
-              type="file"
-              accept="image/*"
-              onChange={changeImage}
-              ref={imageRef}
-              className="mt-1"
+                type="file"
+                accept="image/*"
+                onChange={changeImage}
+                ref={imageRef}
+                className="mt-1"
             />
             {preview && (
               <div className="mt-4 w-1/2">
-                <Image
-                  src={preview}
-                  alt="preview"
-                  width={imgW}
-                  height={imgH}
+                <NextImage
+                    className="rounded-lg"
+                    src={preview}
+                    alt="preview"
+                    width={imgW}
+                    height={imgH}
                 />
               </div>
             )}
@@ -158,13 +163,6 @@ export default function EditAnnouncementPage() {
             disabled={loading}
           >
             {loading ? "Saving..." : "Save"}
-          </Button>
-          <Button
-            variant="destructive"
-            className="w-1/3 text-white font-bold py-2 px-4 rounded transition-all"
-            onClick={onDelete}
-          >
-            Delete
           </Button>
           <Button
             className="w-1/3 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition-all"
