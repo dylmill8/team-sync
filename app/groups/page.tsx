@@ -54,6 +54,7 @@ interface EventData {
   owner: string;
   RSVP: { [key: string]: string };
   workouts: string;
+  tags: string[];
 }
 
 interface CalendarEvent {
@@ -68,6 +69,7 @@ interface CalendarEvent {
   owner: string;
   RSVPStatus: string;
   workout: string;
+  tags: string[];
 }
 
 interface GroupData {
@@ -339,6 +341,7 @@ const GroupsPage = () => {
             owner: eventData.owner,
             RSVPStatus: userRSVPStatus,
             workout: eventData.workouts,
+            tags: eventData.tags || [],
           };
         })
       );
@@ -710,8 +713,6 @@ const GroupsPage = () => {
                       <strong>Workout:</strong> ${
                         info.event.extendedProps.workout
                       }
-                      ... <strong>and more</strong>
-                      <br/>
                       <em>Click for more details</em>
                       <br/>
                     `;
@@ -741,6 +742,11 @@ const GroupsPage = () => {
                       desc = "None";
                     }
 
+                    const tags = info.event.extendedProps.tags || [];
+                    const tagsDisplay = (tags.length > 3)
+                      ? `${tags.slice(0, 3).join(", ")}, etc.` // Show up to 3 tags and add "etc." if there are more
+                      : tags.join(", ") || "None";
+
                     tooltipEl.innerHTML = `
                       <strong>Location:</strong> ${
                         info.event.extendedProps.location || "N/A"
@@ -753,6 +759,8 @@ const GroupsPage = () => {
                         info.event.extendedProps.workout
                       }
                       ... <strong>and more</strong>
+                      <br/>
+                      <strong>Tags:</strong> ${tagsDisplay}<br/>
                       <br/>
                       <em>Click for more details</em>
                       <br/>
