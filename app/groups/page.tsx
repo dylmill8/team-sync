@@ -38,6 +38,8 @@ import {
   onSnapshot,
   Timestamp,
   deleteDoc,
+  updateDoc,
+  arrayRemove,
 } from "firebase/firestore";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { setDocument, viewDocument } from "../../utils/firebaseHelper.js";
@@ -126,6 +128,18 @@ const GroupsPage = () => {
   >([]);
   const [createAnnouncement, setCreateAnnouncement] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+
+  const handleDeleteAnnouncement = async (announcementId: string) => {
+    if (!docId) return;
+    const annRef = doc(db, "Announcements", announcementId);
+    await deleteDoc(annRef);
+    const grpRef = doc(db, "Groups", docId);
+    await updateDoc(grpRef, { announcements: arrayRemove(annRef) });
+    // remove from UI list
+    setSortedAnnouncements((prev) =>
+      prev.filter((a) => a.id !== announcementId)
+    );
+  };
 
   useEffect(() => {
     const updateChatPosition = () => {
@@ -566,17 +580,29 @@ const GroupsPage = () => {
                   <div key={announcement.id} className="relative">
                     <UserAnnouncementCard announcementData={announcement} />
                     {(userRole === "leader" || userRole === "owner") && (
-                      <Button
-                        size="sm"
-                        className="absolute top-2 right-2"
-                        onClick={() =>
-                          router.push(
-                            `/announcement/edit/${announcement.id}?groupId=${docId}`
-                          )
-                        }
-                      >
-                        Edit
-                      </Button>
+                      <>
+                        <Button
+                          size="sm"
+                          className="absolute top-2 right-2"
+                          onClick={() =>
+                            router.push(
+                              `/announcement/edit/${announcement.id}?groupId=${docId}`
+                            )
+                          }
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="absolute top-12 right-2"
+                          onClick={() =>
+                            handleDeleteAnnouncement(announcement.id)
+                          }
+                        >
+                          Delete
+                        </Button>
+                      </>
                     )}
                   </div>
                 ))
