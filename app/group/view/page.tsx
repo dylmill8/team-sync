@@ -24,6 +24,7 @@ import { db } from "../../../utils/firebaseConfig";
 import { getAuth } from "firebase/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
+import NextImage from "next/image";
 
 interface MemberData {
   name: string;
@@ -39,6 +40,7 @@ const ViewGroupPage = () => {
   const router = useRouter();
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [recipientEmail, setRecipientEmail] = useState<string>(""); // Use state for recipient email
+  const [groupImgDims, setGroupImgDims] = useState({ width: 0, height: 0 });
 
   // Helper function to get number of members
   const getNumberOfMembers = (
@@ -277,10 +279,15 @@ const ViewGroupPage = () => {
 
         {/* group pic */}
         {data?.groupPic && (
-          <img
+          <NextImage
             src={data.groupPic}
             alt="Group picture"
-            className="items-center w-80 h-40 object-cover mx-auto mb-4"
+            width={groupImgDims.width || 320} // Default width
+            height={groupImgDims.height || 160} // Default height
+            onLoadingComplete={({ naturalWidth, naturalHeight }) =>
+              setGroupImgDims({ width: naturalWidth, height: naturalHeight })
+            }
+            className="items-center w-80 h-40 object-cover mx-auto mb-4 rounded-lg"
           />
         )}
         <CardHeader>

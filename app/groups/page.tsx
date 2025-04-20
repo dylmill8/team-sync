@@ -43,6 +43,7 @@ import {
 } from "firebase/firestore";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { setDocument, viewDocument } from "../../utils/firebaseHelper.js";
+import NextImage from "next/image";
 
 interface EventData {
   name: string;
@@ -128,6 +129,7 @@ const GroupsPage = () => {
   >([]);
   const [createAnnouncement, setCreateAnnouncement] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [imageDims, setImageDims] = useState<Record<string, { width: number; height: number }>>({});
 
   const handleDeleteAnnouncement = async (announcementId: string) => {
     if (!docId) return;
@@ -640,10 +642,18 @@ const GroupsPage = () => {
                       )}
                     </div>
                     {msg.isImage ? (
-                    <img
+                    <NextImage
                       src={msg.text}
                       alt="Uploaded"
-                      className="max-w-full max-h-64 mt-1 rounded"
+                      width={imageDims[msg.id]?.width || 400}
+                      height={imageDims[msg.id]?.height || 200}
+                      className="max-w-full max-h-full mt-1 rounded"
+                      onLoadingComplete={({ naturalWidth, naturalHeight }) =>
+                        setImageDims((prev) => ({
+                          ...prev,
+                          [msg.id]: { width: naturalWidth, height: naturalHeight },
+                        }))
+                      }
                     />
                   ) : (
                     <div>{msg.text}</div>
