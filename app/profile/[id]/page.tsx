@@ -236,7 +236,7 @@ export default function Profile() {
       });
 
       setIsFriend(false);
-      console.log("Friend removed:", profileId);
+      //console.log("Friend removed:", profileId);
     } catch (error) {
       console.error("Error removing friend:", error);
     }

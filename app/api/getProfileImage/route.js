@@ -22,7 +22,7 @@ export async function GET(req) {
 
     return NextResponse.json({ file: userFile }, { status: 200 });
   } catch (error) {
-    console.log(error);
+    console.eror(error);
 
     return NextResponse.json(
       { error: "Failed to retrieve profile image" },
