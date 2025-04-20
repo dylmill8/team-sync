@@ -53,7 +53,6 @@ const ModifyEventPage = () => {
   const [deleteEvent, setDeleteEvent] = useState(false);
 
   const [tags, setTags] = useState<string[]>([]); // State for selected tags
-  //const availableTags = ["Team", "Club", "Beginner", "Intermediate", "Advanced", "Sports", "Basketball", "American Football", "Soccer", "Volleyball", "Baseball", "Track/Field", "Climbing", "Training", "Fitness", "Gym", "Workouts"]; // Available tags
   // eslint-disable-next-line prefer-const
   let [availableTags, setAvailableTags] = useState<string[]>(["Mandatory", "Match", "Tournament", "Exercise", "Workout", "Training", "Practice", "Meetup", "Hangout", "Wellness"]);
 
