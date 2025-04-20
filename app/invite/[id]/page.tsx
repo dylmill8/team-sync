@@ -27,7 +27,7 @@ export default function InviteRedirect() {
         return;
       }
 
-      console.log("Invite ID:", id);
+      //console.log("Invite ID:", id);
       //console.log("1");
 
       let event = null;
@@ -80,7 +80,7 @@ export default function InviteRedirect() {
           return;
         }
 
-        console.log("Invite document data:", inviteSnap.data());
+        //console.log("Invite document data:", inviteSnap.data());
         //console.log("3");
 
         const currentUser = auth.currentUser;
@@ -99,7 +99,7 @@ export default function InviteRedirect() {
             await updateDoc(userDocRef, {
               events: arrayUnion(eventRef) // Add the DocumentReference to the events array
             });
-            console.log("5");
+            //console.log("5");
           } else {
             setError("User not found.");
             setTimeout(() => router.push("/calendar"), 5000); // Redirect after 5 seconds

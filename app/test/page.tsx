@@ -2,6 +2,7 @@
 
 import { PutBlobResult } from "@vercel/blob";
 import { ChangeEvent, useState } from "react";
+import Image from "next/image";
 
 export default function Page() {
   const [file, setFile] = useState<File | null>(null);
@@ -44,7 +45,14 @@ export default function Page() {
         <button type="submit">Submit</button>
       </form>
 
-      {url && <img src={url}></img>}
+      {url && (
+        <Image
+          src={url}
+          alt="Uploaded preview"
+          width={200}
+          height={200}
+        />
+      )}
     </div>
   );
 }

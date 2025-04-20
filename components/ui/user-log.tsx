@@ -31,7 +31,7 @@ function UserLog({ userId, logId, exerciseList }: UserLogProps) {
           setUserData(userDoc.data());
         }
       } catch (e) {
-        console.log("error fetching user data", e);
+        console.error("error fetching user data", e);
       }
     };
     const fetchLogData = async () => {
@@ -42,7 +42,7 @@ function UserLog({ userId, logId, exerciseList }: UserLogProps) {
           setLogData(logDoc.data());
         }
       } catch (e) {
-        console.log("error fetching log data", e);
+        console.error("error fetching log data", e);
       }
     };
 

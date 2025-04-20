@@ -77,7 +77,7 @@ const ModifyWorkoutPage = () => {
         if (eventDocSnap.exists()) {
           setEventOwner(eventDocSnap.data()?.owner);
         } else {
-          console.log("Event not found for eventId:", workout.eventId);
+          console.error("Event not found for eventId:", workout.eventId);
           setEventOwner(null);
         }
       }

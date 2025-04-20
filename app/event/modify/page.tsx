@@ -142,7 +142,7 @@ const ModifyEventPage = () => {
   ) => {
     const { name, value } = e.target;
 
-    console.log("name:", name);
+    //console.log("name:", name);
     if (allDay && name == "start") {
       setUpdatedData((prevData) => ({
         ...prevData,
@@ -188,11 +188,11 @@ const ModifyEventPage = () => {
       const localStartDate = updatedData.start.split("T")[0] + "T00:00";
       const localEndDate = updatedData.end.split("T")[0] + "T23:59";
 
-      console.log("start:", updatedData.start);
+      /* console.log("start:", updatedData.start);
       console.log("end:", updatedData.end);
       console.log("start formatted:", localStartDate);
       console.log("end formatted:", localEndDate);
-      console.log("all day:", allDay);
+      console.log("all day:", allDay); */
 
       await updateDoc(docRef, {
         name: updatedData.name,
