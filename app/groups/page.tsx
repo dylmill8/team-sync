@@ -560,13 +560,25 @@ const GroupsPage = () => {
                 </Button>
               )}
             </div>
-            <div className="announcements">
+            <div className="announcements space-y-4">
               {sortedAnnouncements.length > 0 ? (
                 sortedAnnouncements.map((announcement) => (
-                  <UserAnnouncementCard
-                    announcementData={announcement}
-                    key={announcement.id}
-                  />
+                  <div key={announcement.id} className="relative">
+                    <UserAnnouncementCard announcementData={announcement} />
+                    {(userRole === "leader" || userRole === "owner") && (
+                      <Button
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={() =>
+                          router.push(
+                            `/announcement/edit/${announcement.id}?groupId=${docId}`
+                          )
+                        }
+                      >
+                        Edit
+                      </Button>
+                    )}
+                  </div>
                 ))
               ) : (
                 <p>No announcements found</p>
