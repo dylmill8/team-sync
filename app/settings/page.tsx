@@ -163,8 +163,8 @@ export default function Settings() {
       await signOut(auth);
 
       // Sign in as new user
-      const newUserCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log("Switched to user:", newUserCredential.user.uid);
+      await signInWithEmailAndPassword(auth, email, password);
+      //console.log("Switched to user:", newUserCredential.user.uid);
       
       router.push(`/settings/`);
 
@@ -288,7 +288,7 @@ export default function Settings() {
         document.body.classList.remove("light-mode");
         document.body.classList.add("dark-mode");
       }
-      console.log("Theme updated!");
+      //console.log("Theme updated!");
     }
 
     setTimeout(() => {

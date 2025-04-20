@@ -116,7 +116,7 @@ export default function Calendar() {
               setEventList(events.filter((e) => e !== null) as CalendarEvent[]);
             }
           } else {
-            console.log("No such document!");
+            console.error("No such document!");
           }
         } else {
           console.error("Invalid UID.");

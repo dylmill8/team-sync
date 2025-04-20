@@ -89,9 +89,8 @@ function GroupSettingsContent() {
         setGroupName(group.name);
         setGroupDescription(group.description);
         setIsPrivate(group.isPrivate || false);
-        console.log("Group data!!!:", group.owner);
       } else {
-        console.log("Group not found.");
+        console.error("Group not found.");
       }
       setLoading(false);
     };
@@ -115,10 +114,10 @@ function GroupSettingsContent() {
       });
       if (groupPicture) {
         try {
-          console.log("groupPicture:", groupPicture);
+          /* console.log("groupPicture:", groupPicture);
           console.log("type:", groupPicture.type);
           console.log("name:", groupPicture.name);
-          console.log("size:", groupPicture.size);
+          console.log("size:", groupPicture.size); */
           fetch("../api/blob/upload", {
             method: "POST",
             headers: {

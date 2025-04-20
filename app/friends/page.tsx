@@ -61,10 +61,10 @@ export default function Friends() {
         setFriendRefs((prev) => [...prev, friendRef]);
       }
 
-      console.log(
+      /* console.log(
         `Friend request ${isAccepted ? "accepted" : "denied"} for`,
         friendRef.id
-      );
+      ); */
     } catch (error) {
       console.error("Error updating friend request:", error);
     }
@@ -125,13 +125,13 @@ export default function Friends() {
 
   useEffect(() => {
     if (friendRefs.length === 0) {
-      console.log("No friend references to fetch.");
+      //console.log("No friend references to fetch.");
       return;
     }
 
     const fetchFriends = async () => {
       try {
-        console.log("Fetching friend details for:", friendRefs);
+        //console.log("Fetching friend details for:", friendRefs);
 
         const friendDetails = await Promise.all(
           friendRefs.map(async (friendRef) => {
@@ -168,16 +168,16 @@ export default function Friends() {
 
   useEffect(() => {
     if (incomingFriendRequests.length === 0) {
-      console.log("No incoming friend requests.");
+      //console.log("No incoming friend requests.");
       return;
     }
 
     const fetchIncomingRequests = async () => {
       try {
-        console.log(
+        /* console.log(
           "Fetching incoming friend request details for:",
           incomingFriendRequests
-        );
+        ); */
 
         const requestDetails = await Promise.all(
           incomingFriendRequests.map(async (requestRef) => {

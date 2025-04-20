@@ -52,7 +52,7 @@ function RSVPStatus({ eventId }: RSVPStatusProps) {
           }
         }
       } catch (e) {
-        console.log("error retrieving user's inital RSVP status", e);
+        console.error("error retrieving user's inital RSVP status", e);
       }
     };
     fetchInitialStatus();
@@ -76,7 +76,7 @@ function RSVPStatus({ eventId }: RSVPStatusProps) {
           }
         }
       } catch (e) {
-        console.log(
+        console.error(
           "error: there was an error while fetching data rsvp data for the user",
           e
         );

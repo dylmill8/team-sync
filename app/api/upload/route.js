@@ -10,7 +10,7 @@ async function EnsureUploadDir() {
   try {
     await fs.access(uploadDir);
   } catch (error) {
-    console.log(error);
+    console.error(error);
 
     await fs.mkdir(uploadDir, { recursive: true });
   }
@@ -24,7 +24,7 @@ async function DeleteExistingFile(userId, newExt) {
     await fs.access(otherFilePath);
     await fs.unlink(otherFilePath); // Delete the old file if it exists
   } catch (error) {
-    console.log(error);
+    console.error(error);
 
     // Ignore errors (file might not exist)
   }

@@ -78,7 +78,7 @@ function UserAnnouncementCard({
             }
           }
         } else {
-          console.log("No such document!");
+          console.error("No such document!");
         }
       }
     };

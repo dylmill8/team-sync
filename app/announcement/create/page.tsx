@@ -102,7 +102,7 @@ const CreateAnnouncementPage = () => {
           body: image,
         }).then(async (result) => {
           const { url } = (await result.json()) as PutBlobResult;
-          console.log("url:", url);
+          //console.log("url:", url);
           imageUrl = url;
         });
       }

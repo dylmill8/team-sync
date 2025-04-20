@@ -86,7 +86,7 @@ export default function ChatPage() {
             const friendName = friendData?.username || friendId
             setChatTitle(friendName)
           } catch (e) {
-            console.log(e)
+            console.error(e)
             setChatTitle("Private Chat")
           }
         } else {
@@ -254,7 +254,7 @@ export default function ChatPage() {
           userCache.current[uid] = username
           msg.username = username
         } catch (e) {
-          console.log(e)
+          console.error(e)
           msg.username = uid
         }
       }

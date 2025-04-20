@@ -144,7 +144,7 @@ const RegisterPage = () => {
         }
       } else {
         // Handle the case where the error isn't a FirebaseError
-        console.log("error fetching workout", e);
+        console.error("error fetching workout", e);
 
         alert("An unexpected error occurred.");
       }

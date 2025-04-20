@@ -61,7 +61,7 @@ const PermissionsPage = () => {
         setMembers(membersArray);
         setLoading(false);
       } else {
-        console.log("Group not found.");
+        console.error("Group not found.");
       }
     };
 

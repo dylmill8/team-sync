@@ -75,7 +75,7 @@ const ViewGroupPage = () => {
         setData(docSnap.data());
         setLoading(false);
       } else {
-        console.log("Group not found.");
+        console.error("Group not found.");
       }
     };
     fetchGroup();
