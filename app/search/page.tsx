@@ -25,6 +25,7 @@ interface Event {
   description: string;
   isPrivate: boolean;
   rsvpYes: number;
+  tags: string[];
 }
 
 export default function GroupSearch() {
@@ -78,7 +79,8 @@ export default function GroupSearch() {
           name: data.name || "",
           description: data.description || "",
           isPrivate: data.private || false,
-          rsvpYes: rsvpYesCount
+          rsvpYes: rsvpYesCount,
+          tags: data.tags || [],
         };
       });
       setAllEvents(eventList);
@@ -260,8 +262,18 @@ export default function GroupSearch() {
                 className="cursor-pointer hover:shadow-md transition"
                 onClick={() => router.push(`/event/view?docId=${event.id}`)}
               >
-                <CardHeader>
+                <CardHeader style={{ padding: 16, paddingBottom: 0 }}>
                   <CardTitle className="text-lg">{event.name}</CardTitle>
+                  <div className="flex flex-wrap">
+                    {event.tags.map((tag: string, index: number) => (
+                      <span
+                        key={index}
+                        className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-sm font-medium rounded-md mb-2 mr-2"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-600">{event.description}</p>
