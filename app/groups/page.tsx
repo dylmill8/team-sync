@@ -85,12 +85,13 @@ interface GroupData {
 }
 
 interface AnnouncementData {
+  title: string;
+  groupRef: DocumentReference;
   body: string;
   createdAt: Timestamp;
-  groupRef: DocumentReference;
-  title: string;
   imageUrl: string;
   imageDims: [];
+  fileUrls: string[];
 }
 
 type Message = {
