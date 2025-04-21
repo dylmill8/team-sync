@@ -114,6 +114,7 @@ const GroupsPage = () => {
 
   const chatRef = useRef<HTMLDivElement>(null);
   const tabsListRef = useRef<HTMLDivElement>(null);
+  const skipScrollRef = useRef<boolean>(false);
 
   const [eventList, setEventList] = useState<CalendarEvent[]>([]);
   const [groupData, setGroupData] = useState<GroupData | null>(null);
@@ -130,6 +131,10 @@ const GroupsPage = () => {
   const [createAnnouncement, setCreateAnnouncement] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [imageDims, setImageDims] = useState<Record<string, { width: number; height: number }>>({});
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingMessageText, setEditingMessageText] = useState<string>("");
+  const [suppressEditAfterDelete, setSuppressEditAfterDelete] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<"announcements"|"chat"|"calendar">("chat");
 
   const handleDeleteAnnouncement = async (announcementId: string) => {
     if (!docId) return;
@@ -141,6 +146,28 @@ const GroupsPage = () => {
     setSortedAnnouncements((prev) =>
       prev.filter((a) => a.id !== announcementId)
     );
+  };
+
+  const startEditingMessage = (msg: Message) => {
+    setEditingMessageId(msg.id);
+    setEditingMessageText(msg.text);
+  };
+
+  const cancelEditing = () => {
+    setEditingMessageId(null);
+    setEditingMessageText("");
+  };
+
+  const saveEditedMessage = async () => {
+    if (!chatId || !editingMessageId) return;
+    const msgRef = doc(db, "Chats", chatId, "messages", editingMessageId);
+    await updateDoc(msgRef, { text: editingMessageText });
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === editingMessageId ? { ...m, text: editingMessageText } : m
+      )
+    );
+    cancelEditing();
   };
 
   useEffect(() => {
@@ -364,6 +391,11 @@ const GroupsPage = () => {
 
   const handleDeleteMessage = async (messageId: string) => {
     if (!chatId || !messageId) return;
+    // if deleting user's last message, suppress edit on the new last one
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.id === messageId && lastMsg.userId === uid) {
+      setSuppressEditAfterDelete(true);
+    }
     try {
       await deleteDoc(doc(db, "Chats", chatId, "messages", messageId));
     } catch (error) {
@@ -410,6 +442,7 @@ const GroupsPage = () => {
         }))
         .reverse();
       await populateUsernames(olderMsgs);
+      skipScrollRef.current = true;
       setMessages((prev) => {
         // Combine old + new
         const combined = [...olderMsgs, ...prev];
@@ -429,6 +462,10 @@ const GroupsPage = () => {
       console.error("Error loading older messages:", error);
     }
     setLoadingMore(false);
+    // scroll chat window to the top after loading previous messages
+    if (chatRef.current) {
+      chatRef.current.scrollTop = 0;
+    }
   };
 
   const sendMessage = async (content: string = newMessage, isImage = false) => {
@@ -443,6 +480,7 @@ const GroupsPage = () => {
     try {
       await setDocument(`Chats/${chatId}/messages`, newMsgId, newMsgData);
       if (!isImage) setNewMessage("");
+      setSuppressEditAfterDelete(false);
     } catch (error) {
       console.error("Failed to send message:", error);
     }
@@ -474,9 +512,12 @@ const GroupsPage = () => {
   
   useEffect(() => {
     const chatEl = chatRef.current;
-    if (chatEl) {
-      chatEl.scrollTop = chatEl.scrollHeight;
+    if (!chatEl) return;
+    if (skipScrollRef.current) {
+      skipScrollRef.current = false;
+      return;
     }
+    chatEl.scrollTop = chatEl.scrollHeight;
   }, [messages]);
 
   // use effect for announcement permissions
@@ -491,6 +532,16 @@ const GroupsPage = () => {
       }
     }
   }, [uid, groupData]);
+
+  // scroll-to-bottom when returning to chat tab
+  useEffect(() => {
+    if (activeTab === "chat" && chatRef.current) {
+      // defer to next tick so content is mounted
+      setTimeout(() => {
+        chatRef.current!.scrollTop = chatRef.current!.scrollHeight;
+      }, 0);
+    }
+  }, [activeTab]);
 
   return (
     <>
@@ -542,6 +593,7 @@ const GroupsPage = () => {
         <Tabs
           defaultValue="chat"
           onValueChange={(value) => {
+            setActiveTab(value as "announcements" | "chat" | "calendar");
             if (value === "calendar") {
               handleCalendarTabClick();
             }
@@ -619,48 +671,68 @@ const GroupsPage = () => {
                 <Button onClick={loadMoreMessages} disabled={loadingMore}>
                   {loadingMore ? "Loading..." : "Load Previous Messages"}
                 </Button>
-                {messages.map((msg: Message) => (
-                  <div
-                    key={msg.id}
-                    className="border rounded p-2 shadow-sm bg-white"
-                  >
-                    <div className="text-sm text-gray-500 flex justify-between">
-                      <div>
-                        {msg.username} •{" "}
-                        {msg.timestamp?.toDate?.().toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                {messages.map((msg: Message, idx: number) => {
+                  const isLastOwn = msg.userId === uid && idx === messages.length - 1;
+                  return (
+                    <div key={msg.id} className="border rounded p-2 shadow-sm bg-white">
+                      <div className="text-sm text-gray-500 flex justify-between">
+                        <div>
+                          {msg.username} •{" "}
+                          {msg.timestamp?.toDate?.().toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                        <div className="flex space-x-2">
+                          {(userRole === "leader" || userRole === "owner" || isLastOwn) && (
+                            <button
+                              onClick={() => handleDeleteMessage(msg.id)}
+                              className="text-red-500 hover:underline text-xs"
+                            >
+                              Delete
+                            </button>
+                          )}
+                          {isLastOwn && !editingMessageId && !msg.isImage && !suppressEditAfterDelete && (
+                            <button
+                              onClick={() => startEditingMessage(msg)}
+                              className="text-blue-500 hover:underline text-xs"
+                            >
+                              Edit
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      {(userRole === "leader" || userRole === "owner") && (
-                        <button
-                          onClick={() => handleDeleteMessage(msg.id)}
-                          className="text-red-500 hover:underline text-xs ml-2"
-                        >
-                          Delete
-                        </button>
+                      {editingMessageId === msg.id ? (
+                        <div className="flex space-x-2 mt-2">
+                          <Input
+                            value={editingMessageText}
+                            onChange={(e) => setEditingMessageText(e.target.value)}
+                          />
+                          <Button onClick={saveEditedMessage}>Save</Button>
+                          <Button variant="secondary" onClick={cancelEditing}>
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : msg.isImage ? (
+                        <NextImage
+                          src={msg.text}
+                          alt="Uploaded"
+                          width={imageDims[msg.id]?.width || 400}
+                          height={imageDims[msg.id]?.height || 200}
+                          className="max-w-full max-h-full mt-1 rounded"
+                          onLoadingComplete={({ naturalWidth, naturalHeight }) =>
+                            setImageDims((prev) => ({
+                              ...prev,
+                              [msg.id]: { width: naturalWidth, height: naturalHeight },
+                            }))
+                          }
+                        />
+                      ) : (
+                        <div className="mt-1">{msg.text}</div>
                       )}
                     </div>
-                    {msg.isImage ? (
-                    <NextImage
-                      src={msg.text}
-                      alt="Uploaded"
-                      width={imageDims[msg.id]?.width || 400}
-                      height={imageDims[msg.id]?.height || 200}
-                      className="max-w-full max-h-full mt-1 rounded"
-                      onLoadingComplete={({ naturalWidth, naturalHeight }) =>
-                        setImageDims((prev) => ({
-                          ...prev,
-                          [msg.id]: { width: naturalWidth, height: naturalHeight },
-                        }))
-                      }
-                    />
-                  ) : (
-                    <div>{msg.text}</div>
-                  )}
-
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
