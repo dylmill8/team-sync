@@ -45,6 +45,8 @@ const CreateAnnouncementPage = () => {
   const [preview, setPreview] = useState<string | null>(null);
   const imageRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+  const filesRef = useRef<HTMLInputElement>(null);
 
   // get group reference
   useEffect(() => {
@@ -82,6 +84,28 @@ const CreateAnnouncementPage = () => {
     }
   };
 
+  const changeFiles = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = event.currentTarget.files;
+    if (!files) {
+      setFiles([]);
+    } else {
+      const selectedFiles = Array.from(files);
+      const maxBytes = 1024 * 1024 * 10; // 10MB
+      const totalSize = selectedFiles.reduce((acc, file) => acc + file.size, 0);
+
+      if (totalSize > maxBytes) {
+        alert("Total size of files must be under 10MB, please try again.");
+        setFiles([]);
+
+        if (filesRef.current) {
+          filesRef.current.value = "";
+        }
+      } else {
+        setFiles(selectedFiles);
+      }
+    }
+  };
+
   const createButton = async () => {
     if (!title) {
       alert("Announcement Title is required.");
@@ -107,6 +131,22 @@ const CreateAnnouncementPage = () => {
         });
       }
 
+      const fileUrls: string[] = [];
+      if (files.length > 0) {
+        for (const file of files) {
+          await fetch(`${window.location.origin}/api/blob/upload`, {
+            method: "POST",
+            headers: {
+              "content-type": file.type,
+            },
+            body: file,
+          }).then(async (result) => {
+            const { url } = (await result.json()) as PutBlobResult;
+            fileUrls.push(url);
+          });
+        }
+      }
+
       // create and add to database
       const docRef = await addDoc(collection(db, "Announcements"), {
         title,
@@ -115,6 +155,7 @@ const CreateAnnouncementPage = () => {
         createdAt: serverTimestamp(),
         imageUrl,
         imageDims: [imageWidth, imageHeight],
+        fileUrls,
       });
       setTitle("");
       setBody("");
@@ -200,6 +241,17 @@ const CreateAnnouncementPage = () => {
                   />
                 </div>
               )}
+            </div>
+
+            <div>
+              <Label>Upload Files</Label>
+              <Input
+                type="file"
+                multiple
+                accept="application/*, text/*"
+                onChange={changeFiles}
+                ref={filesRef}
+              />
             </div>
           </form>
         </CardContent>
