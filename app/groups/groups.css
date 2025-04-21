@@ -42,6 +42,7 @@
     top: 50%;
     right: 10px;
     transform: translateY(-50%);
+    padding: 0.5rem 1rem;
 }
 
 /* MEMBER NAME */
