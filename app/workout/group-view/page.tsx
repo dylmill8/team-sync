@@ -62,7 +62,7 @@ const GroupLogsPage = () => {
           }
         }
       } catch (e) {
-        console.log("error fetching workout", e);
+        console.error("error fetching workout", e);
       }
     };
 

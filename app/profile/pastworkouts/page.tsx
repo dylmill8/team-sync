@@ -65,7 +65,7 @@ const PastWorkoutsPage = () => {
 
   useEffect(() => {
     const fetchPastWorkouts = async () => {
-      console.log(uid);
+      //console.log(uid);
       if (uid) {
         const userDocRef = doc(db, "Users", uid);
         const userDocSnap = await getDoc(userDocRef);

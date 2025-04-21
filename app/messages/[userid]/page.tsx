@@ -6,6 +6,7 @@ import { setDocument, viewDocument } from "../../../utils/firebaseHelper.js"
 import { DocumentReference } from "firebase/firestore"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import NextImage from "next/image"
 import {
   onSnapshot,
   collection,
@@ -52,6 +53,7 @@ export default function ChatPage() {
   const [newMessage, setNewMessage] = useState("")
   const [loadingMore, setLoadingMore] = useState(false)
   const [isGroupChat, setIsGroupChat] = useState(false)
+  const [imageDimsMap, setImageDimsMap] = useState<Record<string, { width: number; height: number }>>({})
   const batchSize = 10
   const userCache = useRef<Record<string, string>>({})
 
@@ -87,7 +89,7 @@ export default function ChatPage() {
             const friendName = friendData?.username || friendId
             setChatTitle(friendName)
           } catch (e) {
-            console.log(e)
+            console.error(e)
             setChatTitle("Private Chat")
           }
         } else {
@@ -261,7 +263,7 @@ export default function ChatPage() {
           userCache.current[uid] = username
           msg.username = username
         } catch (e) {
-          console.log(e)
+          console.error(e)
           msg.username = uid
         }
       }
@@ -372,32 +374,44 @@ export default function ChatPage() {
           {msg.isImage ? (
               msg.spoiler ? (
                 <div
-                  className="relative max-w-full max-h-64 mt-1 rounded cursor-pointer group"
+                  className="relative max-w-full max-h-full mt-1 rounded cursor-pointer group"
                   onClick={(e) => {
                     const img = e.currentTarget.querySelector("img");
-                    if (img) {
-                      img.classList.remove("blur");
-                    }
+                    if (img) img.classList.remove("blur");
                     const overlay = e.currentTarget.querySelector(".spoiler-overlay");
-                    if (overlay) {
-                      overlay.remove();
-                    }
+                    if (overlay) overlay.remove();
                   }}
                 >
-                  <img
+                  <NextImage
                     src={msg.text}
                     alt="Spoiler Image"
-                    className="blur max-w-full max-h-64 rounded transition duration-300"
+                    className="blur max-w-full max-h-full rounded transition duration-300"
+                    width={imageDimsMap[msg.id]?.width || 400}
+                    height={imageDimsMap[msg.id]?.height || 200}
+                    onLoadingComplete={({ naturalWidth, naturalHeight }) =>
+                      setImageDimsMap((prev) => ({
+                        ...prev,
+                        [msg.id]: { width: naturalWidth, height: naturalHeight },
+                      }))
+                    }
                   />
                   <div className="spoiler-overlay absolute inset-0 bg-black bg-opacity-70 text-white flex items-center justify-center text-sm font-semibold">
                     Click to reveal spoiler
                   </div>
                 </div>
               ) : (
-                <img
+                <NextImage
                   src={msg.text}
-                  alt="Uploaded"
-                  className="max-w-full max-h-64 mt-1 rounded"
+                  alt="Uploaded Image"
+                  className="max-w-full max-h-full mt-1 rounded"
+                  width={imageDimsMap[msg.id]?.width || 400}
+                  height={imageDimsMap[msg.id]?.height || 200}
+                  onLoadingComplete={({ naturalWidth, naturalHeight }) =>
+                    setImageDimsMap((prev) => ({
+                      ...prev,
+                      [msg.id]: { width: naturalWidth, height: naturalHeight },
+                    }))
+                  }
                 />
               )
             ) : (
