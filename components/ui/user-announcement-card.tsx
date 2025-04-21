@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Card,
@@ -22,6 +22,7 @@ interface AnnouncementData {
   createdAt: Timestamp;
   imageUrl: string;
   imageDims: [];
+  fileUrls: string[];
 }
 
 interface UserAnnouncementCardProps {
@@ -38,7 +39,11 @@ function UserAnnouncementCard({
   const [body, setBody] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [imageDims, setImageDims] = useState([1, 1]);
+  const [fileUrls, setFileUrls] = useState<string[]>([]);
   const [time, setTime] = useState("");
+
+  const imageRef = useRef<HTMLImageElement>(null);
+  const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
     const fetchAnnouncementData = async () => {
@@ -48,6 +53,7 @@ function UserAnnouncementCard({
         setBody(announcementData.body || "");
         setImageUrl(announcementData.imageUrl || "");
         setImageDims(announcementData.imageDims || [1, 1]);
+        setFileUrls(announcementData.fileUrls || []);
         setTime(
           announcementData.createdAt
             ? announcementData.createdAt.toDate().toLocaleString()
@@ -69,6 +75,7 @@ function UserAnnouncementCard({
           setBody(data.body || "");
           setImageUrl(data.imageUrl || "");
           setImageDims(data.imageDims || [1, 1]);
+          setFileUrls(data.fileUrls || []);
           setTime(data.createdAt?.toDate().toLocaleString() || "");
           if (data.groupRef) {
             const groupDoc = await getDoc(data.groupRef);
@@ -88,6 +95,18 @@ function UserAnnouncementCard({
     );
   }, [announcementRef, announcementData]);
 
+  const imageFullscreen = () => {
+    if (imageRef.current?.requestFullscreen) {
+      if (!fullscreen) {
+        imageRef.current.requestFullscreen();
+        setFullscreen(true);
+      } else {
+        document.exitFullscreen();
+        setFullscreen(false);
+      }
+    }
+  };
+
   return (
     <div className="flex items-center justify-center mt-3">
       <Card className="w-full px-3 my-0 py-0 shadow-lg bg-white rounded-xl">
@@ -104,13 +123,24 @@ function UserAnnouncementCard({
           {imageUrl && (
             <div className="mt-2 w-1/2">
               <Image
+                ref={imageRef}
                 src={imageUrl}
                 alt="announcement image"
                 width={imageDims[0]}
                 height={imageDims[1]}
+                onClick={imageFullscreen}
+                className="cursor-pointer"
               />
             </div>
           )}
+
+          <div>
+            {fileUrls.map((url, i) => (
+              <div key={i} className="cursor-pointer">
+              </div>
+            ))}
+          </div>
+
         </CardContent>
 
         <CardFooter>
