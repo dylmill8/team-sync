@@ -637,7 +637,7 @@ const GroupsPage = () => {
                       <>
                         <Button
                           size="sm"
-                          className="absolute top-2 right-2"
+                          className="absolute top-2 right-2 bg-blue-500 hover:bg-blue-400"
                           onClick={() =>
                             router.push(
                               `/announcement/edit/${announcement.id}?groupId=${docId}`
