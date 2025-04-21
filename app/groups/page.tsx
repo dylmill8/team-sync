@@ -38,9 +38,12 @@ import {
   onSnapshot,
   Timestamp,
   deleteDoc,
+  updateDoc,
+  arrayRemove,
 } from "firebase/firestore";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { setDocument, viewDocument } from "../../utils/firebaseHelper.js";
+import NextImage from "next/image";
 
 interface EventData {
   name: string;
@@ -128,6 +131,19 @@ const GroupsPage = () => {
   >([]);
   const [createAnnouncement, setCreateAnnouncement] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [imageDims, setImageDims] = useState<Record<string, { width: number; height: number }>>({});
+
+  const handleDeleteAnnouncement = async (announcementId: string) => {
+    if (!docId) return;
+    const annRef = doc(db, "Announcements", announcementId);
+    await deleteDoc(annRef);
+    const grpRef = doc(db, "Groups", docId);
+    await updateDoc(grpRef, { announcements: arrayRemove(annRef) });
+    // remove from UI list
+    setSortedAnnouncements((prev) =>
+      prev.filter((a) => a.id !== announcementId)
+    );
+  };
 
   useEffect(() => {
     const updateChatPosition = () => {
@@ -252,7 +268,7 @@ const GroupsPage = () => {
     };
 
     initMessages().catch((err) =>
-      console.log("Error loading messages:", err)
+      console.error("Error loading messages:", err)
     );
   }, [chatId]);
 
@@ -306,14 +322,14 @@ const GroupsPage = () => {
   async function handleCalendarTabClick() {
     if (!docId) {
       router.push("/groupslist");
-      console.log("Invalid group ID");
+      console.error("Invalid group ID");
       return;
     }
     const groupRef = doc(db, "Groups", docId);
     const groupDoc = await getDoc(groupRef);
     if (!groupDoc.exists()) {
       router.push("/groupslist");
-      console.log("Group not found");
+      console.error("Group not found");
       return;
     }
     const data = groupDoc.data(); // store the fetched data
@@ -354,7 +370,7 @@ const GroupsPage = () => {
     try {
       await deleteDoc(doc(db, "Chats", chatId, "messages", messageId));
     } catch (error) {
-      console.log("Error deleting message:", error);
+      console.error("Error deleting message:", error);
     }
   };
 
@@ -370,7 +386,7 @@ const GroupsPage = () => {
           userCache.current[uid] = username;
           msg.username = username;
         } catch (error) {
-          console.log("Error fetching user data:", error);
+          console.error("Error fetching user data:", error);
           msg.username = uid;
         }
       }
@@ -413,7 +429,7 @@ const GroupsPage = () => {
         setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
       }
     } catch (error) {
-      console.log("Error loading older messages:", error);
+      console.error("Error loading older messages:", error);
     }
     setLoadingMore(false);
   };
@@ -431,7 +447,7 @@ const GroupsPage = () => {
       await setDocument(`Chats/${chatId}/messages`, newMsgId, newMsgData);
       if (!isImage) setNewMessage("");
     } catch (error) {
-      console.log("Failed to send message:", error);
+      console.error("Failed to send message:", error);
     }
   };
 
@@ -563,13 +579,37 @@ const GroupsPage = () => {
                 </Button>
               )}
             </div>
-            <div className="announcements">
+            <div className="announcements space-y-4">
               {sortedAnnouncements.length > 0 ? (
                 sortedAnnouncements.map((announcement) => (
-                  <UserAnnouncementCard
-                    announcementData={announcement}
-                    key={announcement.id}
-                  />
+                  <div key={announcement.id} className="relative">
+                    <UserAnnouncementCard announcementData={announcement} />
+                    {(userRole === "leader" || userRole === "owner") && (
+                      <>
+                        <Button
+                          size="sm"
+                          className="absolute top-2 right-2"
+                          onClick={() =>
+                            router.push(
+                              `/announcement/edit/${announcement.id}?groupId=${docId}`
+                            )
+                          }
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="absolute top-12 right-2"
+                          onClick={() =>
+                            handleDeleteAnnouncement(announcement.id)
+                          }
+                        >
+                          Delete
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 ))
               ) : (
                 <p>No announcements found</p>
@@ -605,10 +645,18 @@ const GroupsPage = () => {
                       )}
                     </div>
                     {msg.isImage ? (
-                    <img
+                    <NextImage
                       src={msg.text}
                       alt="Uploaded"
-                      className="max-w-full max-h-64 mt-1 rounded"
+                      width={imageDims[msg.id]?.width || 400}
+                      height={imageDims[msg.id]?.height || 200}
+                      className="max-w-full max-h-full mt-1 rounded"
+                      onLoadingComplete={({ naturalWidth, naturalHeight }) =>
+                        setImageDims((prev) => ({
+                          ...prev,
+                          [msg.id]: { width: naturalWidth, height: naturalHeight },
+                        }))
+                      }
                     />
                   ) : (
                     <div>{msg.text}</div>

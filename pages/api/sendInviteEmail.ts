@@ -10,18 +10,18 @@ const transporter = nodemailer.createTransport({
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  console.log("API Route Hit: /api/sendInviteEmail");
+  //console.log("API Route Hit: /api/sendInviteEmail");
 
   if (req.method !== "POST") {
-    console.log("Invalid method:", req.method);
+    //console.log("Invalid method:", req.method);
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   const { email, inviteLink } = req.body;
-  console.log("Request Body:", req.body);
+  //console.log("Request Body:", req.body);
 
   if (!email || !inviteLink) {
-    console.log("Missing email or invite link");
+    //console.log("Missing email or invite link");
     return res.status(400).json({ error: "Missing email or invite link" });
   }
 
@@ -33,8 +33,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       html: `<p>You have been invited! Click the link to join: <a href="${inviteLink}">${inviteLink}</a></p>`,
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully:", info); 
+    await transporter.sendMail(mailOptions);
+    //console.log("Email sent successfully:", info); 
     res.status(200).json({ message: "Email sent successfully" });
   } catch (error: unknown) {
     console.error("Error sending email:", error);

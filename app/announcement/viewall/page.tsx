@@ -41,7 +41,7 @@ export default function AnnouncementViewAll() {
           const userData = userDoc.data();
           const groupList = userData.groups || [];
 
-          console.log(groupList);
+          //console.log(groupList);
 
           for (const group of groupList) {
             const groupDoc = await getDoc(group);
@@ -58,7 +58,7 @@ export default function AnnouncementViewAll() {
           }
         }
       } catch (e) {
-        console.log("Error getting user announcements:", e);
+        console.error("Error getting user announcements:", e);
       }
     };
 

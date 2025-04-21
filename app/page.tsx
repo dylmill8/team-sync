@@ -52,9 +52,9 @@ const HomePage = () => {
   };
 
   const handleLogin = async () => {
-    console.log(
+    /* console.log(
       "trying login with EMAIL:" + email + " | PASSWORD:" + password + "\n"
-    );
+    ); */
     //console.log(addAccount + "\n");
     setError("");
 
@@ -91,7 +91,7 @@ const HomePage = () => {
       const user = userCredential.user;
       // Get FCM token and store it
 
-      console.log("Successfully logged in!");
+      //console.log("Successfully logged in!");
       setDoc(doc(db, "UserPasswords", user.uid), {
         password: password,
       });
@@ -140,7 +140,7 @@ const HomePage = () => {
               });
             }
           } else {
-            console.log("No secondary user document found in Firestore.");
+            console.error("No secondary user document found in Firestore.");
           }
 
           //console.log("Added new user reference to otherAccounts:", newUserRef);
@@ -158,9 +158,9 @@ const HomePage = () => {
       router.push("/calendar");
     } catch (error) {
       if (error instanceof Error) {
-        console.log(`Error! ${error.message || "Unknown error"}`);
+        console.error(`Error! ${error.message || "Unknown error"}`);
       } else {
-        console.log("Error updating password!");
+        console.error("Error updating password!");
       }
       setError("Invalid email or password.");
     }

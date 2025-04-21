@@ -29,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const info = await transporter.sendMail(mailOptions)
-    console.log("Email sent successfully:", info)
+    //console.log("Email sent successfully:", info)
     return res.status(200).json({ success: true, info })
   } catch (error: unknown) {
     console.error("Error sending email:", error)
