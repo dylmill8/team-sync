@@ -44,9 +44,9 @@ const CreateAnnouncementPage = () => {
   const [imageHeight, setImageHeight] = useState(0);
   const [preview, setPreview] = useState<string | null>(null);
   const imageRef = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const filesRef = useRef<HTMLInputElement>(null);
-  const [loading, setLoading] = useState(false);
 
   // get group reference
   useEffect(() => {
@@ -104,7 +104,7 @@ const CreateAnnouncementPage = () => {
         setFiles(selectedFiles);
       }
     }
-  }
+  };
 
   const createButton = async () => {
     if (!title) {
@@ -126,11 +126,12 @@ const CreateAnnouncementPage = () => {
           body: image,
         }).then(async (result) => {
           const { url } = (await result.json()) as PutBlobResult;
+          //console.log("url:", url);
           imageUrl = url;
         });
       }
 
-      const fileUrls : string[] = [];
+      const fileUrls: string[] = [];
       if (files.length > 0) {
         for (const file of files) {
           await fetch(`${window.location.origin}/api/blob/upload`, {
@@ -245,33 +246,11 @@ const CreateAnnouncementPage = () => {
             <div>
               <Label>Upload Files</Label>
               <Input
-              type="file"
-              multiple
-              accept="application/*, text/*"
-              onChange={changeFiles}
-              ref={filesRef}
-              />
-            </div>
-
-            <div>
-              <Label>Upload Files</Label>
-              <Input
-              type="file"
-              multiple
-              accept="application/*, text/*"
-              onChange={changeFiles}
-              ref={filesRef}
-              />
-            </div>
-
-            <div>
-              <Label>Upload Files</Label>
-              <Input
-              type="file"
-              multiple
-              accept="application/*, text/*"
-              onChange={changeFiles}
-              ref={filesRef}
+                type="file"
+                multiple
+                accept="application/*, text/*"
+                onChange={changeFiles}
+                ref={filesRef}
               />
             </div>
           </form>
