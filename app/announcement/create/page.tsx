@@ -29,6 +29,7 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { PutBlobResult } from "@vercel/blob";
+import NextImage from "next/image";
 
 const CreateAnnouncementPage = () => {
   const router = useRouter();
@@ -41,6 +42,7 @@ const CreateAnnouncementPage = () => {
   const [image, setImage] = useState<File | null>(null);
   const [imageWidth, setImageWidth] = useState(0);
   const [imageHeight, setImageHeight] = useState(0);
+  const [preview, setPreview] = useState<string | null>(null);
   const imageRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const filesRef = useRef<HTMLInputElement>(null);
@@ -69,13 +71,15 @@ const CreateAnnouncementPage = () => {
         }
       } else {
         setImage(file);
+        const url = URL.createObjectURL(file);
+        setPreview(url);
 
         const img = new Image();
         img.onload = () => {
           setImageWidth(img.width);
           setImageHeight(img.height);
         };
-        img.src = URL.createObjectURL(file);
+        img.src = url;
       }
     }
   };
@@ -223,6 +227,40 @@ const CreateAnnouncementPage = () => {
                 accept="image/*"
                 onChange={changeImage}
                 ref={imageRef}
+                className="mt-1"
+              />
+              {preview && (
+                <div className="mt-4 w-1/2">
+                  <NextImage
+                    className="rounded-lg"
+                    src={preview}
+                    alt="preview"
+                    width={imageWidth}
+                    height={imageHeight}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div>
+              <Label>Upload Files</Label>
+              <Input
+              type="file"
+              multiple
+              accept="application/*, text/*"
+              onChange={changeFiles}
+              ref={filesRef}
+              />
+            </div>
+
+            <div>
+              <Label>Upload Files</Label>
+              <Input
+              type="file"
+              multiple
+              accept="application/*, text/*"
+              onChange={changeFiles}
+              ref={filesRef}
               />
             </div>
 
