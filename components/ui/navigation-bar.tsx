@@ -10,7 +10,7 @@ const NavBar = () => {
     const { isLightMode } = useTheme(); // Use ThemeContext to track theme changes
 
     return (
-        <div className="navbar fixed bottom-0 left-0 w-full items-center shadow-md flex justify-around h-[10vh] border-t z-10 p-0 min-h-[50px]">
+        <div className="navbar fixed bottom-0 left-0 w-full items-center shadow-md flex justify-around h-[10vh] border-t z-10 p-0">
             <NavBarItem href="/search" icon="/nav_bar_icons/Search.png" isLightMode={isLightMode} />
             <NavBarItem href="/groupslist" icon="/nav_bar_icons/Groups.png" isLightMode={isLightMode} />
             <NavBarItem href="/calendar" icon="/nav_bar_icons/Calendar.png" isLightMode={isLightMode} />
@@ -22,21 +22,18 @@ const NavBar = () => {
 
 const NavBarItem = ({ href, icon, isLightMode }: { href: string; icon: string; isLightMode: boolean }) => {
     const router = useRouter();
-
-    // Dynamically change the icon based on the theme
     const iconSrc = isLightMode ? icon : icon.replace(".png", "-White.png");
 
     return (
         <Button
             variant="ghost"
-            className="justify-center flex flex-col items-center w-[4vw] h-[4vh] min-w-[60px] min-h-[60px] max-w-[400px] max-h-[400px] relative"
+            className="relative flex justify-center items-center aspect-square h-[60%]"
             onClick={() => router.push(href)}
         >
             <Image
                 src={iconSrc}
                 alt="Icon"
-                width={40} // Explicit width to ensure proper rendering
-                height={40} // Explicit height to ensure proper rendering
+                fill
                 className="object-contain"
             />
         </Button>
