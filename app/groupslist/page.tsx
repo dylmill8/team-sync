@@ -15,17 +15,18 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 interface GroupData {
   docID: string;
   name: string;
   description: string;
-  picture: string;
+  picture: string; // will hold groupPic
   privacy: boolean;
   members: { [key: string]: string };
   events: Array<{ id: string }>;
   chat: DocumentReference;
-  announcements: DocumentReference[]; // changed from DocumentReference to an array
+  announcements: DocumentReference[];
 }
 
 export default function Groups() {
@@ -53,10 +54,23 @@ export default function Groups() {
                     if (!groupDoc.exists()) {
                       return null;
                     }
+                    type FirestoreGroupData = {
+                      name: string;
+                      description: string;
+                      groupPic?: string;
+                      privacy: boolean;
+                      members: { [key: string]: string };
+                      events: Array<{ id: string }>;
+                      chat: DocumentReference;
+                      announcements: DocumentReference[];
+                    };
+                    const data = groupDoc.data() as FirestoreGroupData;
+                    const { groupPic, ...rest } = data;
                     return {
                       docID: groupDoc.id,
-                      ...groupDoc.data(),
-                    };
+                      picture: groupPic ?? "",
+                      ...rest,
+                    } as GroupData;
                   }
                 )
               );
@@ -95,16 +109,26 @@ export default function Groups() {
               {userGroups.map((group, index) => (
                 <li
                   key={index}
-                  onClick={() => {
-                    router.push(`/groups?docId=${group.docID}`);
-                  }}
-                  className="p-4 border rounded-md shadow-md"
+                  onClick={() => router.push(`/groups?docId=${group.docID}`)}
+                  className="flex items-center p-4 border rounded-md shadow-md"
                 >
-                  <h3 className="text-lg font-semibold">{group.name}</h3>
-                  <p className="text-gray-600">{group.description}</p>
-                  <p className="text-gray-400">
-                    {Object.keys(group.members).length} members
-                  </p>
+                  {group.picture && (
+                    <div className="w-20 h-20 mr-4 relative flex-shrink-0">
+                      <Image
+                        src={group.picture}
+                        alt={`${group.name} thumbnail`}
+                        fill
+                        className="object-cover rounded-full"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="text-lg font-semibold">{group.name}</h3>
+                    <p className="text-gray-600">{group.description}</p>
+                    <p className="text-gray-400">
+                      {Object.keys(group.members).length} members
+                    </p>
+                  </div>
                 </li>
               ))}
             </ul>
