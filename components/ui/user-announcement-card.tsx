@@ -23,6 +23,7 @@ interface AnnouncementData {
   imageUrl: string;
   imageDims: [];
   fileUrls: string[];
+  filenames: string[];
 }
 
 interface UserAnnouncementCardProps {
@@ -40,6 +41,7 @@ function UserAnnouncementCard({
   const [imageUrl, setImageUrl] = useState("");
   const [imageDims, setImageDims] = useState([1, 1]);
   const [fileUrls, setFileUrls] = useState<string[]>([]);
+  const [filenames, setFilenames] = useState<string[]>([]);
   const [time, setTime] = useState("");
 
   const imageRef = useRef<HTMLImageElement>(null);
@@ -54,6 +56,7 @@ function UserAnnouncementCard({
         setImageUrl(announcementData.imageUrl || "");
         setImageDims(announcementData.imageDims || [1, 1]);
         setFileUrls(announcementData.fileUrls || []);
+        setFilenames(announcementData.filenames || []);
         setTime(
           announcementData.createdAt
             ? announcementData.createdAt.toDate().toLocaleString()
@@ -76,6 +79,7 @@ function UserAnnouncementCard({
           setImageUrl(data.imageUrl || "");
           setImageDims(data.imageDims || [1, 1]);
           setFileUrls(data.fileUrls || []);
+          setFilenames(data.filenames || []);
           setTime(data.createdAt?.toDate().toLocaleString() || "");
           if (data.groupRef) {
             const groupDoc = await getDoc(data.groupRef);
@@ -137,6 +141,12 @@ function UserAnnouncementCard({
           <div>
             {fileUrls.map((url, i) => (
               <div key={i} className="cursor-pointer">
+                <Image src="/icons/file-icon.png" alt="file icon" className="inline mr-1" width="15" height="15"/>
+                <a href={url} target="_blank" rel="noopener noreferrer">
+                  <Label className="text-blue-500 underline">
+                    {filenames[i] || "unnamed file"}
+                  </Label>
+                </a>
               </div>
             ))}
           </div>
