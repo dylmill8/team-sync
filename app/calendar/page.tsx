@@ -156,7 +156,9 @@ export default function Calendar() {
     if (selectedTags.length > 0) {
       setFilteredEvents(
         eventList.filter((event) =>
-          selectedTags.every((tag) => event.tags.includes(tag))
+          selectedTags.every((tag) =>
+            event.tags.some((eventTag) => eventTag.toLowerCase() === tag.toLowerCase())
+          )
         )
       );
     } else {
