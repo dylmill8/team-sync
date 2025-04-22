@@ -145,8 +145,10 @@ export default function GroupSearch() {
 
       if (groupTags.length > 0) {
         filtered = filtered.filter((group) =>
-          groupTags.every((tag) => group.tags.includes(tag))
-        );
+          groupTags.every((tag) =>
+            group.tags.some((groupTag) => groupTag.toLowerCase() === tag.toLowerCase())
+          )
+        )
       }
   
       setFilteredGroups(filtered);
@@ -168,14 +170,10 @@ export default function GroupSearch() {
 
       if (eventTags.length > 0) {
         filtered = filtered.filter((event) =>
-          eventTags.every((tag) => event.tags.includes(tag))
-        );
-
-        //filtered = filtered.filter((event) =>
-        //  eventTags.every((tag) =>
-        //    event.tags.some((eventTag) => eventTag.toLowerCase() === tag.toLowerCase())
-        //  )
-        //)
+          eventTags.every((tag) =>
+            event.tags.some((eventTag) => eventTag.toLowerCase() === tag.toLowerCase())
+          )
+        )
       }
   
       setFilteredEvents(filtered);
