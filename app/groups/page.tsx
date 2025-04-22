@@ -367,7 +367,7 @@ const GroupsPage = () => {
         }
       });
     }
-  }, [groupMembers]);
+  }, [groupMembers, memberPics]);
 
   async function handleCalendarTabClick() {
     if (!docId) {
