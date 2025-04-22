@@ -49,10 +49,14 @@ export default function GroupSearch() {
 
   const [groupTags, setGroupTags] = useState<string[]>([]);
     // eslint-disable-next-line prefer-const
-  let [availableGroupTags, setAvailableGroupTags] = useState<string[]>(["Team", "Club", "Sports", "Beginner", "Intermediate", "Advanced", "Professional", "Climbing", "Basketball", "Baseball", "Soccer", "Volleyball", "Hockey", "American Football", "Track/Field", "Training", "Gym", "Workouts", "Bodybuilding"]);
+  let [availableGroupTags, setAvailableGroupTags] = useState<string[]>(
+    ["Team", "Club", "Sports", "Beginner", "Intermediate", "Advanced", "Professional", "Climbing", "Basketball", "Baseball", "Soccer", "Volleyball", "Hockey", "American Football", "Track/Field", "Training", "Gym", "Workouts", "Bodybuilding"].sort((a, b) => a.localeCompare(b))
+  );
   const [eventTags, setEventTags] = useState<string[]>([]); // State for selected tags
-    // eslint-disable-next-line prefer-const
-  let [availableEventTags, setAvailableEventTags] = useState<string[]>(["Mandatory", "Match", "Tournament", "Exercise", "Workout", "Training", "Practice", "Meetup", "Hangout", "Wellness"]);
+      // eslint-disable-next-line prefer-const
+  let [availableEventTags, setAvailableEventTags] = useState<string[]>(
+    ["Mandatory", "Match", "Tournament", "Exercise", "Workout", "Training", "Practice", "Meetup", "Hangout", "Wellness"].sort((a, b) => a.localeCompare(b))
+  );
 
   const toggleEventTag = (tag: string) => {
     setEventTags((prevTags) =>
@@ -292,7 +296,6 @@ export default function GroupSearch() {
                                     const newTagInput = e.currentTarget as HTMLInputElement;
                                     const newTag = newTagInput.value.trim();
                                     if (newTag && !availableGroupTags.includes(newTag)) {
-                                      setAvailableGroupTags((prev) => [...prev, newTag]); // Add new tag to availableTags
                                       toggleGroupTag(newTag); 
                                       newTagInput.value = ""; 
                                     }
