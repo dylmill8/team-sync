@@ -169,3 +169,12 @@
   overflow-y: auto;
   border-radius: 5px;
 }
+
+ 
+.fc .fc-list-button {
+  margin-left: 10px !important;
+}
+
+.fc .fc-createEvent-button {
+  margin-left: 10px !important;
+}
