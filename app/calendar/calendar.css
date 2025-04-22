@@ -9,6 +9,14 @@
     max-width: 1100px;
     margin: 40px auto;
 }
+ 
+.fc .fc-list-button {
+    margin-left: 10px;
+}
+
+.fc .fc-createEvent-button {
+    margin-left: 10px;
+}
 
 .pseudo-calendar-button {
     background-color: #2c3e50;

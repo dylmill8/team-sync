@@ -171,12 +171,12 @@ export default function Calendar() {
       <NavBar />
       <div className="relative">
         {/* Dropdown Menu and Clear Tags Button */}
-        <div className="flex flex-wrap gap-2 justify-end sm:justify-between items-center mb-4">
+        <div className="flex flex-wrap  justify-end sm:justify-between items-center">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-full sm:w-auto pseudo-calendar-button">
+              {/* <Button variant="outline" className="w-full sm:w-auto pseudo-calendar-button">
                 filter by tags
-              </Button>
+              </Button> */}
             </DropdownMenuTrigger>
             <DropdownMenuContent
               style={{
@@ -241,13 +241,13 @@ export default function Calendar() {
                 </div>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button
+          {/* <Button
             onClick={() => setSelectedTags([])} // Clear selected tags
             variant="outline"
             className="w-full sm:w-auto pseudo-calendar-button"
           >
             clear tags
-          </Button>
+          </Button> */}
         </div>
 
         {/* FullCalendar */}
