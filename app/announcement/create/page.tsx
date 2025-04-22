@@ -122,6 +122,7 @@ const CreateAnnouncementPage = () => {
           method: "POST",
           headers: {
             "content-type": image.type,
+            "x-original-filename": image.name,
           },
           body: image,
         }).then(async (result) => {
@@ -132,17 +133,20 @@ const CreateAnnouncementPage = () => {
       }
 
       const fileUrls: string[] = [];
+      const filenames: string[] = [];
       if (files.length > 0) {
         for (const file of files) {
           await fetch(`${window.location.origin}/api/blob/upload`, {
             method: "POST",
             headers: {
               "content-type": file.type,
+              "x-original-filename": file.name,
             },
             body: file,
           }).then(async (result) => {
-            const { url } = (await result.json()) as PutBlobResult;
+            const { url, filename } = (await result.json()) as { url: string, filename: string};
             fileUrls.push(url);
+            filenames.push(filename);
           });
         }
       }
@@ -156,6 +160,7 @@ const CreateAnnouncementPage = () => {
         imageUrl,
         imageDims: [imageWidth, imageHeight],
         fileUrls,
+        filenames,
       });
       setTitle("");
       setBody("");

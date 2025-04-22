@@ -92,6 +92,7 @@ interface AnnouncementData {
   imageUrl: string;
   imageDims: [];
   fileUrls: string[];
+  filenames: string[];
 }
 
 type Message = {
