@@ -7,6 +7,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import listPlugin from "@fullcalendar/list";
 import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
 import NavBar from "@/components/ui/navigation-bar";
 import { firebaseApp } from "@/utils/firebaseConfig";
 import { db } from "@/utils/firebaseConfig";
@@ -182,6 +183,7 @@ export default function Calendar() {
                 left: "50%", // Start at the center of the button
                 transform: "translateX(-50%)", // Shift left by 50% of the dropdown's width
                 zIndex: 50, // Ensure it renders above other elements
+                width: "200px",
               }}
             >
               {availableTags.map((tag) => (
@@ -196,6 +198,45 @@ export default function Calendar() {
                   {selectedTags.includes(tag) ? `✓ ${tag}` : tag}
                 </DropdownMenuItem>
               ))}
+              <div className="mt-2 p-2 border-t border-gray-300">
+                  <div>
+                    <Input
+                      name="newTag"
+                      placeholder="Add new tag"
+                      className="w-full mb-2"
+                      onKeyDown={(e) => {
+                        e.stopPropagation(); // Prevent dropdown from moving away on type
+                        if (e.key === "Enter") {
+                          e.preventDefault(); 
+                          const newTagInput = e.currentTarget as HTMLInputElement;
+                          const newTag = newTagInput.value.trim();
+                          if (newTag && !availableTags.includes(newTag)) {
+                            setAvailableTags((prev) => [...prev, newTag]); // Add new tag to availableTags
+                            toggleTag(newTag); 
+                            newTagInput.value = ""; 
+                          }
+                        }
+                      }}
+                    />
+                    <Button
+                      onClick={(e) => {
+                        e.preventDefault(); // Prevent default button behavior
+                        const newTagInput = document.querySelector(
+                          'input[name="newTag"]'
+                        ) as HTMLInputElement;
+                        const newTag = newTagInput.value.trim();
+                        if (newTag && !availableTags.includes(newTag)) {
+                          setAvailableTags((prev) => [...prev, newTag]); // Add new tag to availableTags
+                          toggleTag(newTag); // Automatically select the new tag
+                          newTagInput.value = ""; // Clear the input field
+                        }
+                      }}
+                      className="w-full"
+                    >
+                      Add Tag
+                    </Button>
+                  </div>
+                </div>
             </DropdownMenuContent>
           </DropdownMenu>
           <Button
