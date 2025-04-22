@@ -249,7 +249,7 @@ function GroupSettingsContent() {
           </div>
 
           <div className="mb-4">
-            <Label className="text-sm font-medium">Event Tags</Label>
+            <Label className="text-sm font-medium">Group Tags</Label>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="w-full">
