@@ -170,6 +170,12 @@ export default function GroupSearch() {
         filtered = filtered.filter((event) =>
           eventTags.every((tag) => event.tags.includes(tag))
         );
+
+        //filtered = filtered.filter((event) =>
+        //  eventTags.every((tag) =>
+        //    event.tags.some((eventTag) => eventTag.toLowerCase() === tag.toLowerCase())
+        //  )
+        //)
       }
   
       setFilteredEvents(filtered);
@@ -400,9 +406,9 @@ export default function GroupSearch() {
                                   'input[name="newTag"]'
                                 ) as HTMLInputElement;
                                 const newTag = newTagInput.value.trim();
-                                if (newTag && !availableGroupTags.includes(newTag)) {
-                                  setAvailableGroupTags((prev) => [...prev, newTag]); // Add new tag to availableTags
-                                  toggleGroupTag(newTag); // Automatically select the new tag
+                                if (newTag && !availableEventTags.includes(newTag)) {
+                                  setAvailableEventTags((prev) => [...prev, newTag]); // Add new tag to availableTags
+                                  toggleEventTag(newTag); // Automatically select the new tag
                                   newTagInput.value = ""; // Clear the input field
                                 }
                               }}
