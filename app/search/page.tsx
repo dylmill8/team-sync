@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "../../utils/firebaseConfig";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import NavBar from "@/components/ui/navigation-bar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown";
+import { Label } from "@/components/ui/label";
 
 interface Group {
   id: string;
@@ -25,6 +27,7 @@ interface Event {
   description: string;
   isPrivate: boolean;
   rsvpYes: number;
+  tags: string[];
 }
 
 export default function GroupSearch() {
@@ -43,6 +46,38 @@ export default function GroupSearch() {
   const [minRSVP, setMinRSVP] = useState("");
   const [allEvents, setAllEvents] = useState<Event[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
+
+  const [groupTags, setGroupTags] = useState<string[]>([]);
+    // eslint-disable-next-line prefer-const
+  let [availableGroupTags, setAvailableGroupTags] = useState<string[]>(
+    ["Team", "Club", "Sports", "Beginner", "Intermediate", "Advanced", "Professional", "Climbing", "Basketball", "Baseball", "Soccer", "Volleyball", "Hockey", "American Football", "Track/Field", "Training", "Gym", "Workouts", "Bodybuilding"].sort((a, b) => a.localeCompare(b))
+  );
+  const [eventTags, setEventTags] = useState<string[]>([]); // State for selected tags
+      // eslint-disable-next-line prefer-const
+  let [availableEventTags, setAvailableEventTags] = useState<string[]>(
+    ["Mandatory", "Match", "Tournament", "Exercise", "Workout", "Training", "Practice", "Meetup", "Hangout", "Wellness"].sort((a, b) => a.localeCompare(b))
+  );
+
+  const toggleEventTag = (tag: string) => {
+    setEventTags((prevTags) =>
+      prevTags.includes(tag)
+        ? prevTags.filter((t) => t !== tag) // Remove tag if already selected
+        : [...prevTags, tag] // Add tag if not selected
+    );
+  };
+
+  const toggleGroupTag = (tag: string) => {
+    setGroupTags((prevTags) =>
+      prevTags.includes(tag)
+        ? prevTags.filter((t) => t !== tag) // Remove tag if already selected
+        : [...prevTags, tag] // Add tag if not selected
+    );
+  };
+
+  const clearTags = () => {
+    setGroupTags([]);
+    setEventTags([]);
+  }
 
   useEffect(() => {
     const fetchGroups = async () => {
@@ -78,7 +113,8 @@ export default function GroupSearch() {
           name: data.name || "",
           description: data.description || "",
           isPrivate: data.private || false,
-          rsvpYes: rsvpYesCount
+          rsvpYes: rsvpYesCount,
+          tags: data.tags || [],
         };
       });
       setAllEvents(eventList);
@@ -95,7 +131,8 @@ export default function GroupSearch() {
       if (searchTerm) {
         filtered = filtered.filter(group =>
           group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          group.description.toLowerCase().includes(searchTerm.toLowerCase())
+          group.description.toLowerCase().includes(searchTerm.toLowerCase()) //||
+          //(group.tags && group.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())))
         );
       }
   
@@ -109,6 +146,14 @@ export default function GroupSearch() {
         const minEventsNum = parseInt(minEvents, 10);
         filtered = filtered.filter(group => (group.events?.length || 0) >= minEventsNum);
       }
+
+      if (groupTags.length > 0) {
+        filtered = filtered.filter((group) =>
+          groupTags.every((tag) =>
+            group.tags.some((groupTag) => groupTag.toLowerCase() === tag.toLowerCase())
+          )
+        )
+      }
   
       setFilteredGroups(filtered);
     } else if (searchMode === "event") {
@@ -117,13 +162,22 @@ export default function GroupSearch() {
       if (searchTerm) {
         filtered = filtered.filter(event =>
           event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          event.description.toLowerCase().includes(searchTerm.toLowerCase())
+          event.description.toLowerCase().includes(searchTerm.toLowerCase()) //||
+          //(event.tags && event.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())))
         );
       }
   
       if (minRSVP) {
         const minYes = parseInt(minRSVP, 10);
         filtered = filtered.filter(event => event.rsvpYes >= minYes);
+      }
+
+      if (eventTags.length > 0) {
+        filtered = filtered.filter((event) =>
+          eventTags.every((tag) =>
+            event.tags.some((eventTag) => eventTag.toLowerCase() === tag.toLowerCase())
+          )
+        )
       }
   
       setFilteredEvents(filtered);
@@ -204,6 +258,88 @@ export default function GroupSearch() {
                 }}
                 className="mb-2"
               />
+              <div className="mb-4">
+                <Label className="text-sm font-medium">Filter by Group Tags</Label>
+                  <div className="flex items-center space-x-2">
+                    <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="w-[70%]">
+                        Select Tags
+                      </Button>
+                      </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56">
+                          {/* Existing tags */}
+                          {availableGroupTags.map((tag) => (
+                            <DropdownMenuItem
+                              key={tag}
+                              onSelect={(e) => {
+                                e.preventDefault(); // Prevent the dropdown from closing
+                                toggleGroupTag(tag); // Toggle the tag selection
+                              }}
+                              className={groupTags.includes(tag) ? "bg-gray-200 dark:bg-gray-700" : ""}
+                            >
+                              {groupTags.includes(tag) ? `✓ ${tag}` : tag}
+                            </DropdownMenuItem>
+                          ))}
+
+                          {/* Add new tag input */}
+                          <div className="mt-2 p-2 border-t border-gray-300">
+                            <div>
+                              <Input
+                                name="newTag"
+                                placeholder="Add new tag"
+                                className="w-full mb-2"
+                                onKeyDown={(e) => {
+                                  e.stopPropagation(); // Prevent dropdown from moving away on type
+                                  if (e.key === "Enter") {
+                                    e.preventDefault(); 
+                                    const newTagInput = e.currentTarget as HTMLInputElement;
+                                    const newTag = newTagInput.value.trim();
+                                    if (newTag && !availableGroupTags.includes(newTag)) {
+                                      toggleGroupTag(newTag); 
+                                      newTagInput.value = ""; 
+                                    }
+                                  }
+                                }}
+                              />
+                              <Button
+                                onClick={(e) => {
+                                  e.preventDefault(); // Prevent default button behavior
+                                  const newTagInput = document.querySelector(
+                                    'input[name="newTag"]'
+                                  ) as HTMLInputElement;
+                                  const newTag = newTagInput.value.trim();
+                                  if (newTag && !availableGroupTags.includes(newTag)) {
+                                    setAvailableGroupTags((prev) => [...prev, newTag]); // Add new tag to availableTags
+                                    toggleGroupTag(newTag); // Automatically select the new tag
+                                    newTagInput.value = ""; // Clear the input field
+                                  }
+                                }}
+                                className="w-full"
+                              >
+                                Add Tag
+                              </Button>
+                            </div>
+                          </div>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <Button onClick={clearTags} variant="outline" className="w-[30%]">Clear Tags</Button>
+                  </div>
+                <div className="mt-2">
+                  <div className="text-sm font-medium mb-1"> Selected Tags:</div> {/* Ensure this stays on a separate line */}
+                  <div className="flex flex-wrap gap-2">
+                    {groupTags.map((tag: string, index: number) => (
+                      <span
+                        key={index}
+                        className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-sm font-medium rounded-md"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
             </div>
           )}
           {showFilters && searchMode === "event" && (
@@ -218,6 +354,89 @@ export default function GroupSearch() {
                 }}
                 className="mb-2"
               />
+
+              <div className="mb-4">
+                <Label className="text-sm font-medium">Filter by Event Tags</Label>
+                  <div className="flex items-center space-x-2">
+                    <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-[70%]"> 
+                      Select Tags
+                    </Button>
+                    </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-56">
+                        {/* Existing tags */}
+                        {availableEventTags.map((tag) => (
+                          <DropdownMenuItem
+                            key={tag}
+                            onSelect={(e) => {
+                              e.preventDefault(); // Prevent the dropdown from closing
+                              toggleEventTag(tag); // Toggle the tag selection
+                            }}
+                            className={eventTags.includes(tag) ? "bg-gray-200 dark:bg-gray-700" : ""}
+                          >
+                            {eventTags.includes(tag) ? `✓ ${tag}` : tag}
+                          </DropdownMenuItem>
+                        ))}
+
+                        {/* Add new tag input */}
+                        <div className="mt-2 p-2 border-t border-gray-300">
+                          <div>
+                            <Input
+                              name="newTag"
+                              placeholder="Add new tag"
+                              className="w-full mb-2"
+                              onKeyDown={(e) => {
+                                e.stopPropagation(); // Prevent dropdown from moving away on type
+                                if (e.key === "Enter") {
+                                  e.preventDefault(); 
+                                  const newTagInput = e.currentTarget as HTMLInputElement;
+                                  const newTag = newTagInput.value.trim();
+                                  if (newTag && !availableEventTags.includes(newTag)) {
+                                    setAvailableEventTags((prev) => [...prev, newTag]); // Add new tag to availableTags
+                                    toggleEventTag(newTag); 
+                                    newTagInput.value = ""; 
+                                  }
+                                }
+                              }}
+                            />
+                            <Button
+                              onClick={(e) => {
+                                e.preventDefault(); // Prevent default button behavior
+                                const newTagInput = document.querySelector(
+                                  'input[name="newTag"]'
+                                ) as HTMLInputElement;
+                                const newTag = newTagInput.value.trim();
+                                if (newTag && !availableEventTags.includes(newTag)) {
+                                  setAvailableEventTags((prev) => [...prev, newTag]); // Add new tag to availableTags
+                                  toggleEventTag(newTag); // Automatically select the new tag
+                                  newTagInput.value = ""; // Clear the input field
+                                }
+                              }}
+                              className="w-full"
+                            >
+                              Add Tag
+                            </Button>
+                          </div>
+                        </div>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <Button onClick={clearTags} variant="outline" className="w-[30%]">Clear Tags</Button>
+                  </div>
+                <div className="mt-2">
+                  <div className="text-sm font-medium mb-1"> Selected Tags:</div> {/* Ensure this stays on a separate line */}
+                  <div className="flex flex-wrap gap-2">
+                    {eventTags.map((tag: string, index: number) => (
+                      <span
+                        key={index}
+                        className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-sm font-medium rounded-md"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>
@@ -260,8 +479,18 @@ export default function GroupSearch() {
                 className="cursor-pointer hover:shadow-md transition"
                 onClick={() => router.push(`/event/view?docId=${event.id}`)}
               >
-                <CardHeader>
+                <CardHeader style={{ padding: 16, paddingBottom: 0 }}>
                   <CardTitle className="text-lg">{event.name}</CardTitle>
+                  <div className="flex flex-wrap">
+                    {event.tags.map((tag: string, index: number) => (
+                      <span
+                        key={index}
+                        className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-sm font-medium rounded-md mb-2 mr-2"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-600">{event.description}</p>

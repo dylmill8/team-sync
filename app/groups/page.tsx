@@ -41,7 +41,7 @@ import {
   updateDoc,
   arrayRemove,
 } from "firebase/firestore";
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense, Fragment } from "react";
 import { setDocument, viewDocument } from "../../utils/firebaseHelper.js";
 import NextImage from "next/image";
 
@@ -57,6 +57,7 @@ interface EventData {
   owner: string;
   RSVP: { [key: string]: string };
   workouts: string;
+  tags: string[];
 }
 
 interface CalendarEvent {
@@ -71,6 +72,7 @@ interface CalendarEvent {
   owner: string;
   RSVPStatus: string;
   workout: string;
+  tags: string[];
 }
 
 interface GroupData {
@@ -137,6 +139,7 @@ const GroupsPage = () => {
   const [editingMessageText, setEditingMessageText] = useState<string>("");
   const [suppressEditAfterDelete, setSuppressEditAfterDelete] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<"announcements"|"chat"|"calendar">("chat");
+  const [memberPics, setMemberPics] = useState<Record<string, string>>({});
 
   const handleDeleteAnnouncement = async (announcementId: string) => {
     if (!docId) return;
@@ -212,7 +215,9 @@ const GroupsPage = () => {
         router.push("/groupslist"); // Redirect to groups list page
         return;
       }
-      setGroupData(groupDoc.data() as GroupData);
+      const raw = groupDoc.data() as { groupPic?: string } & Omit<GroupData, "picture">;
+      const { groupPic, ...rest } = raw;
+      setGroupData({ picture: groupPic || "", ...rest } as GroupData);
     }
     fetchGroup();
   }, [docId, uid, router]);
@@ -346,6 +351,26 @@ const GroupsPage = () => {
     }
   }, [groupData?.announcements]);
 
+  useEffect(() => {
+    if (groupMembers.length) {
+      groupMembers.forEach(([, , userId]) => {
+        if (!memberPics[userId]) {
+          getDoc(doc(db, "Users", userId)).then((snap) => {
+            interface UserData { profilePic?: string; }
+      
+            if (snap.exists()) {
+                    const userData = snap.data() as UserData;
+                    const pic = userData.profilePic;
+                    if (pic) {
+                      setMemberPics((prev) => ({ ...prev, [userId]: pic }));
+                    }
+                  }
+          });
+        }
+      });
+    }
+  }, [groupMembers, memberPics]);
+
   async function handleCalendarTabClick() {
     if (!docId) {
       router.push("/groupslist");
@@ -384,6 +409,7 @@ const GroupsPage = () => {
             owner: eventData.owner,
             RSVPStatus: userRSVPStatus,
             workout: eventData.workouts,
+            tags: eventData.tags || [],
           };
         })
       );
@@ -554,6 +580,16 @@ const GroupsPage = () => {
             if (docId) router.push(`/group/view?groupId=${docId}`);
           }}
         >
+          {groupData?.picture && (
+            <div className="w-10 h-10 relative mr-3 flex-shrink-0">
+              <NextImage
+                src={groupData.picture}
+                alt={`${groupData.name} thumbnail`}
+                fill
+                className="object-cover rounded-full"
+              />
+            </div>
+          )}
           {groupData?.name || "Loading..."}
           <div className="members-button" onClick={(e) => e.stopPropagation()}>
             <Sheet>
@@ -568,15 +604,30 @@ const GroupsPage = () => {
                     {Array.isArray(groupMembers) ? (
                       groupMembers.map(
                         (member: Array<string>, index: number) => (
-                          <li
-                            key={index}
-                            className="member-name"
-                            onClick={() => router.push(`/profile/${member[2]}`)}
-                          >
-                            <div className="member-username">{member[0]}</div>
-                            <div className="member-permission">{member[1]}</div>
-                            <hr className="member-divider" />
-                          </li>
+                          <Fragment key={member[2]}>
+                            <li
+                              className="member-name flex items-center space-x-2 p-2 hover:bg-gray-100 cursor-pointer"
+                              onClick={() => router.push(`/profile/${member[2]}`)}
+                            >
+                              {memberPics[member[2]] && (
+                                <div className="w-8 h-8 relative flex-shrink-0 rounded-full overflow-hidden">
+                                  <NextImage
+                                    src={memberPics[member[2]]}
+                                    alt={`${member[0]} profile`}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                </div>
+                              )}
+                              <div>
+                                <div className="member-username">{member[0]}</div>
+                                <div className="member-permission">{member[1]}</div>
+                              </div>
+                            </li>
+                            {index < groupMembers.length - 1 && (
+                              <hr className="member-divider" />
+                            )}
+                          </Fragment>
                         )
                       )
                     ) : (
@@ -630,7 +681,9 @@ const GroupsPage = () => {
                 </Button>
               )}
             </div>
-            <div className="announcements space-y-4">
+            <div
+              className={`announcements space-y-4 ${!createAnnouncement ? "no-create" : ""}`}
+            >
               {sortedAnnouncements.length > 0 ? (
                 sortedAnnouncements.map((announcement) => (
                   <div key={announcement.id} className="relative">
@@ -832,8 +885,6 @@ const GroupsPage = () => {
                       <strong>Workout:</strong> ${
                         info.event.extendedProps.workout
                       }
-                      ... <strong>and more</strong>
-                      <br/>
                       <em>Click for more details</em>
                       <br/>
                     `;
@@ -863,6 +914,11 @@ const GroupsPage = () => {
                       desc = "None";
                     }
 
+                    const tags = info.event.extendedProps.tags || [];
+                    const tagsDisplay = (tags.length > 3)
+                      ? `${tags.slice(0, 3).join(", ")}, etc.` // Show up to 3 tags and add "etc." if there are more
+                      : tags.join(", ") || "None";
+
                     tooltipEl.innerHTML = `
                       <strong>Location:</strong> ${
                         info.event.extendedProps.location || "N/A"
@@ -875,6 +931,8 @@ const GroupsPage = () => {
                         info.event.extendedProps.workout
                       }
                       ... <strong>and more</strong>
+                      <br/>
+                      <strong>Tags:</strong> ${tagsDisplay}<br/>
                       <br/>
                       <em>Click for more details</em>
                       <br/>

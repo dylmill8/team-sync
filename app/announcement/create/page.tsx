@@ -175,12 +175,13 @@ const CreateAnnouncementPage = () => {
           const groupData = groupSnap.data();
           const members = groupData.members || [];
 
-          // 3. Send a notification to all group members
-          //    Example: category = "Announcement", message = the new title
-          await notifyUsers(members, "Announcement", `${title}: ${body}`);
+          // send notifications asynchronously
+          notifyUsers(members, "Announcement", `${title}: ${body}`)
+            .catch((err) =>
+              console.error("Error sending announcement notifications", err)
+            );
         }
       }
-
       alert("Announcement successfully created!");
       router.push(`/groups?docId=${groupId}`);
     } catch (e) {

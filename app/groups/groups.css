@@ -6,7 +6,9 @@
 /* Group HEADER BACKGROUND */
 .group-header-background {
     background-color: rgb(204, 204, 204);
-    height: 5vh;
+    height: 40px;
+    min-height: 40px;
+    max-height: 40px;
     position: fixed;
     top: 0;
     left: 0;
@@ -15,13 +17,15 @@
 
 /* GROUP HEADER */
 .group-header {
-    height: 5vh;
+    height: 40px;
+    min-height: 40px;
+    max-height: 40px;
     margin: auto;
     justify-content: center;
     align-items: center;
     display: flex;
-    font-size: 4vh;
-    line-height: 5vh;
+    font-size: 32px;
+    line-height: 40px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -29,6 +33,7 @@
     position: relative;
     max-width: 1100px;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 .group-header * {
@@ -54,8 +59,10 @@
 
 .member-divider {
   border: none;
-  border-bottom: 1px solid #ccc; /* faint grey line */
-  margin: 2px 0;
+  border-bottom: 1px solid #d1d5db; /* light grey */
+  margin: 0.5rem 0;
+  width: 100%;
+  align-self: stretch;
 }
 
 .member-permission {
@@ -87,7 +94,7 @@
   justify-content: center;
   align-items: center;
   position: fixed;
-  top: 5vh;         /* matches header height */
+  top: 40px;         /* matches header height */
   left: 0;
   width: 100%;
   background: white; /* match content bg; adjust if needed */
@@ -131,7 +138,7 @@
   bottom: 12%;
   max-width: 1100px;
   width: 100%;
-  max-height: calc(85vh - 55px);
+  max-height: calc(90vh - 95px);
   overflow-y: auto;
   border-radius: 5px;
 }
@@ -142,9 +149,14 @@
   bottom: 12%;
   max-width: 1100px;
   width: 100%;
-  max-height: calc(85vh - 115px);
+  max-height: calc(90vh - 155px);
   overflow-y: auto;
   border-radius: 5px;
+}
+
+/* When user cannot create announcements, reduce max-height */
+.announcements.no-create {
+  max-height: calc(90vh - 115px);
 }
 
 .chat {
@@ -153,7 +165,16 @@
   bottom: 12%;
   max-width: 1100px;
   width: 100%;
-  max-height: calc(85vh - 115px);
+  max-height: calc(90vh - 155px);
   overflow-y: auto;
   border-radius: 5px;
+}
+
+ 
+.fc .fc-list-button {
+  margin-left: 10px !important;
+}
+
+.fc .fc-createEvent-button {
+  margin-left: 10px !important;
 }
