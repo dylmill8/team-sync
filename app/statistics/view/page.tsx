@@ -5,18 +5,16 @@ import { getAuth, User } from "firebase/auth";
 import { useState, useEffect } from "react";
 import { doc, DocumentReference, getDoc } from "firebase/firestore";
 
-// WARNING THIS PAGE IS NOT FUNCTIONAL AT ALL LOL
-
-interface GroupData {
-  announcements: DocumentReference[];
-  description: string;
-  events: DocumentReference[];
-  groupPic: string;
-  isPrivate: boolean;
-  members: { [key: string]: string[] };
-  name: string;
-  owner: string | string[];
-}
+// interface GroupData {
+//   announcements: DocumentReference[];
+//   description: string;
+//   events: DocumentReference[];
+//   groupPic: string;
+//   isPrivate: boolean;
+//   members: { [key: string]: string[] };
+//   name: string;
+//   owner: string | string[];
+// }
 
 interface EventData {
   name: string;
@@ -46,8 +44,8 @@ export default function StatisticsPage() {
 
   // user data
   const [username, setUsername] = useState<string | null>(null);
-  const [eventsList, setEventsList] = useState<EventData[] | []>([]);
-  const [workoutList, setWorkoutList] = useState<WorkoutData[] | []>([]);
+  const [eventsList, setEventsList] = useState<EventData[]>([]);
+  const [workoutList, setWorkoutList] = useState<WorkoutData[]>([]);
 
   // events data
 
@@ -81,59 +79,59 @@ export default function StatisticsPage() {
             setUsername(userData.username || null);
             
             // extract workouts
-            let workoutDataList = [];
-            if (userData.workouts) {
-              const workoutListPromise = userData.workouts.map(async (workoutRef: DocumentReference) => {
+            let workouts: WorkoutData[] = [];
+            if (Array.isArray(userData.workouts)) {
+              const workoutPromise = userData.workouts.map(async (workoutId: string) => {
+                const workoutRef = doc(db, "Workouts", workoutId);
                 const workoutDoc = await getDoc(workoutRef);
-                if (workoutDoc.exists()) {
-                  return workoutDoc.data();
-                }
+                return workoutDoc.data() as WorkoutData;
               });
 
-              workoutDataList = await Promise.all(workoutListPromise);
-              setWorkoutList(workoutDataList);
+              workouts = await Promise.all(workoutPromise);
+              const filteredWorkouts = workouts.filter((e) => e != null) as WorkoutData[];
+              workouts = filteredWorkouts;
             }
+            setWorkoutList(workouts);
 
-            // extract events from event and group lists
-            let userEventList = [];
-            if (userData.events) {
-              const userEventPromise = userData.events.map(async (eventRef: DocumentReference) => {
+            // extract user events
+            let events: EventData[] = [];
+            if (Array.isArray(userData.events)) {
+              const eventPromise = userData.events.map(async (eventRef: DocumentReference) => {
                 const eventDoc = await getDoc(eventRef);
-                if (eventDoc.exists()) {
-                  return eventDoc.data();
+                return eventDoc.data() as EventData;
+              });
+
+              const userEvents = await Promise.all(eventPromise);
+              const filteredUserEvents = userEvents.filter((e) => e != null) as EventData[];
+              events = filteredUserEvents;
+            }
+
+            // extract group events
+            if (Array.isArray(userData.groups)) {
+              const groupPromise = userData.groups.map(async (groupRef: DocumentReference) => {
+                const groupDoc = await getDoc(groupRef);
+                const groupData = groupDoc.data();
+
+                if (groupData?.events && Array.isArray(groupData.events)) {
+                  const events : EventData[] = [];
+
+                  for (const eventRef of groupData.events) {
+                    const eventDoc = await getDoc(eventRef);
+                    events.push(eventDoc.data() as EventData);
+                  }
+                  
+                  return events;
                 }
               });
 
-              userEventList = await Promise.all(userEventPromise);
+              const groupEventList = await Promise.all(groupPromise);
+              const filteredGroupList = groupEventList.flat().filter((e) => e != null);
+              console.log("filteredGroupList:", filteredGroupList);
+              console.log("events:", events);
+              events = [...events, ...filteredGroupList];
             }
+            setEventsList(events);
 
-            let groupEventList = [];
-            if (userData.groups) {
-              const groupEventPromise = userData.groups.map(
-                async (groupRef: DocumentReference) => {
-                  const groupDoc = await getDoc(groupRef);
-                  if (groupDoc.exists()) {
-                    const groupData = groupDoc.data() as GroupData;
-                    const groupEvents = groupData.events;
-
-                    const eventListPromise = groupEvents.map(async (eventRef) => {
-                      const eventDoc = await getDoc(eventRef);
-                      if (eventDoc.exists()) {
-                        return eventDoc.data();
-                      }
-                    })
-
-                    const eventList = await Promise.all(eventListPromise);
-                    return eventList;
-                  }
-                }
-              );
-
-              groupEventList = await Promise.all(groupEventPromise);
-            }
-
-            const allEvents = [...userEventList, ...groupEventList];
-            setEventsList(allEvents);
           }
         } catch (e) {
           console.log("error getting user data", e);
@@ -151,13 +149,13 @@ export default function StatisticsPage() {
           <h1>Hello, {username}!</h1>
 
           <h2>list of workouts:</h2>
-          {workoutList.map((workoutData) => (
-            <p key={workoutData.name}>{workoutData.name}</p>
+          {workoutList.map((workoutData, i) => (
+            <p key={i}>{workoutData.name}</p>
           ))}
 
           <h2>list of events:</h2>
-          {eventsList.map((eventData) => (
-            <p key={eventData.name}>{eventData.name}</p>
+          {eventsList.map((eventData, i) => (
+            <p key={i}>{eventData.name}</p>
           ))}
         </div>
       )}
