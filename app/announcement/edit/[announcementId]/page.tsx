@@ -42,6 +42,10 @@ export default function EditAnnouncementPage({
   const [imgH, setImgH] = useState(0);
   const [loading, setLoading] = useState(false);
 
+  // add attachments state
+  const [files, setFiles] = useState<File[]>([]);
+  const filesRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (!announcementId) return;
     async function load() {
@@ -64,23 +68,50 @@ export default function EditAnnouncementPage({
   const changeImage = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setImageFile(file);
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    const img = new window.Image();
-    img.onload = () => {
-      setImgW(img.width);
-      setImgH(img.height);
-    };
-    img.src = url;
+    const maxBytes = 1024 * 1024;
+    if (file.size > maxBytes) {
+      alert("Images must be under 1MB, please try again.");
+      setImageFile(null);
+      if (imageRef.current) imageRef.current.value = "";
+    } else {
+      setImageFile(file);
+      const url = URL.createObjectURL(file);
+      setPreview(url);
+      const img = new window.Image();
+      img.onload = () => {
+        setImgW(img.width);
+        setImgH(img.height);
+      };
+      img.src = url;
+    }
   };
 
-  // add a proper payload type
+  // attachments handler
+  const changeFiles = (e: ChangeEvent<HTMLInputElement>) => {
+    const inputFiles = e.currentTarget.files;
+    if (!inputFiles) {
+      setFiles([]);
+    } else {
+      const selected = Array.from(inputFiles);
+      const maxBytes = 1024 * 1024 * 10; // 10MB
+      const total = selected.reduce((sum, f) => sum + f.size, 0);
+      if (total > maxBytes) {
+        alert("Total size of files must be under 10MB, please try again.");
+        setFiles([]);
+        if (filesRef.current) filesRef.current.value = "";
+      } else {
+        setFiles(selected);
+      }
+    }
+  };
+
+  // expand payload type
   type AnnouncementPayload = {
     title: string;
     body: string;
     imageUrl?: string;
     imageDims?: [number, number];
+    fileUrls?: string[];
   };
 
   const onSave = async () => {
@@ -102,6 +133,20 @@ export default function EditAnnouncementPage({
       if (imageUrl) {
         payload.imageUrl = imageUrl;
         payload.imageDims = [imgW, imgH];
+      }
+      // process attachments
+      if (files.length) {
+        const fileUrls: string[] = [];
+        for (const file of files) {
+          const res = await fetch(`${window.location.origin}/api/blob/upload`, {
+            method: "POST",
+            headers: { "content-type": file.type },
+            body: file,
+          });
+          const { url } = (await res.json()) as { url: string };
+          fileUrls.push(url);
+        }
+        payload.fileUrls = fileUrls;
       }
       await updateDoc(annRef, payload);
       alert("Announcement updated");
@@ -137,23 +182,34 @@ export default function EditAnnouncementPage({
           <div className="mb-4">
             <Label className="text-sm font-medium">Upload Image</Label>
             <Input
-                type="file"
-                accept="image/*"
-                onChange={changeImage}
-                ref={imageRef}
-                className="mt-1"
+              type="file"
+              accept="image/*"
+              onChange={changeImage}
+              ref={imageRef}
+              className="mt-1"
             />
             {preview && (
               <div className="mt-4 w-1/2">
                 <NextImage
-                    className="rounded-lg"
-                    src={preview}
-                    alt="preview"
-                    width={imgW}
-                    height={imgH}
+                  className="rounded-lg"
+                  src={preview}
+                  alt="preview"
+                  width={imgW}
+                  height={imgH}
                 />
               </div>
             )}
+          </div>
+          {/* add file attachments UI */}
+          <div className="mb-4">
+            <Label className="text-sm font-medium">Upload Files</Label>
+            <Input
+              type="file"
+              multiple
+              onChange={changeFiles}
+              ref={filesRef}
+              className="mt-1"
+            />
           </div>
         </CardContent>
         <CardFooter className="flex justify-between">

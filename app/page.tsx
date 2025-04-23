@@ -106,9 +106,9 @@ const HomePage = () => {
 
         //console.log("Primary User UID:", primaryUser.uid);
 
-        const primaryUserDocRef = doc(db, "Users", primaryUser.uid);
+        const primaryUserDocRef = doc(db, "Users", primaryUser.uid); // primary user is already logged in
         const primaryUserDocSnap = await getDoc(primaryUserDocRef);
-        const secondaryUserDocRef = doc(db, "Users", user.uid);
+        const secondaryUserDocRef = doc(db, "Users", user.uid); // secondary user is being signed into
         const secondaryUserDocSnap = await getDoc(secondaryUserDocRef);
 
         if (primaryUserDocSnap.exists()) {
@@ -119,10 +119,6 @@ const HomePage = () => {
           //console.log("New User UID:", user.uid);
 
           const updatedAccounts = primaryUserData.otherAccounts || [];
-          updatedAccounts.push(newUserRef);
-          await updateDoc(primaryUserDocRef, {
-            otherAccounts: updatedAccounts,
-          });
 
           if (secondaryUserDocSnap.exists()) {
             const secondaryUserData = secondaryUserDocSnap.data();
@@ -134,6 +130,11 @@ const HomePage = () => {
                 (ref: { id: string }) => ref.id === primaryUser.uid
               )
             ) {
+              updatedAccounts.push(newUserRef);
+              await updateDoc(primaryUserDocRef, {
+                otherAccounts: updatedAccounts,
+              });
+              
               updatedSecondaryAccounts.push(primaryUserRef);
               await updateDoc(secondaryUserDocRef, {
                 otherAccounts: updatedSecondaryAccounts,
@@ -149,7 +150,7 @@ const HomePage = () => {
           return;
         }
 
-        // ✅ Redirect back to settings instead of calendar
+        // Redirect back to settings instead of calendar
         router.push("/settings");
         return;
       }

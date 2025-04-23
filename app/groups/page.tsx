@@ -41,7 +41,7 @@ import {
   updateDoc,
   arrayRemove,
 } from "firebase/firestore";
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense, Fragment } from "react";
 import { setDocument, viewDocument } from "../../utils/firebaseHelper.js";
 import NextImage from "next/image";
 
@@ -57,6 +57,7 @@ interface EventData {
   owner: string;
   RSVP: { [key: string]: string };
   workouts: string;
+  tags: string[];
 }
 
 interface CalendarEvent {
@@ -71,6 +72,7 @@ interface CalendarEvent {
   owner: string;
   RSVPStatus: string;
   workout: string;
+  tags: string[];
 }
 
 interface GroupData {
@@ -85,12 +87,14 @@ interface GroupData {
 }
 
 interface AnnouncementData {
+  title: string;
+  groupRef: DocumentReference;
   body: string;
   createdAt: Timestamp;
-  groupRef: DocumentReference;
-  title: string;
   imageUrl: string;
   imageDims: [];
+  fileUrls: string[];
+  filenames: string[];
 }
 
 type Message = {
@@ -114,6 +118,7 @@ const GroupsPage = () => {
 
   const chatRef = useRef<HTMLDivElement>(null);
   const tabsListRef = useRef<HTMLDivElement>(null);
+  const skipScrollRef = useRef<boolean>(false);
 
   const [eventList, setEventList] = useState<CalendarEvent[]>([]);
   const [groupData, setGroupData] = useState<GroupData | null>(null);
@@ -130,6 +135,11 @@ const GroupsPage = () => {
   const [createAnnouncement, setCreateAnnouncement] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [imageDims, setImageDims] = useState<Record<string, { width: number; height: number }>>({});
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingMessageText, setEditingMessageText] = useState<string>("");
+  const [suppressEditAfterDelete, setSuppressEditAfterDelete] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<"announcements"|"chat"|"calendar">("chat");
+  const [memberPics, setMemberPics] = useState<Record<string, string>>({});
 
   const handleDeleteAnnouncement = async (announcementId: string) => {
     if (!docId) return;
@@ -141,6 +151,28 @@ const GroupsPage = () => {
     setSortedAnnouncements((prev) =>
       prev.filter((a) => a.id !== announcementId)
     );
+  };
+
+  const startEditingMessage = (msg: Message) => {
+    setEditingMessageId(msg.id);
+    setEditingMessageText(msg.text);
+  };
+
+  const cancelEditing = () => {
+    setEditingMessageId(null);
+    setEditingMessageText("");
+  };
+
+  const saveEditedMessage = async () => {
+    if (!chatId || !editingMessageId) return;
+    const msgRef = doc(db, "Chats", chatId, "messages", editingMessageId);
+    await updateDoc(msgRef, { text: editingMessageText });
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === editingMessageId ? { ...m, text: editingMessageText } : m
+      )
+    );
+    cancelEditing();
   };
 
   useEffect(() => {
@@ -183,7 +215,9 @@ const GroupsPage = () => {
         router.push("/groupslist"); // Redirect to groups list page
         return;
       }
-      setGroupData(groupDoc.data() as GroupData);
+      const raw = groupDoc.data() as { groupPic?: string } & Omit<GroupData, "picture">;
+      const { groupPic, ...rest } = raw;
+      setGroupData({ picture: groupPic || "", ...rest } as GroupData);
     }
     fetchGroup();
   }, [docId, uid, router]);
@@ -317,6 +351,26 @@ const GroupsPage = () => {
     }
   }, [groupData?.announcements]);
 
+  useEffect(() => {
+    if (groupMembers.length) {
+      groupMembers.forEach(([, , userId]) => {
+        if (!memberPics[userId]) {
+          getDoc(doc(db, "Users", userId)).then((snap) => {
+            interface UserData { profilePic?: string; }
+      
+            if (snap.exists()) {
+                    const userData = snap.data() as UserData;
+                    const pic = userData.profilePic;
+                    if (pic) {
+                      setMemberPics((prev) => ({ ...prev, [userId]: pic }));
+                    }
+                  }
+          });
+        }
+      });
+    }
+  }, [groupMembers, memberPics]);
+
   async function handleCalendarTabClick() {
     if (!docId) {
       router.push("/groupslist");
@@ -355,6 +409,7 @@ const GroupsPage = () => {
             owner: eventData.owner,
             RSVPStatus: userRSVPStatus,
             workout: eventData.workouts,
+            tags: eventData.tags || [],
           };
         })
       );
@@ -364,6 +419,11 @@ const GroupsPage = () => {
 
   const handleDeleteMessage = async (messageId: string) => {
     if (!chatId || !messageId) return;
+    // if deleting user's last message, suppress edit on the new last one
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.id === messageId && lastMsg.userId === uid) {
+      setSuppressEditAfterDelete(true);
+    }
     try {
       await deleteDoc(doc(db, "Chats", chatId, "messages", messageId));
     } catch (error) {
@@ -410,6 +470,7 @@ const GroupsPage = () => {
         }))
         .reverse();
       await populateUsernames(olderMsgs);
+      skipScrollRef.current = true;
       setMessages((prev) => {
         // Combine old + new
         const combined = [...olderMsgs, ...prev];
@@ -429,6 +490,10 @@ const GroupsPage = () => {
       console.error("Error loading older messages:", error);
     }
     setLoadingMore(false);
+    // scroll chat window to the top after loading previous messages
+    if (chatRef.current) {
+      chatRef.current.scrollTop = 0;
+    }
   };
 
   const sendMessage = async (content: string = newMessage, isImage = false) => {
@@ -443,6 +508,7 @@ const GroupsPage = () => {
     try {
       await setDocument(`Chats/${chatId}/messages`, newMsgId, newMsgData);
       if (!isImage) setNewMessage("");
+      setSuppressEditAfterDelete(false);
     } catch (error) {
       console.error("Failed to send message:", error);
     }
@@ -474,9 +540,12 @@ const GroupsPage = () => {
   
   useEffect(() => {
     const chatEl = chatRef.current;
-    if (chatEl) {
-      chatEl.scrollTop = chatEl.scrollHeight;
+    if (!chatEl) return;
+    if (skipScrollRef.current) {
+      skipScrollRef.current = false;
+      return;
     }
+    chatEl.scrollTop = chatEl.scrollHeight;
   }, [messages]);
 
   // use effect for announcement permissions
@@ -492,6 +561,16 @@ const GroupsPage = () => {
     }
   }, [uid, groupData]);
 
+  // scroll-to-bottom when returning to chat tab
+  useEffect(() => {
+    if (activeTab === "chat" && chatRef.current) {
+      // defer to next tick so content is mounted
+      setTimeout(() => {
+        chatRef.current!.scrollTop = chatRef.current!.scrollHeight;
+      }, 0);
+    }
+  }, [activeTab]);
+
   return (
     <>
       <div className="group-header-background">
@@ -501,6 +580,16 @@ const GroupsPage = () => {
             if (docId) router.push(`/group/view?groupId=${docId}`);
           }}
         >
+          {groupData?.picture && (
+            <div className="w-10 h-10 relative mr-3 flex-shrink-0">
+              <NextImage
+                src={groupData.picture}
+                alt={`${groupData.name} thumbnail`}
+                fill
+                className="object-cover rounded-full"
+              />
+            </div>
+          )}
           {groupData?.name || "Loading..."}
           <div className="members-button" onClick={(e) => e.stopPropagation()}>
             <Sheet>
@@ -515,15 +604,30 @@ const GroupsPage = () => {
                     {Array.isArray(groupMembers) ? (
                       groupMembers.map(
                         (member: Array<string>, index: number) => (
-                          <li
-                            key={index}
-                            className="member-name"
-                            onClick={() => router.push(`/profile/${member[2]}`)}
-                          >
-                            <div className="member-username">{member[0]}</div>
-                            <div className="member-permission">{member[1]}</div>
-                            <hr className="member-divider" />
-                          </li>
+                          <Fragment key={member[2]}>
+                            <li
+                              className="member-name flex items-center space-x-2 p-2 hover:bg-gray-100 cursor-pointer"
+                              onClick={() => router.push(`/profile/${member[2]}`)}
+                            >
+                              {memberPics[member[2]] && (
+                                <div className="w-8 h-8 relative flex-shrink-0 rounded-full overflow-hidden">
+                                  <NextImage
+                                    src={memberPics[member[2]]}
+                                    alt={`${member[0]} profile`}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                </div>
+                              )}
+                              <div>
+                                <div className="member-username">{member[0]}</div>
+                                <div className="member-permission">{member[1]}</div>
+                              </div>
+                            </li>
+                            {index < groupMembers.length - 1 && (
+                              <hr className="member-divider" />
+                            )}
+                          </Fragment>
                         )
                       )
                     ) : (
@@ -542,6 +646,7 @@ const GroupsPage = () => {
         <Tabs
           defaultValue="chat"
           onValueChange={(value) => {
+            setActiveTab(value as "announcements" | "chat" | "calendar");
             if (value === "calendar") {
               handleCalendarTabClick();
             }
@@ -576,7 +681,9 @@ const GroupsPage = () => {
                 </Button>
               )}
             </div>
-            <div className="announcements space-y-4">
+            <div
+              className={`announcements space-y-4 ${!createAnnouncement ? "no-create" : ""}`}
+            >
               {sortedAnnouncements.length > 0 ? (
                 sortedAnnouncements.map((announcement) => (
                   <div key={announcement.id} className="relative">
@@ -585,7 +692,7 @@ const GroupsPage = () => {
                       <>
                         <Button
                           size="sm"
-                          className="absolute top-2 right-2"
+                          className="absolute top-2 right-2 bg-blue-500 hover:bg-blue-400"
                           onClick={() =>
                             router.push(
                               `/announcement/edit/${announcement.id}?groupId=${docId}`
@@ -619,48 +726,68 @@ const GroupsPage = () => {
                 <Button onClick={loadMoreMessages} disabled={loadingMore}>
                   {loadingMore ? "Loading..." : "Load Previous Messages"}
                 </Button>
-                {messages.map((msg: Message) => (
-                  <div
-                    key={msg.id}
-                    className="border rounded p-2 shadow-sm bg-white"
-                  >
-                    <div className="text-sm text-gray-500 flex justify-between">
-                      <div>
-                        {msg.username} •{" "}
-                        {msg.timestamp?.toDate?.().toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                {messages.map((msg: Message, idx: number) => {
+                  const isLastOwn = msg.userId === uid && idx === messages.length - 1;
+                  return (
+                    <div key={msg.id} className="border rounded p-2 shadow-sm bg-white">
+                      <div className="text-sm text-gray-500 flex justify-between">
+                        <div>
+                          {msg.username} •{" "}
+                          {msg.timestamp?.toDate?.().toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                        <div className="flex space-x-2">
+                          {(userRole === "leader" || userRole === "owner" || isLastOwn) && (
+                            <button
+                              onClick={() => handleDeleteMessage(msg.id)}
+                              className="text-red-500 hover:underline text-xs"
+                            >
+                              Delete
+                            </button>
+                          )}
+                          {isLastOwn && !editingMessageId && !msg.isImage && !suppressEditAfterDelete && (
+                            <button
+                              onClick={() => startEditingMessage(msg)}
+                              className="text-blue-500 hover:underline text-xs"
+                            >
+                              Edit
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      {(userRole === "leader" || userRole === "owner") && (
-                        <button
-                          onClick={() => handleDeleteMessage(msg.id)}
-                          className="text-red-500 hover:underline text-xs ml-2"
-                        >
-                          Delete
-                        </button>
+                      {editingMessageId === msg.id ? (
+                        <div className="flex space-x-2 mt-2">
+                          <Input
+                            value={editingMessageText}
+                            onChange={(e) => setEditingMessageText(e.target.value)}
+                          />
+                          <Button onClick={saveEditedMessage}>Save</Button>
+                          <Button variant="secondary" onClick={cancelEditing}>
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : msg.isImage ? (
+                        <NextImage
+                          src={msg.text}
+                          alt="Uploaded"
+                          width={imageDims[msg.id]?.width || 400}
+                          height={imageDims[msg.id]?.height || 200}
+                          className="max-w-full max-h-full mt-1 rounded"
+                          onLoadingComplete={({ naturalWidth, naturalHeight }) =>
+                            setImageDims((prev) => ({
+                              ...prev,
+                              [msg.id]: { width: naturalWidth, height: naturalHeight },
+                            }))
+                          }
+                        />
+                      ) : (
+                        <div className="mt-1">{msg.text}</div>
                       )}
                     </div>
-                    {msg.isImage ? (
-                    <NextImage
-                      src={msg.text}
-                      alt="Uploaded"
-                      width={imageDims[msg.id]?.width || 400}
-                      height={imageDims[msg.id]?.height || 200}
-                      className="max-w-full max-h-full mt-1 rounded"
-                      onLoadingComplete={({ naturalWidth, naturalHeight }) =>
-                        setImageDims((prev) => ({
-                          ...prev,
-                          [msg.id]: { width: naturalWidth, height: naturalHeight },
-                        }))
-                      }
-                    />
-                  ) : (
-                    <div>{msg.text}</div>
-                  )}
-
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -758,8 +885,6 @@ const GroupsPage = () => {
                       <strong>Workout:</strong> ${
                         info.event.extendedProps.workout
                       }
-                      ... <strong>and more</strong>
-                      <br/>
                       <em>Click for more details</em>
                       <br/>
                     `;
@@ -789,6 +914,11 @@ const GroupsPage = () => {
                       desc = "None";
                     }
 
+                    const tags = info.event.extendedProps.tags || [];
+                    const tagsDisplay = (tags.length > 3)
+                      ? `${tags.slice(0, 3).join(", ")}, etc.` // Show up to 3 tags and add "etc." if there are more
+                      : tags.join(", ") || "None";
+
                     tooltipEl.innerHTML = `
                       <strong>Location:</strong> ${
                         info.event.extendedProps.location || "N/A"
@@ -801,6 +931,8 @@ const GroupsPage = () => {
                         info.event.extendedProps.workout
                       }
                       ... <strong>and more</strong>
+                      <br/>
+                      <strong>Tags:</strong> ${tagsDisplay}<br/>
                       <br/>
                       <em>Click for more details</em>
                       <br/>

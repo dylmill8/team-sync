@@ -45,6 +45,8 @@ const CreateAnnouncementPage = () => {
   const [preview, setPreview] = useState<string | null>(null);
   const imageRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+  const filesRef = useRef<HTMLInputElement>(null);
 
   // get group reference
   useEffect(() => {
@@ -82,6 +84,28 @@ const CreateAnnouncementPage = () => {
     }
   };
 
+  const changeFiles = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = event.currentTarget.files;
+    if (!files) {
+      setFiles([]);
+    } else {
+      const selectedFiles = Array.from(files);
+      const maxBytes = 1024 * 1024 * 10; // 10MB
+      const totalSize = selectedFiles.reduce((acc, file) => acc + file.size, 0);
+
+      if (totalSize > maxBytes) {
+        alert("Total size of files must be under 10MB, please try again.");
+        setFiles([]);
+
+        if (filesRef.current) {
+          filesRef.current.value = "";
+        }
+      } else {
+        setFiles(selectedFiles);
+      }
+    }
+  };
+
   const createButton = async () => {
     if (!title) {
       alert("Announcement Title is required.");
@@ -98,6 +122,7 @@ const CreateAnnouncementPage = () => {
           method: "POST",
           headers: {
             "content-type": image.type,
+            "x-original-filename": image.name,
           },
           body: image,
         }).then(async (result) => {
@@ -105,6 +130,25 @@ const CreateAnnouncementPage = () => {
           //console.log("url:", url);
           imageUrl = url;
         });
+      }
+
+      const fileUrls: string[] = [];
+      const filenames: string[] = [];
+      if (files.length > 0) {
+        for (const file of files) {
+          await fetch(`${window.location.origin}/api/blob/upload`, {
+            method: "POST",
+            headers: {
+              "content-type": file.type,
+              "x-original-filename": file.name,
+            },
+            body: file,
+          }).then(async (result) => {
+            const { url, filename } = (await result.json()) as { url: string, filename: string};
+            fileUrls.push(url);
+            filenames.push(filename);
+          });
+        }
       }
 
       // create and add to database
@@ -115,6 +159,8 @@ const CreateAnnouncementPage = () => {
         createdAt: serverTimestamp(),
         imageUrl,
         imageDims: [imageWidth, imageHeight],
+        fileUrls,
+        filenames,
       });
       setTitle("");
       setBody("");
@@ -129,12 +175,13 @@ const CreateAnnouncementPage = () => {
           const groupData = groupSnap.data();
           const members = groupData.members || [];
 
-          // 3. Send a notification to all group members
-          //    Example: category = "Announcement", message = the new title
-          await notifyUsers(members, "Announcement", `${title}: ${body}`);
+          // send notifications asynchronously
+          notifyUsers(members, "Announcement", `${title}: ${body}`)
+            .catch((err) =>
+              console.error("Error sending announcement notifications", err)
+            );
         }
       }
-
       alert("Announcement successfully created!");
       router.push(`/groups?docId=${groupId}`);
     } catch (e) {
@@ -200,6 +247,17 @@ const CreateAnnouncementPage = () => {
                   />
                 </div>
               )}
+            </div>
+
+            <div>
+              <Label>Upload Files</Label>
+              <Input
+                type="file"
+                multiple
+                accept="application/*, text/*"
+                onChange={changeFiles}
+                ref={filesRef}
+              />
             </div>
           </form>
         </CardContent>
