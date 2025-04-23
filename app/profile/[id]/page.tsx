@@ -54,7 +54,9 @@ interface GroupInfo {
 export default function Profile() {
   const router = useRouter();
   const params = useParams();
-  const id = (params && typeof params === "object" && "id" in params ? params.id : "") as string;
+  const id = (
+    params && typeof params === "object" && "id" in params ? params.id : ""
+  ) as string;
   const [userId, setUserId] = useState("");
   const [profileId, setProfileId] = useState<string>("");
   const [userData, setUserData] = useState({ email: "", username: "" });
@@ -81,7 +83,9 @@ export default function Profile() {
           const userData = userDoc.data();
           if (userData?.friends) {
             setFriendList(
-              userData.friends.map((friendRef: DocumentReference) => friendRef.id)
+              userData.friends.map(
+                (friendRef: DocumentReference) => friendRef.id
+              )
             );
           }
         }
@@ -183,7 +187,9 @@ export default function Profile() {
               (userData.groups as DocumentReference[]).map((ref) => getDoc(ref))
             );
             const newGroupList: GroupInfo[] = snaps
-              .filter((snap) => snap.exists() && snap.data()?.isPrivate === false)
+              .filter(
+                (snap) => snap.exists() && snap.data()?.isPrivate === false
+              )
               .map((snap) => {
                 const gd = snap.data()!;
                 const members = gd.members || {};
@@ -330,6 +336,23 @@ export default function Profile() {
           >
             Account Settings
           </button>
+
+          <button
+            onClick={() => router.push("/statistics/view")}
+            style={{
+              marginTop: "20px",
+              padding: "10px 20px",
+              backgroundColor: "#0070f3",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              width: "80%",
+            }}
+          >
+            View My Statistics
+          </button>
+
           <button
             onClick={() => router.push("/notification-settings")}
             style={{
@@ -359,8 +382,8 @@ export default function Profile() {
             }}
           >
             Open Messages
-           </button> 
-           <button
+          </button>
+          <button
             onClick={() => router.push("/profile/pastworkouts")}
             style={{
               marginTop: "20px",
@@ -374,7 +397,7 @@ export default function Profile() {
             }}
           >
             Past Workouts
-           </button> 
+          </button>
         </>
       )}
 
@@ -450,7 +473,7 @@ export default function Profile() {
           View All Announcements
         </button>
       )}
-      
+
       <button
         type="submit"
         style={{
