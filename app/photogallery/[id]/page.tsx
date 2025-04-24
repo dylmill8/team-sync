@@ -22,14 +22,11 @@ type GalleryImage = {
   owner: string;
 };
 
-interface PhotoGalleryPageProps {
-  groupId?: string;
+interface PhotoGalleryProps {
+  groupId: string;
 }
 
-export default function PhotoGalleryPage({ groupId: propGroupId }: PhotoGalleryPageProps) {
-  const params = useParams();
-  const groupId = propGroupId ?? (params?.id as string);
-
+export function PhotoGallery({ groupId }: PhotoGalleryProps) {
   const [userId, setUserId] = useState<string | null>(null);
   const [image, setImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -336,4 +333,10 @@ export default function PhotoGalleryPage({ groupId: propGroupId }: PhotoGalleryP
       </div>
     </>
   );
+}
+
+export default function Page() {
+  const params = useParams();
+  const groupId = params?.id as string;
+  return <PhotoGallery groupId={groupId} />;
 }

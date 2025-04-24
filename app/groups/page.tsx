@@ -1,6 +1,6 @@
 "use client";
 
-import PhotoGalleryPage from "../photogallery/[id]/page";
+import { PhotoGallery } from "../photogallery/[id]/page";
 import "./groups.css";
 
 import FullCalendar from "@fullcalendar/react";
@@ -1063,7 +1063,7 @@ const GroupsPage = () => {
             `}</style>
           </TabsContent>
           <TabsContent value="gallery" className="tabs-content">
-            <PhotoGalleryPage groupId={docId} />
+            <PhotoGallery groupId={docId} />
           </TabsContent>
         </Tabs>
       </div>
