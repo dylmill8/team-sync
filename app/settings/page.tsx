@@ -34,10 +34,9 @@ export default function Settings() {
   const [updating, setUpdating] = useState(false);
   const [image, setImage] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState("/uploads/default.png");
+  //const [preview, setPreview] = useState("/uploads/default.png");
   const [showAccounts, setShowAccounts] = useState(false);
   const [otherAccounts, setOtherAccounts] = useState<LooseAccount[]>([]);
-  const [avatarDims, setAvatarDims] = useState({ width: 0, height: 0 });
 
   //TODO: make this actually take state from database
   const [isLightMode, setIsLightMode] = useState(false);
@@ -71,21 +70,21 @@ export default function Settings() {
       }
     };
 
-    const fetchProfileImage = async () => {
-      try {
-        const res = await fetch(`/api/getProfileImage?userId=${userId}`);
-        const data = await res.json();
-        if (res.ok && data.file) {
-          setPreview(`/uploads/${data.file}?timestamp=${Date.now()}`);
-        }
-      } catch {
-        setPreview("/uploads/testuser.png");
-      }
-    };
+    // const fetchProfileImage = async () => {
+    //   try {
+    //     const res = await fetch(`/api/getProfileImage?userId=${userId}`);
+    //     const data = await res.json();
+    //     if (res.ok && data.file) {
+    //       setPreview(`/uploads/${data.file}?timestamp=${Date.now()}`);
+    //     }
+    //   } catch {
+    //     setPreview("/uploads/testuser.png");
+    //   }
+    // };
 
     if (userId) {
       fetchUserData();
-      fetchProfileImage();
+      //fetchProfileImage();
     }
   }, [userId]);
 
