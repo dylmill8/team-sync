@@ -30,6 +30,25 @@
   background: rgb(60, 60, 60);
   color: white;
 }
+
+.light-mode .button {
+  background-color: rgb(204, 204, 204);
+  color: black;
+}
+
+.light-mode .button:hover {
+  background-color: rgb(175, 175, 175); /* Light mode hover color */
+}
+
+.dark-mode .button {
+  background-color: rgb(35, 35, 35);
+  color: white;
+}
+
+.dark-mode .button:hover {
+  background-color: rgb(90, 90, 90); /* Dark mode hover color */
+}
+
 .navbar {
   background-color: rgb(204, 204, 204);
   color: black;

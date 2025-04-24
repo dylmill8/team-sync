@@ -1,43 +1,36 @@
 "use client";
 
-import React from "react";
+import React from "react"; // Add React import
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useTheme } from "@/context/ThemeContext"; // Import ThemeContext
+import { useState } from "react";
 
 const NavBar = () => {
-    const { isLightMode } = useTheme(); // Use ThemeContext to track theme changes
-
     return (
-        <div className="navbar fixed bottom-0 left-0 w-full items-center shadow-md flex justify-around h-[10vh] border-t z-10 p-0">
-            <NavBarItem href="/search" icon="/nav_bar_icons/Search.png" isLightMode={isLightMode} />
-            <NavBarItem href="/groupslist" icon="/nav_bar_icons/Groups.png" isLightMode={isLightMode} />
-            <NavBarItem href="/calendar" icon="/nav_bar_icons/Calendar.png" isLightMode={isLightMode} />
-            <NavBarItem href="/settings" icon="/nav_bar_icons/Settings.png" isLightMode={isLightMode} />
-            <NavBarItem href="/profile" icon="/nav_bar_icons/Profile.png" isLightMode={isLightMode} />
+        <div className={`navbar fixed bottom-0 left-0 w-full items-center shadow-md flex justify-around h-[10vh] border-t z-10 p-0 min-h-[20]`}>
+            <NavBarItem href="/search" icon="/nav_bar_icons/Search.png" active={false} />
+            <NavBarItem href="/groupslist" icon="/nav_bar_icons/Groups.png" active={false} />
+            <NavBarItem href="/calendar" icon="/nav_bar_icons/Calendar.png" active={false} />
+            <NavBarItem href="/settings" icon="/nav_bar_icons/Settings.png" active={false} />
+            <NavBarItem href="/profile" icon="/nav_bar_icons/Profile.png" active={false} />
         </div>
     );
 };
 
-const NavBarItem = ({ href, icon, isLightMode }: { href: string; icon: string; isLightMode: boolean }) => {
+const NavBarItem = ({ href, icon, active }: { href: string; icon: string; active: boolean }) => {
     const router = useRouter();
-    const iconSrc = isLightMode ? icon : icon.replace(".png", "-White.png");
+    const isDarkMode = useState(false);
+
+    // Dynamically change the icon based on the theme
+    const iconSrc = isDarkMode ? icon.replace(".png", "-White.png") : icon;
 
     return (
-        <Button
-            variant="ghost"
-            className="relative flex justify-center items-center aspect-square h-[40%]"
-            onClick={() => router.push(href)}
-        >
-            <Image
-                src={iconSrc}
-                alt="Icon"
-                fill
-                className="object-contain"
-            />
+        <Button variant={active ? "default" : "ghost"} className="button justify-center flex flex-col items-center w-[4vw] h-[4vh] max-w-[400] max-h-[400] relative"
+        onClick={() => router.push(href)}>
+            {/* Use iconSrc */}
+            <Image src={iconSrc} alt="Icon" objectFit="contain" fill className="flex object-contain w-[6vw] h-[6vh]" />
         </Button>
     );
 };
-
 export default NavBar;
