@@ -338,7 +338,7 @@ export default function Profile() {
             View My Statistics
           </button>
 
-          <button
+          {/*<button
             onClick={() => router.push("/notification-settings")}
             style={{
               marginTop: "20px",
@@ -352,7 +352,7 @@ export default function Profile() {
             }}
           >
             Notification Settings
-          </button>
+          </button>*/}
           <button
             onClick={() => router.push("/messages")}
             style={{
