@@ -32,7 +32,7 @@
 }
 
 .light-mode .button {
-  background-color: rgb(204, 204, 204);
+  background-color: transparent;
   color: black;
 }
 
@@ -41,7 +41,7 @@
 }
 
 .dark-mode .button {
-  background-color: rgb(35, 35, 35);
+  background-color: transparent;
   color: white;
 }
 
@@ -52,7 +52,6 @@
 .navbar {
   background-color: rgb(204, 204, 204);
   color: black;
-  transition: background-color 0.3s ease, color 0.3s ease, border 0.3s ease;
 }
 
 .light-mode .navbar {
