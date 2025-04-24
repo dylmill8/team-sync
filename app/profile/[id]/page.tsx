@@ -16,6 +16,8 @@ import { auth, db } from "../../../utils/firebaseConfig.js";
 import NavBar from "@/components/ui/navigation-bar";
 import { DocumentReference } from "firebase/firestore";
 import Image from "next/image";
+import NextImage from "next/image";
+
 
 interface EventData {
   name: string;
@@ -59,8 +61,7 @@ export default function Profile() {
   ) as string;
   const [userId, setUserId] = useState("");
   const [profileId, setProfileId] = useState<string>("");
-  const [userData, setUserData] = useState({ email: "", username: "" });
-  const [preview, setPreview] = useState("/default.png");
+  const [userData, setUserData] = useState({ email: "", username: "" , profilePic: null});
   const [eventList, setEventList] = useState<CalendarEvent[]>([]);
   const [showEvents, setShowEvents] = useState(false);
   const [isFriend, setIsFriend] = useState(false);
@@ -112,6 +113,7 @@ export default function Profile() {
           setUserData({
             email: userData.email || "",
             username: userData.username || "",
+            profilePic: userData.profilePic || null
           });
           if (Array.isArray(userData.events)) {
             const newEventList = [];
@@ -208,21 +210,7 @@ export default function Profile() {
         console.error("Error fetching user data:", error);
       }
     };
-
-    const fetchProfileImage = async () => {
-      try {
-        const res = await fetch(`/api/getProfileImage?userId=${profileId}`);
-        const data = await res.json();
-        if (res.ok && data.file) {
-          setPreview(`/uploads/${data.file}?timestamp=${Date.now()}`);
-        }
-      } catch {
-        setPreview("/uploads/testuser.png");
-      }
-    };
-
     fetchUserData();
-    fetchProfileImage();
   }, [profileId]);
 
   const sendFriendRequest = async () => {
@@ -299,18 +287,15 @@ export default function Profile() {
           border: "3px solid #0070f3",
         }}
       >
-        <Image
-          src={preview}
+        <NextImage
+          src={userData?.profilePic || "https://ns6ela3qh5m1napj.public.blob.vercel-storage.com/88BqvzD.-sYOdx4LwT08Vjf9C4TxU17uTscYPjn.bin"}
           alt="Profile"
           width={150}
           height={150}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-          }}
-          onError={(e) => (e.currentTarget.src = "/default.png")}
+          className="rounded-full object-cover w-[150px] h-[150px]"
+          onError={(e) => (e.currentTarget.src = "https://ns6ela3qh5m1napj.public.blob.vercel-storage.com/88BqvzD.-sYOdx4LwT08Vjf9C4TxU17uTscYPjn.bin")}
         />
+
       </div>
       {/*<h2>User ID: {userId}</h2>*/}
       <p>

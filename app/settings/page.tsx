@@ -10,6 +10,8 @@ import { db } from "@/utils/firebaseConfig.js";
 import NavBar from "@/components/ui/navigation-bar";
 import { setDocument, viewDocument, logout } from "../../utils/firebaseHelper.js";
 import NextImage from "next/image";
+import { PutBlobResult } from "@vercel/blob";
+
 
 type LooseAccount = {
   id?: string;
@@ -18,17 +20,23 @@ type LooseAccount = {
   [key: string]: unknown;
 };
 
+type FormData = {
+  email: string;
+  username: string;
+  isLightTheme: boolean;
+  profilePic: string | null;
+};
+
 export default function Settings() {
   const router = useRouter();
   const [userId, setUserId] = useState("");
-  const [formData, setFormData] = useState({ email: "", username: "", isLightTheme: false});
+  const [formData, setFormData] = useState<FormData>({ email: "", username: "", isLightTheme: false, profilePic: null});
   const [updating, setUpdating] = useState(false);
   const [image, setImage] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState("/uploads/default.png");
+  //const [preview, setPreview] = useState("/uploads/default.png");
   const [showAccounts, setShowAccounts] = useState(false);
   const [otherAccounts, setOtherAccounts] = useState<LooseAccount[]>([]);
-  const [avatarDims, setAvatarDims] = useState({ width: 0, height: 0 });
 
   //TODO: make this actually take state from database
   const [isLightMode, setIsLightMode] = useState(false);
@@ -55,27 +63,28 @@ export default function Settings() {
             email: data.email || "",
             username: data.username || "",
             isLightTheme: data.isLightTheme || false,
+            profilePic: data.profilePic || null
           });
           setIsLightMode(!data.isLightTheme || false);
         }
       }
     };
 
-    const fetchProfileImage = async () => {
-      try {
-        const res = await fetch(`/api/getProfileImage?userId=${userId}`);
-        const data = await res.json();
-        if (res.ok && data.file) {
-          setPreview(`/uploads/${data.file}?timestamp=${Date.now()}`);
-        }
-      } catch {
-        setPreview("/uploads/testuser.png");
-      }
-    };
+    // const fetchProfileImage = async () => {
+    //   try {
+    //     const res = await fetch(`/api/getProfileImage?userId=${userId}`);
+    //     const data = await res.json();
+    //     if (res.ok && data.file) {
+    //       setPreview(`/uploads/${data.file}?timestamp=${Date.now()}`);
+    //     }
+    //   } catch {
+    //     setPreview("/uploads/testuser.png");
+    //   }
+    // };
 
     if (userId) {
       fetchUserData();
-      fetchProfileImage();
+      //fetchProfileImage();
     }
   }, [userId]);
 
@@ -87,7 +96,13 @@ export default function Settings() {
     if (event.target.files && event.target.files.length > 0) {
       const file = event.target.files[0];
       setImage(file);
-      setPreview(URL.createObjectURL(file));
+      const previewUrl = URL.createObjectURL(file);
+      setFormData({
+        email: formData.email || "",
+        username: formData.username || "",
+        isLightTheme: formData.isLightTheme || false,
+        profilePic: previewUrl || null
+      });
     }
   };
 
@@ -101,26 +116,59 @@ export default function Settings() {
     setUploading(true);
     const formData = new FormData();
     formData.append("image", image);
-
     try {
-      const res = await fetch(`/api/upload?userId=${userId}`, {
+      /* console.log("groupPicture:", groupPicture);
+      console.log("type:", groupPicture.type);
+      console.log("name:", groupPicture.name);
+      console.log("size:", groupPicture.size); */
+      fetch("../api/blob/upload", {
         method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Upload failed");
-      }
-      alert("Upload successful!");
+        headers: {
+          "content-type": image?.type || "application/octet-stream",
+        },
+        body: image,
+      })
+        .then(async (result) => {
+          // Check if the result is successful
+          if (!result.ok) {
+            throw new Error("Failed to upload the picture");
+          }
+          const { url } = await result.json() as PutBlobResult;
+  
+          // Now update the group document with the picture URL and other data
+          await setDoc(doc(db, "Users", userId), {
+            profilePic: url,
+          }, { merge: true });
+        })
+        .catch((error) => {
+          console.error("Upload failed", error);
+        });
+        alert("Successfully uploaded profile picture.");
     } catch (error) {
-      if (error instanceof Error) {
-        alert(`Upload failed! ${error.message || "Unknown error"}`);
-      } else {
-        alert("Upload failed! Unknown error");
-      }
+      console.error("uppload failed", error);
     } finally {
       setUploading(false);
     }
+
+    // try {
+    //   const res = await fetch(`/api/upload?userId=${userId}`, {
+    //     method: "POST",
+    //     body: formData,
+    //   });
+    //   const data = await res.json();
+    //   if (!res.ok) {
+    //     throw new Error(data.error || "Upload failed");
+    //   }
+    //   alert("Upload successful!");
+    // } catch (error) {
+    //   if (error instanceof Error) {
+    //     alert(`Upload failed! ${error.message || "Unknown error"}`);
+    //   } else {
+    //     alert("Upload failed! Unknown error");
+    //   }
+    // } finally {
+    //   setUploading(false);
+    // }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -357,20 +405,15 @@ export default function Settings() {
     >
       <h1 style={{ fontSize: "24px", marginBottom: "15px" }}>Settings</h1>
 
-      <div style={{ marginBottom: "20px" }}>
-        {preview && (
-          <NextImage
-            src={preview}
-            alt="User Avatar"
-            width={avatarDims.width || 100}
-            height={avatarDims.height || 100}
-            onLoadingComplete={({ naturalWidth, naturalHeight }) =>
-              setAvatarDims({ width: naturalWidth, height: naturalHeight })
-            }
-            style={{ border: "3px solid #0070f3" }}
-            className="w-32 h-32 rounded-full object-cover shadow-md block mx-auto"
-          />
-        )}
+      <div className="mb-5 flex justify-center">
+      <NextImage
+          src={formData?.profilePic || "https://ns6ela3qh5m1napj.public.blob.vercel-storage.com/88BqvzD.-sYOdx4LwT08Vjf9C4TxU17uTscYPjn.bin"}
+          alt="Profile"
+          width={150}
+          height={150}
+          className="rounded-full object-cover w-[150px] h-[150px]"
+          onError={(e) => (e.currentTarget.src = "https://ns6ela3qh5m1napj.public.blob.vercel-storage.com/88BqvzD.-sYOdx4LwT08Vjf9C4TxU17uTscYPjn.bin")}
+        />
       </div>
       <form onSubmit={handleUpload} style={{ marginBottom: "20px" }}>
         <input
