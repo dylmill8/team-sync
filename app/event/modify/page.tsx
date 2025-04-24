@@ -53,7 +53,6 @@ const ModifyEventPage = () => {
   const [deleteEvent, setDeleteEvent] = useState(false);
 
   const [tags, setTags] = useState<string[]>([]); // State for selected tags
-  //const availableTags = ["Team", "Club", "Beginner", "Intermediate", "Advanced", "Sports", "Basketball", "American Football", "Soccer", "Volleyball", "Baseball", "Track/Field", "Climbing", "Training", "Fitness", "Gym", "Workouts"]; // Available tags
   // eslint-disable-next-line prefer-const
   let [availableTags, setAvailableTags] = useState<string[]>(["Mandatory", "Match", "Tournament", "Exercise", "Workout", "Training", "Practice", "Meetup", "Hangout", "Wellness"]);
 
@@ -142,7 +141,7 @@ const ModifyEventPage = () => {
   ) => {
     const { name, value } = e.target;
 
-    console.log("name:", name);
+    //console.log("name:", name);
     if (allDay && name == "start") {
       setUpdatedData((prevData) => ({
         ...prevData,
@@ -188,11 +187,11 @@ const ModifyEventPage = () => {
       const localStartDate = updatedData.start.split("T")[0] + "T00:00";
       const localEndDate = updatedData.end.split("T")[0] + "T23:59";
 
-      console.log("start:", updatedData.start);
+      /* console.log("start:", updatedData.start);
       console.log("end:", updatedData.end);
       console.log("start formatted:", localStartDate);
       console.log("end formatted:", localEndDate);
-      console.log("all day:", allDay);
+      console.log("all day:", allDay); */
 
       await updateDoc(docRef, {
         name: updatedData.name,

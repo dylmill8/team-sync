@@ -59,7 +59,7 @@ function RSVPView({ eventId }: { eventId: string }) {
         // setNoList(data?.RSVP_no || []);
         setRSVPList(data?.RSVP || {});
       } else {
-        console.log("error getting rsvp statuses");
+        console.error("error getting rsvp statuses");
       }
     });
 
@@ -83,7 +83,7 @@ function RSVPView({ eventId }: { eventId: string }) {
         // setNoList(data?.RSVP_no);
         setRSVPList(data?.RSVP);
       } else {
-        console.log("data can't be found.");
+        console.error("data can't be found.");
       }
     };
 

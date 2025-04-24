@@ -13,7 +13,7 @@ export default function Profile() {
         event.preventDefault();
         try {
             await setDocument(collectionId, docId, { name: value });
-            console.log("Document successfully written!");
+            //console.log("Document successfully written!");
             setDocId('');
             setValue('');
         } catch (e) {

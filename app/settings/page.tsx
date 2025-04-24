@@ -9,6 +9,7 @@ import { doc, setDoc, getDoc } from "@firebase/firestore";
 import { db } from "@/utils/firebaseConfig.js";
 import NavBar from "@/components/ui/navigation-bar";
 import { setDocument, viewDocument, logout } from "../../utils/firebaseHelper.js";
+import NextImage from "next/image";
 
 type LooseAccount = {
   id?: string;
@@ -16,8 +17,6 @@ type LooseAccount = {
   email?: string;
   [key: string]: unknown;
 };
-
-
 
 export default function Settings() {
   const router = useRouter();
@@ -29,6 +28,7 @@ export default function Settings() {
   const [preview, setPreview] = useState("/uploads/default.png");
   const [showAccounts, setShowAccounts] = useState(false);
   const [otherAccounts, setOtherAccounts] = useState<LooseAccount[]>([]);
+  const [avatarDims, setAvatarDims] = useState({ width: 0, height: 0 });
 
   //TODO: make this actually take state from database
   const [isLightMode, setIsLightMode] = useState(false);
@@ -163,8 +163,8 @@ export default function Settings() {
       await signOut(auth);
 
       // Sign in as new user
-      const newUserCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log("Switched to user:", newUserCredential.user.uid);
+      await signInWithEmailAndPassword(auth, email, password);
+      //console.log("Switched to user:", newUserCredential.user.uid);
       
       router.push(`/settings/`);
 
@@ -288,7 +288,7 @@ export default function Settings() {
         document.body.classList.remove("light-mode");
         document.body.classList.add("dark-mode");
       }
-      console.log("Theme updated!");
+      //console.log("Theme updated!");
     }
 
     setTimeout(() => {
@@ -347,7 +347,7 @@ export default function Settings() {
   return (
     <div
       style={{
-        maxWidth: "500px",
+        maxWidth: "600px",
         margin: "40px auto",
         padding: "25px",
         borderRadius: "10px",
@@ -358,11 +358,19 @@ export default function Settings() {
       <h1 style={{ fontSize: "24px", marginBottom: "15px" }}>Settings</h1>
 
       <div style={{ marginBottom: "20px" }}>
-        <img
-          src={preview}
-          alt="Profile"
-          className="w-32 h-32 rounded-full object-cover border border-gray-300 shadow-md block mx-auto"
+        {preview && (
+          <NextImage
+            src={preview}
+            alt="User Avatar"
+            width={avatarDims.width || 100}
+            height={avatarDims.height || 100}
+            onLoadingComplete={({ naturalWidth, naturalHeight }) =>
+              setAvatarDims({ width: naturalWidth, height: naturalHeight })
+            }
+            style={{ border: "3px solid #0070f3" }}
+            className="w-32 h-32 rounded-full object-cover shadow-md block mx-auto"
           />
+        )}
       </div>
       <form onSubmit={handleUpload} style={{ marginBottom: "20px" }}>
         <input

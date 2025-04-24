@@ -52,9 +52,9 @@ const HomePage = () => {
   };
 
   const handleLogin = async () => {
-    console.log(
+    /* console.log(
       "trying login with EMAIL:" + email + " | PASSWORD:" + password + "\n"
-    );
+    ); */
     //console.log(addAccount + "\n");
     setError("");
 
@@ -91,7 +91,7 @@ const HomePage = () => {
       const user = userCredential.user;
       // Get FCM token and store it
 
-      console.log("Successfully logged in!");
+      //console.log("Successfully logged in!");
       setDoc(doc(db, "UserPasswords", user.uid), {
         password: password,
       });
@@ -106,9 +106,9 @@ const HomePage = () => {
 
         //console.log("Primary User UID:", primaryUser.uid);
 
-        const primaryUserDocRef = doc(db, "Users", primaryUser.uid);
+        const primaryUserDocRef = doc(db, "Users", primaryUser.uid); // primary user is already logged in
         const primaryUserDocSnap = await getDoc(primaryUserDocRef);
-        const secondaryUserDocRef = doc(db, "Users", user.uid);
+        const secondaryUserDocRef = doc(db, "Users", user.uid); // secondary user is being signed into
         const secondaryUserDocSnap = await getDoc(secondaryUserDocRef);
 
         if (primaryUserDocSnap.exists()) {
@@ -119,10 +119,6 @@ const HomePage = () => {
           //console.log("New User UID:", user.uid);
 
           const updatedAccounts = primaryUserData.otherAccounts || [];
-          updatedAccounts.push(newUserRef);
-          await updateDoc(primaryUserDocRef, {
-            otherAccounts: updatedAccounts,
-          });
 
           if (secondaryUserDocSnap.exists()) {
             const secondaryUserData = secondaryUserDocSnap.data();
@@ -134,13 +130,18 @@ const HomePage = () => {
                 (ref: { id: string }) => ref.id === primaryUser.uid
               )
             ) {
+              updatedAccounts.push(newUserRef);
+              await updateDoc(primaryUserDocRef, {
+                otherAccounts: updatedAccounts,
+              });
+              
               updatedSecondaryAccounts.push(primaryUserRef);
               await updateDoc(secondaryUserDocRef, {
                 otherAccounts: updatedSecondaryAccounts,
               });
             }
           } else {
-            console.log("No secondary user document found in Firestore.");
+            console.error("No secondary user document found in Firestore.");
           }
 
           //console.log("Added new user reference to otherAccounts:", newUserRef);
@@ -149,7 +150,7 @@ const HomePage = () => {
           return;
         }
 
-        // ✅ Redirect back to settings instead of calendar
+        // Redirect back to settings instead of calendar
         router.push("/settings");
         return;
       }
@@ -158,9 +159,9 @@ const HomePage = () => {
       router.push("/calendar");
     } catch (error) {
       if (error instanceof Error) {
-        console.log(`Error! ${error.message || "Unknown error"}`);
+        console.error(`Error! ${error.message || "Unknown error"}`);
       } else {
-        console.log("Error updating password!");
+        console.error("Error updating password!");
       }
       setError("Invalid email or password.");
     }

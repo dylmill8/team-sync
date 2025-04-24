@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Card,
@@ -22,6 +22,8 @@ interface AnnouncementData {
   createdAt: Timestamp;
   imageUrl: string;
   imageDims: [];
+  fileUrls: string[];
+  filenames: string[];
 }
 
 interface UserAnnouncementCardProps {
@@ -38,7 +40,12 @@ function UserAnnouncementCard({
   const [body, setBody] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [imageDims, setImageDims] = useState([1, 1]);
+  const [fileUrls, setFileUrls] = useState<string[]>([]);
+  const [filenames, setFilenames] = useState<string[]>([]);
   const [time, setTime] = useState("");
+
+  const imageRef = useRef<HTMLImageElement>(null);
+  const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
     const fetchAnnouncementData = async () => {
@@ -48,6 +55,8 @@ function UserAnnouncementCard({
         setBody(announcementData.body || "");
         setImageUrl(announcementData.imageUrl || "");
         setImageDims(announcementData.imageDims || [1, 1]);
+        setFileUrls(announcementData.fileUrls || []);
+        setFilenames(announcementData.filenames || []);
         setTime(
           announcementData.createdAt
             ? announcementData.createdAt.toDate().toLocaleString()
@@ -69,6 +78,8 @@ function UserAnnouncementCard({
           setBody(data.body || "");
           setImageUrl(data.imageUrl || "");
           setImageDims(data.imageDims || [1, 1]);
+          setFileUrls(data.fileUrls || []);
+          setFilenames(data.filenames || []);
           setTime(data.createdAt?.toDate().toLocaleString() || "");
           if (data.groupRef) {
             const groupDoc = await getDoc(data.groupRef);
@@ -78,7 +89,7 @@ function UserAnnouncementCard({
             }
           }
         } else {
-          console.log("No such document!");
+          console.error("No such document!");
         }
       }
     };
@@ -87,6 +98,18 @@ function UserAnnouncementCard({
       console.error("Error fetching announcement data:", error)
     );
   }, [announcementRef, announcementData]);
+
+  const imageFullscreen = () => {
+    if (imageRef.current?.requestFullscreen) {
+      if (!fullscreen) {
+        imageRef.current.requestFullscreen();
+        setFullscreen(true);
+      } else {
+        document.exitFullscreen();
+        setFullscreen(false);
+      }
+    }
+  };
 
   return (
     <div className="flex items-center justify-center mt-3">
@@ -104,13 +127,30 @@ function UserAnnouncementCard({
           {imageUrl && (
             <div className="mt-2 w-1/2">
               <Image
+                ref={imageRef}
                 src={imageUrl}
                 alt="announcement image"
                 width={imageDims[0]}
                 height={imageDims[1]}
+                onClick={imageFullscreen}
+                className="cursor-pointer"
               />
             </div>
           )}
+
+          <div>
+            {fileUrls.map((url, i) => (
+              <div key={i} className="cursor-pointer">
+                <Image src="/icons/file-icon.png" alt="file icon" className="inline mr-1" width="15" height="15"/>
+                <a href={url} target="_blank" rel="noopener noreferrer">
+                  <Label className="text-blue-500 underline">
+                    {filenames[i] || "unnamed file"}
+                  </Label>
+                </a>
+              </div>
+            ))}
+          </div>
+
         </CardContent>
 
         <CardFooter>

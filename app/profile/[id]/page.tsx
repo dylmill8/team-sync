@@ -17,7 +17,6 @@ import NavBar from "@/components/ui/navigation-bar";
 import { DocumentReference } from "firebase/firestore";
 import Image from "next/image";
 
-
 interface EventData {
   name: string;
   allDay: boolean;
@@ -44,10 +43,20 @@ interface CalendarEvent {
   workout: string;
 }
 
+interface GroupInfo {
+  name: string;
+  docID: string;
+  description: string;
+  groupPic: string;
+  memberCount: number;
+}
+
 export default function Profile() {
   const router = useRouter();
   const params = useParams();
-  const id = (params && typeof params === "object" && "id" in params ? params.id : "") as string;
+  const id = (
+    params && typeof params === "object" && "id" in params ? params.id : ""
+  ) as string;
   const [userId, setUserId] = useState("");
   const [profileId, setProfileId] = useState<string>("");
   const [userData, setUserData] = useState({ email: "", username: "" });
@@ -56,6 +65,8 @@ export default function Profile() {
   const [showEvents, setShowEvents] = useState(false);
   const [isFriend, setIsFriend] = useState(false);
   const [friendList, setFriendList] = useState<string[]>([]);
+  const [groupList, setGroupList] = useState<GroupInfo[]>([]);
+  const [showGroups, setShowGroups] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -64,7 +75,6 @@ export default function Profile() {
         if (!profileId && typeof id === "string") {
           setProfileId(id);
         }
-        
 
         // Fetch the user's friend list
         const userDocRef = doc(db, "Users", user.uid);
@@ -73,7 +83,9 @@ export default function Profile() {
           const userData = userDoc.data();
           if (userData?.friends) {
             setFriendList(
-              userData.friends.map((friendRef: DocumentReference) => friendRef.id)
+              userData.friends.map(
+                (friendRef: DocumentReference) => friendRef.id
+              )
             );
           }
         }
@@ -168,6 +180,29 @@ export default function Profile() {
             }
             setEventList(newEventList);
           }
+
+          // Fetch public groups in parallel
+          if (Array.isArray(userData.groups)) {
+            const snaps = await Promise.all(
+              (userData.groups as DocumentReference[]).map((ref) => getDoc(ref))
+            );
+            const newGroupList: GroupInfo[] = snaps
+              .filter(
+                (snap) => snap.exists() && snap.data()?.isPrivate === false
+              )
+              .map((snap) => {
+                const gd = snap.data()!;
+                const members = gd.members || {};
+                return {
+                  name: gd.name as string,
+                  docID: snap.id,
+                  description: (gd.description as string) || "",
+                  groupPic: (gd.groupPic as string) || "",
+                  memberCount: Object.keys(members).length,
+                };
+              });
+            setGroupList(newGroupList);
+          }
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -194,12 +229,12 @@ export default function Profile() {
     try {
       const currentUserDocRef = doc(db, "Users", userId);
       const profileUserDocRef = doc(db, "Users", profileId);
-  
+
       // Add incoming request to profile user's document
       await updateDoc(profileUserDocRef, {
         incomingFriendRequests: arrayUnion(currentUserDocRef),
       });
-  
+
       // Fetch sender's username
       const currentUserDoc = await getDoc(currentUserDocRef);
       let senderUsername = "Someone";
@@ -207,20 +242,19 @@ export default function Profile() {
         const currentUserData = currentUserDoc.data();
         senderUsername = currentUserData.username || "Someone";
       }
-  
+
       // Notify the receiver
       await notifyUsers(
         [profileId],
         "FriendRequest",
         `${senderUsername} has sent you a friend request.`
       );
-  
+
       alert("Friend request sent!");
     } catch (error) {
       console.error("Error sending friend request:", error);
     }
   };
-  
 
   const removeFriend = async () => {
     try {
@@ -236,7 +270,7 @@ export default function Profile() {
       });
 
       setIsFriend(false);
-      console.log("Friend removed:", profileId);
+      //console.log("Friend removed:", profileId);
     } catch (error) {
       console.error("Error removing friend:", error);
     }
@@ -302,6 +336,23 @@ export default function Profile() {
           >
             Account Settings
           </button>
+
+          <button
+            onClick={() => router.push("/statistics/view")}
+            style={{
+              marginTop: "20px",
+              padding: "10px 20px",
+              backgroundColor: "#0070f3",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              width: "80%",
+            }}
+          >
+            View My Statistics
+          </button>
+
           <button
             onClick={() => router.push("/notification-settings")}
             style={{
@@ -331,8 +382,8 @@ export default function Profile() {
             }}
           >
             Open Messages
-           </button> 
-           <button
+          </button>
+          <button
             onClick={() => router.push("/profile/pastworkouts")}
             style={{
               marginTop: "20px",
@@ -346,11 +397,9 @@ export default function Profile() {
             }}
           >
             Past Workouts
-           </button> 
+          </button>
         </>
       )}
-
-  
 
       <button
         onClick={() => router.push("/friends")}
@@ -424,7 +473,7 @@ export default function Profile() {
           View All Announcements
         </button>
       )}
-      
+
       <button
         type="submit"
         style={{
@@ -481,6 +530,62 @@ export default function Profile() {
             </ul>
           ) : (
             <p className="mt-2 text-gray-500">No events found.</p>
+          )}
+        </div>
+      )}
+
+      <button
+        type="submit"
+        style={{
+          marginTop: "20px",
+          padding: "10px 20px",
+          backgroundColor: "#0070f3",
+          color: "#fff",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+          width: "80%",
+        }}
+        onClick={() => setShowGroups(!showGroups)}
+        className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+      >
+        {showGroups ? "Hide Public Groups" : "Show Public Groups"}
+      </button>
+
+      {showGroups && (
+        <div className="mt-2">
+          {groupList.length > 0 ? (
+            <ul className="space-y-2">
+              {groupList.map((g) => (
+                <li
+                  key={g.docID}
+                  onClick={() => router.push(`/groups?docId=${g.docID}`)}
+                  className="p-2 border rounded cursor-pointer hover:bg-gray-100"
+                >
+                  <div className="flex items-center space-x-3">
+                    {g.groupPic && (
+                      <div className="w-10 h-10 rounded-full overflow-hidden relative">
+                        <Image
+                          src={g.groupPic}
+                          alt={g.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    )}
+                    <div className="flex-1 text-left">
+                      <h4 className="font-semibold">{g.name}</h4>
+                      <p className="text-sm text-gray-600">{g.description}</p>
+                      <p className="text-xs text-gray-500">
+                        {g.memberCount} member{g.memberCount !== 1 && "s"}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-500 mt-1">No public groups found.</p>
           )}
         </div>
       )}

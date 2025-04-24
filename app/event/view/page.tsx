@@ -88,7 +88,7 @@ const ViewEventPage = () => {
 
         setLoading(false);
       } else {
-        console.log("data can't be found.");
+        console.error("data can't be found.");
       }
     };
 
