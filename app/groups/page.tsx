@@ -480,12 +480,23 @@ const GroupsPage = () => {
             interface UserData { profilePic?: string; }
       
             if (snap.exists()) {
-                    const userData = snap.data() as UserData;
-                    const pic = userData.profilePic;
-                    if (pic) {
-                      setMemberPics((prev) => ({ ...prev, [userId]: pic }));
-                    }
-                  }
+              const userData = snap.data() as UserData;
+              const pic = userData.profilePic;
+              if (pic) {
+                setMemberPics((prev) => ({ ...prev, [userId]: pic }));
+              }
+              else {
+                setMemberPics((prev) => ({
+                  ...prev,
+                  [userId]: "https://ns6ela3qh5m1napj.public.blob.vercel-storage.com/88BqvzD.-sYOdx4LwT08Vjf9C4TxU17uTscYPjn.bin"
+                }));                    }
+            }
+            else {
+              setMemberPics((prev) => ({
+                ...prev,
+                [userId]: "https://ns6ela3qh5m1napj.public.blob.vercel-storage.com/88BqvzD.-sYOdx4LwT08Vjf9C4TxU17uTscYPjn.bin"
+              }));  
+            }
           });
         }
       });

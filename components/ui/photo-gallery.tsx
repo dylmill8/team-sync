@@ -12,6 +12,8 @@ import {
   setDoc,
 } from "firebase/firestore";
 import NextImage from "next/image";
+import { PutBlobResult } from "@vercel/blob";
+
 
 type GalleryImage = {
   url: string;
@@ -106,45 +108,67 @@ export function PhotoGallery({ groupId }: PhotoGalleryProps) {
     formData.append("image", image);
 
     try {
-      const res = await fetch(`/api/uploadGalleryImage?groupId=${groupId}`, {
+      // const res = await fetch(`/api/uploadGalleryImage?groupId=${groupId}`, {
+      //   method: "POST",
+      //   body: formData,
+      // });
+
+
+      // const contentType = res.headers.get("content-type");
+      // if (contentType && contentType.includes("application/json")) {
+      //   data = await res.json();
+      // } else {
+      //   throw new Error("Server did not return JSON.");
+      // }
+
+
+      fetch("/api/blob/upload", {
         method: "POST",
-        body: formData,
-      });
+        headers: {
+          "content-type": image?.type || "application/octet-stream",
+        },
+        body: image,
+      })
+        .then(async (result) => {
+          // Check if the result is successful
+          if (!result.ok) {
+            throw new Error("Failed to upload the picture");
+          }
+          const { url } = await result.json() as PutBlobResult;
 
-      let data = null;
 
-      const contentType = res.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        data = await res.json();
-      } else {
-        throw new Error("Server did not return JSON.");
-      }
-
-      if (res.ok && data.imageUrl) {
-        const newImage: GalleryImage = {
-          url: data.imageUrl,
-          tags: tagsArray,
-          title,
-          description,
-          owner: userId!,
-        };
-
-        const galleryRef = doc(db, "PhotoGallery", groupId);
-        await updateDoc(galleryRef, {
-          photos: arrayUnion(newImage),
+          if (url) {
+            const newImage: GalleryImage = {
+              url: url,
+              tags: tagsArray,
+              title,
+              description,
+              owner: userId!,
+            };
+    
+            const galleryRef = doc(db, "PhotoGallery", groupId);
+            await updateDoc(galleryRef, {
+              photos: arrayUnion(newImage),
+            });
+    
+            setGalleryImages((prev) => [...prev, newImage]);
+            setImage(null);
+            setPreviewUrl(null);
+            setNewTags("");
+            setNewTitle("");
+            setNewDescription("");
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            alert("Image uploaded!");
+          } else {
+            throw new Error("Upload failed");
+          }
+        })
+        .catch((error) => {
+          console.error("Upload failed", error);
         });
+        alert("Successfully uploaded profile picture.");
 
-        setGalleryImages((prev) => [...prev, newImage]);
-        setImage(null);
-        setPreviewUrl(null);
-        setNewTags("");
-        setNewTitle("");
-        setNewDescription("");
-        if (fileInputRef.current) fileInputRef.current.value = "";
-        alert("Image uploaded!");
-      } else {
-        throw new Error(data.error || "Upload failed");
-      }
+       
     } catch (err) {
       alert("Upload error");
       console.error(err);
