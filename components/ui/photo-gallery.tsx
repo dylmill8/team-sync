@@ -41,7 +41,6 @@ export function PhotoGallery({ groupId }: PhotoGalleryProps) {
   const [fullScreenDims, setFullScreenDims] = useState<{ width: number; height: number } | null>(null);
   const [userRole, setUserRole] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [data, setData] = useState<string | null>(null);
 
   useEffect(() => {
     const auth = getAuth();
