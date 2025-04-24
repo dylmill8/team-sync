@@ -1,6 +1,6 @@
 "use client";
 
-import { PhotoGallery } from "../photogallery/[id]/page";
+import { PhotoGallery } from "@/components/ui/photo-gallery";
 import "./groups.css";
 
 import FullCalendar from "@fullcalendar/react";

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams } from "next/navigation";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { db } from "@/utils/firebaseConfig";
 import {
@@ -333,10 +332,4 @@ export function PhotoGallery({ groupId }: PhotoGalleryProps) {
       </div>
     </>
   );
-}
-
-export default function Page() {
-  const params = useParams();
-  const groupId = params?.id as string;
-  return <PhotoGallery groupId={groupId} />;
 }
