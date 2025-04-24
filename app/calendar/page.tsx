@@ -14,7 +14,7 @@ import { db } from "@/utils/firebaseConfig";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useState, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
+//import { Button } from "@/components/ui/button";
 
 interface EventData {
   name: string;
@@ -52,7 +52,6 @@ export default function Calendar() {
   const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
   const [minRSVP, setMinRSVP] = useState<number>(0);
 
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
   const [eventList, setEventList] = useState<CalendarEvent[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<CalendarEvent[]>([]); // State for filtered events
@@ -212,12 +211,8 @@ export default function Calendar() {
             contentHeight="100%"
             customButtons={{
               filterTags: {
-                text: "tags",
-                click: () => setShowTagDropdown((prev) => !prev),
-              },
-              filterOther: {
                 text: "filters",
-                click: () => setShowFilterDropdown((prev) => !prev),
+                click: () => setShowTagDropdown((prev) => !prev),
               },
               createEvent: {
                 text: "create event",
@@ -246,7 +241,7 @@ export default function Calendar() {
               },
             }}
             headerToolbar={{
-              left: "list filterTags filterOther timeGridDay,timeGridWeek,dayGridMonth",
+              left: "list filterTags timeGridDay,timeGridWeek,dayGridMonth",
               center: "title",
               right: "createEvent today prevYear,prev,next,nextYear",
             }}
@@ -349,57 +344,10 @@ export default function Calendar() {
         </div>
         {showTagDropdown && (
   <div className="absolute top-[58px] left-4 z-50 bg-white dark:bg-gray-800 p-4 rounded shadow border w-64">
-    {availableTags.map((tag) => (
-      <div
-        key={tag}
-        className={`cursor-pointer px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 ${
-          selectedTags.includes(tag) ? "bg-blue-100 dark:bg-blue-800" : ""
-        }`}
-        onClick={() => toggleTag(tag)}
-      >
-        {selectedTags.includes(tag) ? `✓ ${tag}` : tag}
-      </div>
-    ))}
-    <div className="mt-2">
-      <Input
-        name="newTag"
-        placeholder="Add new tag"
-        className="w-full mb-2"
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            const val = e.currentTarget.value.trim();
-            if (val && !availableTags.includes(val)) {
-              setAvailableTags((prev) => [...prev, val]);
-              toggleTag(val);
-              e.currentTarget.value = "";
-            }
-          }
-        }}
-      />
-      <Button
-        className="w-full"
-        onClick={() => {
-          const input = document.querySelector('input[name="newTag"]') as HTMLInputElement;
-          const val = input?.value?.trim();
-          if (val && !availableTags.includes(val)) {
-            setAvailableTags((prev) => [...prev, val]);
-            toggleTag(val);
-            input.value = "";
-          }
-        }}
-      >
-        Add Tag
-      </Button>
-    </div>
-  </div>
-)}
-{showFilterDropdown && (
-  <div className="absolute top-[58px] left-[300px] z-50 bg-white dark:bg-gray-800 p-4 rounded shadow border w-80">
-    <div className="flex flex-col gap-3">
+    <div className="mt-2 space-y-4">
       {/* Date Range */}
-      <div>
-        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Start Date</label>
+      <div className="p-2">
+        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300 ">Start Date</label>
         <Input
           type="date"
           onChange={(e) =>
@@ -407,7 +355,7 @@ export default function Calendar() {
           }
         />
       </div>
-      <div>
+      <div className="p-1">
         <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">End Date</label>
         <Input
           type="date"
@@ -418,7 +366,7 @@ export default function Calendar() {
       </div>
 
       {/* Min RSVP Count */}
-      <div>
+      <div className="p-1">
         <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Minimum RSVPs</label>
         <Input
           type="number"
@@ -428,9 +376,55 @@ export default function Calendar() {
           onChange={(e) => setMinRSVP(Number(e.target.value))}
         />
       </div>
+      <div className="p-1 space-y-1">
+        {availableTags.map((tag) => (
+          <div
+            key={tag}
+            className={`cursor-pointer px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 ${
+              selectedTags.includes(tag) ? "bg-blue-100 dark:bg-blue-800" : ""
+            }`}
+            onClick={() => toggleTag(tag)}
+          >
+            {selectedTags.includes(tag) ? `✓ ${tag}` : tag}
+          </div>
+        ))}
+      </div>
+      {/*<div className="p-1 space-y-2">
+        <Input
+          name="newTag"
+          placeholder="Add new tag"
+          className="w-full"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              const val = e.currentTarget.value.trim();
+              if (val && !availableTags.includes(val)) {
+                setAvailableTags((prev) => [...prev, val]);
+                toggleTag(val);
+                e.currentTarget.value = "";
+              }
+            }
+          }}
+        />
+        <Button
+          className="w-full"
+          onClick={() => {
+            const input = document.querySelector('input[name="newTag"]') as HTMLInputElement;
+            const val = input?.value?.trim();
+            if (val && !availableTags.includes(val)) {
+              setAvailableTags((prev) => [...prev, val]);
+              toggleTag(val);
+              input.value = "";
+            }
+          }}
+        >
+          Add Tag
+        </Button>
+      </div>*/}
     </div>
   </div>
 )}
+
 
       </div>
       <style jsx global>{`
