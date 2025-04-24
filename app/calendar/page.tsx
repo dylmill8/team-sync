@@ -14,7 +14,6 @@ import { db } from "@/utils/firebaseConfig";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useState, useEffect, useRef } from "react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown";
 import { Button } from "@/components/ui/button";
 
 interface EventData {
@@ -48,6 +47,7 @@ interface CalendarEvent {
 export default function Calendar() {
   const router = useRouter();
   const auth = getAuth(firebaseApp);
+  const [showTagDropdown, setShowTagDropdown] = useState(false);
 
   const [eventList, setEventList] = useState<CalendarEvent[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<CalendarEvent[]>([]); // State for filtered events
@@ -171,84 +171,7 @@ export default function Calendar() {
       <NavBar />
       <div className="relative">
         {/* Dropdown Menu and Clear Tags Button */}
-        <div className="flex flex-wrap  justify-end sm:justify-between items-center">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              {/* <Button variant="outline" className="w-full sm:w-auto pseudo-calendar-button">
-                filter by tags
-              </Button> */}
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              style={{
-                position: "absolute", // Position relative to the button
-                top: "100%", // Position below the button
-                left: "50%", // Start at the center of the button
-                transform: "translateX(-50%)", // Shift left by 50% of the dropdown's width
-                zIndex: 50, // Ensure it renders above other elements
-                width: "200px",
-              }}
-            >
-              {availableTags.map((tag) => (
-                <DropdownMenuItem
-                  key={tag}
-                  onSelect={(e) => {
-                    e.preventDefault(); // Prevent the dropdown from closing
-                    toggleTag(tag); // Toggle the tag selection
-                  }}
-                  className={selectedTags.includes(tag) ? "bg-gray-200 dark:bg-gray-700" : ""}
-                >
-                  {selectedTags.includes(tag) ? `✓ ${tag}` : tag}
-                </DropdownMenuItem>
-              ))}
-              <div className="mt-2 p-2 border-t border-gray-300">
-                  <div>
-                    <Input
-                      name="newTag"
-                      placeholder="Add new tag"
-                      className="w-full mb-2"
-                      onKeyDown={(e) => {
-                        e.stopPropagation(); // Prevent dropdown from moving away on type
-                        if (e.key === "Enter") {
-                          e.preventDefault(); 
-                          const newTagInput = e.currentTarget as HTMLInputElement;
-                          const newTag = newTagInput.value.trim();
-                          if (newTag && !availableTags.includes(newTag)) {
-                            setAvailableTags((prev) => [...prev, newTag]); // Add new tag to availableTags
-                            toggleTag(newTag); 
-                            newTagInput.value = ""; 
-                          }
-                        }
-                      }}
-                    />
-                    <Button
-                      onClick={(e) => {
-                        e.preventDefault(); // Prevent default button behavior
-                        const newTagInput = document.querySelector(
-                          'input[name="newTag"]'
-                        ) as HTMLInputElement;
-                        const newTag = newTagInput.value.trim();
-                        if (newTag && !availableTags.includes(newTag)) {
-                          setAvailableTags((prev) => [...prev, newTag]); // Add new tag to availableTags
-                          toggleTag(newTag); // Automatically select the new tag
-                          newTagInput.value = ""; // Clear the input field
-                        }
-                      }}
-                      className="w-full"
-                    >
-                      Add Tag
-                    </Button>
-                  </div>
-                </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {/* <Button
-            onClick={() => setSelectedTags([])} // Clear selected tags
-            variant="outline"
-            className="w-full sm:w-auto pseudo-calendar-button"
-          >
-            clear tags
-          </Button> */}
-        </div>
+       
 
         {/* FullCalendar */}
         <div
@@ -267,6 +190,11 @@ export default function Calendar() {
             height="100%"
             contentHeight="100%"
             customButtons={{
+              filterTags: {
+                text: "Filter Tags",
+                click: () => setShowTagDropdown((prev) => !prev),
+              },
+              
               createEvent: {
                 text: "create event",
                 click: () => {
@@ -294,7 +222,7 @@ export default function Calendar() {
               },
             }}
             headerToolbar={{
-              left: "list timeGridDay,timeGridWeek,dayGridMonth",
+              left: "list filterTags timeGridDay,timeGridWeek,dayGridMonth",
               center: "title",
               right: "createEvent today prevYear,prev,next,nextYear",
             }}
@@ -395,6 +323,54 @@ export default function Calendar() {
             }}
           />
         </div>
+        {showTagDropdown && (
+  <div className="absolute top-[58px] left-4 z-50 bg-white dark:bg-gray-800 p-4 rounded shadow border w-64">
+    {availableTags.map((tag) => (
+      <div
+        key={tag}
+        className={`cursor-pointer px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 ${
+          selectedTags.includes(tag) ? "bg-blue-100 dark:bg-blue-800" : ""
+        }`}
+        onClick={() => toggleTag(tag)}
+      >
+        {selectedTags.includes(tag) ? `✓ ${tag}` : tag}
+      </div>
+    ))}
+    <div className="mt-2">
+      <Input
+        name="newTag"
+        placeholder="Add new tag"
+        className="w-full mb-2"
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            const val = e.currentTarget.value.trim();
+            if (val && !availableTags.includes(val)) {
+              setAvailableTags((prev) => [...prev, val]);
+              toggleTag(val);
+              e.currentTarget.value = "";
+            }
+          }
+        }}
+      />
+      <Button
+        className="w-full"
+        onClick={() => {
+          const input = document.querySelector('input[name="newTag"]') as HTMLInputElement;
+          const val = input?.value?.trim();
+          if (val && !availableTags.includes(val)) {
+            setAvailableTags((prev) => [...prev, val]);
+            toggleTag(val);
+            input.value = "";
+          }
+        }}
+      >
+        Add Tag
+      </Button>
+    </div>
+  </div>
+)}
+
       </div>
       <style jsx global>{`
         .fc .fc-toolbar-title {
