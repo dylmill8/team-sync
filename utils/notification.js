@@ -24,7 +24,7 @@ export async function notifyUsers(members, category, message) {
     try {
       const userDoc = await getDoc(doc(db, "Users", userId));
       if (!userDoc.exists()) {
-        console.warn(`User document for ${userId} does not exist.`);
+        //alert(`User document for ${userId} does not exist.`);
         continue;
       }
 
@@ -32,12 +32,12 @@ export async function notifyUsers(members, category, message) {
       const notifSettings = userData.notificationSettings;
 
       if (!notifSettings) {
-        console.log(`No notification settings found for user ${userId}. Skipping.`);
+        //alert(`No notification settings found for user ${userId}. Skipping.`);
         continue;
       }
 
       if (!notifSettings[notificationKey]) {
-        console.log(`User ${userId} has disabled ${category} notifications.`);
+        //alert(`User ${userId} has disabled ${category} notifications.`);
         continue;
       }
 
@@ -62,7 +62,7 @@ export async function notifyUsers(members, category, message) {
         const result = await response.json();
 
         if (!result.success) {
-          console.error(`Failed to send email to ${userId}:`, result.error);
+          //alert(`Failed to send email to ${userId}:`, result.error);
         }
       }
 
@@ -71,7 +71,7 @@ export async function notifyUsers(members, category, message) {
         console.log(message);
       }
     } catch (error) {
-      console.error(`Error notifying user ${userId}:`, error);
+      console.log(`Error notifying user ${userId}:`, error);
     }
   }
 }
