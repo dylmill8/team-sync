@@ -17,7 +17,14 @@ import NavBar from "@/components/ui/navigation-bar";
 import { DocumentReference } from "firebase/firestore";
 import Image from "next/image";
 import NextImage from "next/image";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import PieChartComponent from "@/components/ui/pie-chart";
+import ActivityGrid from "@/components/ui/activity-grid";
 
+type DataItem = {
+  name: string;
+  value: number;
+};
 
 interface EventData {
   name: string;
@@ -61,13 +68,141 @@ export default function Profile() {
   ) as string;
   const [userId, setUserId] = useState("");
   const [profileId, setProfileId] = useState<string>("");
-  const [userData, setUserData] = useState({ email: "", username: "" , profilePic: null});
+  const [userData, setUserData] = useState({
+    email: "",
+    username: "",
+    profilePic: null,
+  });
   const [eventList, setEventList] = useState<CalendarEvent[]>([]);
   const [showEvents, setShowEvents] = useState(false);
   const [isFriend, setIsFriend] = useState(false);
   const [friendList, setFriendList] = useState<string[]>([]);
   const [groupList, setGroupList] = useState<GroupInfo[]>([]);
   const [showGroups, setShowGroups] = useState(false);
+
+  // stats overview variables
+  const [profileRSVP, setProfileRSVP] = useState<DataItem[]>([
+    { name: "yes", value: 0 },
+    { name: "maybe", value: 0 },
+    { name: "no", value: 0 },
+  ]);
+  const [profileWorkoutDates, setProfileWorkoutDates] = useState<{
+    [key: string]: number;
+  }>({});
+  const [statsVisible, setStatsVisible] = useState<boolean>(true);
+  const [loadingOverview, setLoadingOverview] = useState<boolean>(true);
+
+  // stats overview related functions
+  useEffect(() => {
+    // calculate workouts
+    setLoadingOverview(true);
+    const fetchWorkouts = async () => {
+      const dateMap: { [key: string]: number } = {};
+
+      if (profileId) {
+        const profileRef = doc(db, "Users", profileId);
+        const profileDoc = await getDoc(profileRef);
+
+        if (profileDoc.exists()) {
+          const profileData = profileDoc.data();
+          const profileWorkouts = profileData.workouts;
+
+          if (profileWorkouts) {
+            const workoutsPromise = profileWorkouts.map(async (workoutId: string) => {
+              const workoutRef = doc(db, "Workouts", workoutId);
+              const workoutDoc = await getDoc(workoutRef);
+
+              if (workoutDoc.exists()) {
+                const workoutData = workoutDoc.data();
+                const workoutLogs = workoutData.Map;
+                const workoutEvent = workoutData.eventId;
+
+                let workoutDateString = "";
+
+                if (workoutEvent) {
+                  const eventRef = doc(db, "Event", workoutEvent);
+                  const eventDoc = await getDoc(eventRef);
+
+                  if (eventDoc.exists()) {
+                    const eventData = eventDoc.data();
+                    const eventDate = eventData.start;
+
+                    if (eventDate) {
+                      const date = eventDate.toDate();
+                      const formattedDate = date.toISOString().split("T")[0]; // "YYYY-MM-DD"
+                      // if (formattedDate in dateMap) {
+                      //   dateMap[formattedDate] += 1;
+                      // } else {
+                      //   dateMap[formattedDate] = 1;
+                      // }
+      
+                      workoutDateString = formattedDate;
+                    }
+                  }
+                }
+
+                if (workoutLogs) {
+                  const logRef = doc(db, "Logs", workoutLogs[profileId]);
+                  const logDoc = await getDoc(logRef);
+
+                  if (logDoc.exists()) {
+                    const logData = logDoc.data();
+                    const logDesc = logData.descriptions;
+
+                    for (const desc of logDesc) {
+                      if (desc != "") {
+                        if (workoutDateString in dateMap) {
+                          dateMap[workoutDateString] += 1;
+                        } else {
+                          dateMap[workoutDateString] = 1;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            });
+            
+            await Promise.all(workoutsPromise);
+          }
+        }
+      }
+
+      setProfileWorkoutDates(dateMap);
+      setLoadingOverview(false);
+    };
+
+    fetchWorkouts();
+  }, [profileId]);
+  useEffect(() => {
+    // calculate RSVP
+    setLoadingOverview(true);
+    const fetchRSVPData = async () => {
+      const profileRSVPList: DataItem[] = [
+        { name: "yes", value: 0 },
+        { name: "maybe", value: 0 },
+        { name: "no", value: 0 },
+      ];
+
+      const rsvpPromise = eventList.map(async (event: CalendarEvent) => {
+        if (event.RSVPStatus) {
+          if (event.RSVPStatus == "yes") {
+            profileRSVPList[0].value += 1;
+          } else if (event.RSVPStatus == "maybe") {
+            profileRSVPList[1].value += 1;
+          } else if (event.RSVPStatus == "no") {
+            profileRSVPList[2].value += 1;
+          }
+        }
+      });
+
+      await Promise.all(rsvpPromise);
+      setProfileRSVP(profileRSVPList);
+      setLoadingOverview(false);
+    };
+
+    fetchRSVPData();
+  }, [profileId, eventList]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -113,7 +248,7 @@ export default function Profile() {
           setUserData({
             email: userData.email || "",
             username: userData.username || "",
-            profilePic: userData.profilePic || null
+            profilePic: userData.profilePic || null,
           });
           if (Array.isArray(userData.events)) {
             const newEventList = [];
@@ -288,14 +423,19 @@ export default function Profile() {
         }}
       >
         <NextImage
-          src={userData?.profilePic || "https://ns6ela3qh5m1napj.public.blob.vercel-storage.com/88BqvzD.-sYOdx4LwT08Vjf9C4TxU17uTscYPjn.bin"}
+          src={
+            userData?.profilePic ||
+            "https://ns6ela3qh5m1napj.public.blob.vercel-storage.com/88BqvzD.-sYOdx4LwT08Vjf9C4TxU17uTscYPjn.bin"
+          }
           alt="Profile"
           width={150}
           height={150}
           className="rounded-full object-cover w-[150px] h-[150px]"
-          onError={(e) => (e.currentTarget.src = "https://ns6ela3qh5m1napj.public.blob.vercel-storage.com/88BqvzD.-sYOdx4LwT08Vjf9C4TxU17uTscYPjn.bin")}
+          onError={(e) =>
+            (e.currentTarget.src =
+              "https://ns6ela3qh5m1napj.public.blob.vercel-storage.com/88BqvzD.-sYOdx4LwT08Vjf9C4TxU17uTscYPjn.bin")
+          }
         />
-
       </div>
       {/*<h2>User ID: {userId}</h2>*/}
       <p>
@@ -304,6 +444,23 @@ export default function Profile() {
       <p>
         <strong>Username:</strong> {userData.username}
       </p>
+
+      {statsVisible && (
+        <Card className="my-2 mx-10">
+          <CardHeader>
+            <CardTitle>Overview</CardTitle>
+          </CardHeader>
+
+          {loadingOverview && <p>Loading overview...</p>}
+          {!loadingOverview && (
+            <CardContent className="min-w-max max-w-min">
+              <PieChartComponent data={profileRSVP}></PieChartComponent>
+              <ActivityGrid workoutData={profileWorkoutDates}></ActivityGrid>
+            </CardContent>
+          )}
+        </Card>
+      )}
+
       {userId === profileId && (
         <>
           <button
