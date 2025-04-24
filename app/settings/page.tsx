@@ -31,6 +31,7 @@ export default function Settings() {
   const router = useRouter();
   const [userId, setUserId] = useState("");
   const [formData, setFormData] = useState<FormData>({ email: "", username: "", isLightTheme: false, profilePic: null});
+  const [saving, setSaving] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [image, setImage] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -38,6 +39,14 @@ export default function Settings() {
   const [showAccounts, setShowAccounts] = useState(false);
   const [otherAccounts, setOtherAccounts] = useState<LooseAccount[]>([]);
 
+  //const [avatarDims, setAvatarDims] = useState({ width: 0, height: 0 });
+  const [notificationEmail, setNotificationEmail] = useState("");
+  const [settings, setSettings] = useState({
+    emailNotifications: false,
+    //popupNotifications: false,
+    friendRequest: true,
+    announcement: true,
+  });
   //TODO: make this actually take state from database
   const [isLightMode, setIsLightMode] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -82,9 +91,31 @@ export default function Settings() {
     //   }
     // };
 
+    const fetchSettings = async () => {
+      if (userId) {
+        const docRef = doc(db, "Users", userId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.notificationSettings) {
+            setSettings({
+              emailNotifications: data.notificationSettings.emailNotifications ?? false,
+              //popupNotifications: data.notificationSettings.popupNotifications ?? false,
+              friendRequest: data.notificationSettings.friendRequest ?? true,
+              announcement: data.notificationSettings.announcement ?? true,
+            });
+            setNotificationEmail(data.notificationSettings.notificationEmail || "");
+          }
+        }
+      }
+    };
+
     if (userId) {
       fetchUserData();
       //fetchProfileImage();
+
+      fetchSettings();
+
     }
   }, [userId]);
 
@@ -104,6 +135,11 @@ export default function Settings() {
         profilePic: previewUrl || null
       });
     }
+  };
+
+  const validateEmail = (email: string) => {
+    const re = /\S+@\S+\.\S+/;
+    return re.test(email);
   };
 
   const handleUpload = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -392,6 +428,33 @@ export default function Settings() {
     }
   };
 
+  const handleSave = async () => {
+    if (!userId) return;
+    // If email notifications are enabled, validate the email address
+    if (settings.emailNotifications && !validateEmail(notificationEmail)) {
+      alert("Please enter a valid email for notifications.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await setDoc(
+        doc(db, "Users", userId),
+        {
+          notificationSettings: {
+            ...settings,
+            notificationEmail,
+          },
+        },
+        { merge: true }
+      );
+      alert("Notification settings saved!");
+    } catch {
+      alert("Failed to save settings.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div
       style={{
@@ -504,9 +567,105 @@ export default function Settings() {
             width: "100%",
           }}
         >
-          {updating ? "Updating..." : "Save Changes"}
+          {updating ? "Updating..." : "Save Profile Settings"}
         </button>
       </form>
+<div style={{ marginTop: "10px" }}></div>
+      <h1 style={{ fontSize: "24px", marginBottom: "25px" }}>Notification Settings</h1>
+
+<div style={{ textAlign: "left", marginBottom: "25px" }}>
+  <h2 style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "10px" }}>
+    Notification Methods
+  </h2>
+  
+  <div className="flex items-center justify-between mb-4">
+    <label>Email Notifications</label>
+    <Switch
+      checked={settings.emailNotifications}
+      onCheckedChange={() =>
+        setSettings((prev) => ({
+          ...prev,
+          emailNotifications: !prev.emailNotifications,
+        }))
+      }
+    />
+  </div>
+
+  <input
+    type="email"
+    value={notificationEmail}
+    onChange={(e) => setNotificationEmail(e.target.value)}
+    placeholder="Enter email for notifications"
+    style={{
+      width: "100%",
+      padding: "10px",
+      borderRadius: "5px",
+      border: "1px solid #ccc",
+      color: "black",
+      marginBottom: "20px",
+    }}
+  />
+
+  {/*<div className="flex items-center justify-between mb-4">
+    <label>Pop-up Notifications</label>
+    <Switch
+      checked={settings.popupNotifications}
+      onCheckedChange={handlePopupToggle}
+    />
+  </div>*/}
+</div>
+
+<div style={{ textAlign: "left", marginBottom: "25px" }}>
+  <h2 style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "10px" }}>
+    Notification Items
+  </h2>
+
+  <div className="flex items-center justify-between mb-4">
+    <label>Friend Requests</label>
+    <Switch
+      checked={settings.friendRequest}
+      onCheckedChange={() =>
+        setSettings((prev) => ({
+          ...prev,
+          friendRequest: !prev.friendRequest,
+        }))
+      }
+    />
+  </div>
+
+  <div className="flex items-center justify-between mb-4">
+    <label>Announcements</label>
+    <Switch
+      checked={settings.announcement}
+      onCheckedChange={() =>
+        setSettings((prev) => ({
+          ...prev,
+          announcement: !prev.announcement,
+        }))
+      }
+    />
+  </div>
+</div>
+
+<button
+  onClick={handleSave}
+  disabled={saving}
+  style={{
+    padding: "10px 15px",
+    backgroundColor: saving ? "#ccc" : "#0070f3",
+    color: "#fff",
+    border: "none",
+    borderRadius: "5px",
+    cursor: saving ? "not-allowed" : "pointer",
+    width: "100%",
+  }}
+>
+  {saving ? "Saving..." : "Save Notification Settings"}
+</button>
+
+<div style={{ marginTop: "10px" }}></div>
+      <h1 style={{ fontSize: "24px", marginBottom: "25px" }}>Account Settings</h1>
+
 
       <form onSubmit={handleChangePassword}>
         <div style={{ marginBottom: "15px", textAlign: "left" }}>
@@ -622,6 +781,7 @@ export default function Settings() {
         </div>
       </div>
 
+
       <button
         onClick={() => router.push("/profile")}
         style={{
@@ -637,6 +797,7 @@ export default function Settings() {
       >
         Back to Profile
       </button>
+
 
       <button
         onClick={handleLogout}
