@@ -1122,28 +1122,34 @@ const GroupsPage = () => {
                 }}
               />
               {showTagDropdown && (
-  <div className="absolute top-[58px] left-4 z-50 bg-white dark:bg-gray-800 p-4 rounded shadow border w-64">
-    <div className="mt-2 space-y-4">
-      {/* Date Range */}
-      <div className="p-2">
-        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300 ">Start Date</label>
-        <Input
-  type="date"
-  onChange={(e) =>
-    setDateRange(([, end]) => {
-      const val = e.target.value
-      const start = val
-        ? new Date(
-            parseInt(val.slice(0, 4)),         // year
-            parseInt(val.slice(5, 7)) - 1,     // month (0-based)
-            parseInt(val.slice(8, 10)),        // day
-            0, 0, 0                            // 00:00:00 local time
-          )
-        : null
-      return [start, end]
-    })
-  }
-/>
+                <div
+                  className="absolute top-[58px] left-4 z-50 bg-white dark:bg-gray-800 p-4 rounded shadow border w-64"
+                  style={{
+                    maxHeight: "400px",
+                    overflowY: "auto", 
+                  }}
+                > 
+                  <div className="mt-2 space-y-4">
+                    {/* Date Range */}
+                    <div className="p-2">
+                      <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300 ">Start Date</label>
+                      <Input
+                type="date"
+                onChange={(e) =>
+                  setDateRange(([, end]) => {
+                    const val = e.target.value
+                    const start = val
+                      ? new Date(
+                          parseInt(val.slice(0, 4)),         // year
+                          parseInt(val.slice(5, 7)) - 1,     // month (0-based)
+                          parseInt(val.slice(8, 10)),        // day
+                          0, 0, 0                            // 00:00:00 local time
+                        )
+                      : null
+                    return [start, end]
+                  })
+                }
+              />
 
       </div>
       <div className="p-1">
