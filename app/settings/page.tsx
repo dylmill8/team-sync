@@ -406,13 +406,17 @@ export default function Settings() {
       <h1 style={{ fontSize: "24px", marginBottom: "15px" }}>Settings</h1>
 
       <div className="mb-5 flex justify-center">
-      <NextImage
+        <NextImage
           src={formData?.profilePic || "https://ns6ela3qh5m1napj.public.blob.vercel-storage.com/88BqvzD.-sYOdx4LwT08Vjf9C4TxU17uTscYPjn.bin"}
           alt="Profile"
           width={150}
           height={150}
           className="rounded-full object-cover w-[150px] h-[150px]"
-          onError={(e) => (e.currentTarget.src = "https://ns6ela3qh5m1napj.public.blob.vercel-storage.com/88BqvzD.-sYOdx4LwT08Vjf9C4TxU17uTscYPjn.bin")}
+          style={{ border: "3px solid #0070f3" }}
+          onError={(e) =>
+            (e.currentTarget.src =
+              "https://ns6ela3qh5m1napj.public.blob.vercel-storage.com/88BqvzD.-sYOdx4LwT08Vjf9C4TxU17uTscYPjn.bin")
+          }
         />
       </div>
       <form onSubmit={handleUpload} style={{ marginBottom: "20px" }}>
