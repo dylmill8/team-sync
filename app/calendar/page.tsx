@@ -40,6 +40,7 @@ interface CalendarEvent {
   docID: string;
   owner: string;
   RSVPStatus: string;
+  RSVPMap: { [key: string]: string }; // Include full RSVP object
   workout: string;
   tags: string[];
 }
@@ -48,6 +49,10 @@ export default function Calendar() {
   const router = useRouter();
   const auth = getAuth(firebaseApp);
   const [showTagDropdown, setShowTagDropdown] = useState(false);
+  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
+  const [minRSVP, setMinRSVP] = useState<number>(0);
+
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
   const [eventList, setEventList] = useState<CalendarEvent[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<CalendarEvent[]>([]); // State for filtered events
@@ -108,6 +113,7 @@ export default function Calendar() {
                     docID: eventDoc.id,
                     owner: eventData.owner,
                     RSVPStatus: userRSVPStatus,
+                    RSVPMap: eventData.RSVP,
                     workout: workoutData,
                     tags: eventData.tags || [],
                   };
@@ -153,18 +159,33 @@ export default function Calendar() {
   };
 
   useEffect(() => {
-    if (selectedTags.length > 0) {
-      setFilteredEvents(
-        eventList.filter((event) =>
-          selectedTags.every((tag) =>
-            event.tags.some((eventTag) => eventTag.toLowerCase() === tag.toLowerCase())
-          )
-        )
-      );
-    } else {
-      setFilteredEvents(eventList); // Show all events if no tags are selected
-    }
-  }, [selectedTags, eventList]);
+    const [startDate, endDate] = dateRange;
+  
+    const newFiltered = eventList.filter((event) => {
+      const matchesTags =
+        selectedTags.length === 0 ||
+        selectedTags.every((tag) =>
+          event.tags.some((eventTag) => eventTag.toLowerCase() === tag.toLowerCase())
+        );
+  
+      const eventStart = event.start ? new Date(event.start) : null;
+      const matchesDate =
+        (!startDate || (eventStart && eventStart >= startDate)) &&
+        (!endDate || (eventStart && eventStart <= endDate));
+  
+        const yesCount = Object.values(event.RSVPMap || {}).filter(
+          (val) => val.toLowerCase() === "yes"
+        ).length;
+        
+        const matchesRSVP = yesCount >= minRSVP;
+        
+  
+      return matchesTags && matchesDate && matchesRSVP;
+    });
+  
+    setFilteredEvents(newFiltered);
+  }, [selectedTags, eventList, dateRange, minRSVP]);
+  
 
   return (
     <div className="calendar">
@@ -191,10 +212,13 @@ export default function Calendar() {
             contentHeight="100%"
             customButtons={{
               filterTags: {
-                text: "Filter Tags",
+                text: "tags",
                 click: () => setShowTagDropdown((prev) => !prev),
               },
-              
+              filterOther: {
+                text: "filters",
+                click: () => setShowFilterDropdown((prev) => !prev),
+              },
               createEvent: {
                 text: "create event",
                 click: () => {
@@ -222,7 +246,7 @@ export default function Calendar() {
               },
             }}
             headerToolbar={{
-              left: "list filterTags timeGridDay,timeGridWeek,dayGridMonth",
+              left: "list filterTags filterOther timeGridDay,timeGridWeek,dayGridMonth",
               center: "title",
               right: "createEvent today prevYear,prev,next,nextYear",
             }}
@@ -367,6 +391,43 @@ export default function Calendar() {
       >
         Add Tag
       </Button>
+    </div>
+  </div>
+)}
+{showFilterDropdown && (
+  <div className="absolute top-[58px] left-[300px] z-50 bg-white dark:bg-gray-800 p-4 rounded shadow border w-80">
+    <div className="flex flex-col gap-3">
+      {/* Date Range */}
+      <div>
+        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Start Date</label>
+        <Input
+          type="date"
+          onChange={(e) =>
+            setDateRange(([, end]) => [e.target.value ? new Date(e.target.value) : null, end])
+          }
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">End Date</label>
+        <Input
+          type="date"
+          onChange={(e) =>
+            setDateRange(([start, ]) => [start, e.target.value ? new Date(e.target.value) : null])
+          }
+        />
+      </div>
+
+      {/* Min RSVP Count */}
+      <div>
+        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Minimum RSVPs</label>
+        <Input
+          type="number"
+          min={0}
+          className="w-full"
+          placeholder="0"
+          onChange={(e) => setMinRSVP(Number(e.target.value))}
+        />
+      </div>
     </div>
   </div>
 )}
