@@ -119,7 +119,10 @@ const GroupsPage = () => {
   const chatRef = useRef<HTMLDivElement>(null);
   const tabsListRef = useRef<HTMLDivElement>(null);
   const skipScrollRef = useRef<boolean>(false);
-
+  const [showTagDropdown, setShowTagDropdown] = useState(false);
+  const [filteredEvents, setFilteredEvents] = useState<CalendarEvent[]>([]); // State for filtered events
+  const [availableTags, setAvailableTags] = useState<string[]>([]); // State for available tags
+  const [selectedTags, setSelectedTags] = useState<string[]>([]); // State for selected tags
   const [eventList, setEventList] = useState<CalendarEvent[]>([]);
   const [groupData, setGroupData] = useState<GroupData | null>(null);
   const [groupMembers, setGroupMembers] = useState<Array<Array<string>>>([]);
@@ -162,6 +165,28 @@ const GroupsPage = () => {
     setEditingMessageId(null);
     setEditingMessageText("");
   };
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prevTags) =>
+      prevTags.includes(tag)
+        ? prevTags.filter((t) => t !== tag) // Remove tag if already selected
+        : [...prevTags, tag] // Add tag if not selected
+    );
+  };
+
+  useEffect(() => {
+    if (selectedTags.length > 0) {
+      setFilteredEvents(
+        eventList.filter((event) =>
+          selectedTags.every((tag) =>
+            event.tags.some((eventTag) => eventTag.toLowerCase() === tag.toLowerCase())
+          )
+        )
+      );
+    } else {
+      setFilteredEvents(eventList); // Show all events if no tags are selected
+    }
+  }, [selectedTags, eventList]);
 
   const saveEditedMessage = async () => {
     if (!chatId || !editingMessageId) return;
@@ -822,6 +847,10 @@ const GroupsPage = () => {
                 height="100%"
                 contentHeight="100%"
                 customButtons={{
+                  filterTags: {
+                    text: "Filter Tags",
+                    click: () => setShowTagDropdown((prev) => !prev),
+                  },
                   createEvent: {
                     text: "create event",
                     click: () => {
@@ -855,11 +884,11 @@ const GroupsPage = () => {
                   },
                 }}
                 headerToolbar={{
-                  left: "list timeGridDay,timeGridWeek,dayGridMonth",
+                  left: "list filterTags timeGridDay,timeGridWeek,dayGridMonth",
                   center: "title",
                   right: "createEvent today prevYear,prev,next,nextYear",
                 }}
-                events={eventList}
+                events={filteredEvents} // Use filtered events
                 eventDidMount={(info) => {
                   if (
                     info.event.extendedProps.description &&
@@ -975,6 +1004,53 @@ const GroupsPage = () => {
                   }
                 }}
               />
+              {showTagDropdown && (
+  <div className="absolute top-[58px] left-4 z-50 bg-white dark:bg-gray-800 p-4 rounded shadow border w-64">
+    {availableTags.map((tag) => (
+      <div
+        key={tag}
+        className={`cursor-pointer px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 ${
+          selectedTags.includes(tag) ? "bg-blue-100 dark:bg-blue-800" : ""
+        }`}
+        onClick={() => toggleTag(tag)}
+      >
+        {selectedTags.includes(tag) ? `✓ ${tag}` : tag}
+      </div>
+    ))}
+    <div className="mt-2">
+      <Input
+        name="newTag"
+        placeholder="Add new tag"
+        className="w-full mb-2"
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            const val = e.currentTarget.value.trim();
+            if (val && !availableTags.includes(val)) {
+              setAvailableTags((prev) => [...prev, val]);
+              toggleTag(val);
+              e.currentTarget.value = "";
+            }
+          }
+        }}
+      />
+      <Button
+        className="w-full"
+        onClick={() => {
+          const input = document.querySelector('input[name="newTag"]') as HTMLInputElement;
+          const val = input?.value?.trim();
+          if (val && !availableTags.includes(val)) {
+            setAvailableTags((prev) => [...prev, val]);
+            toggleTag(val);
+            input.value = "";
+          }
+        }}
+      >
+        Add Tag
+      </Button>
+    </div>
+  </div>
+)}
             </div>
             <style jsx global>{`
               .fc .fc-toolbar-title {
