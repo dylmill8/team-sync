@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react"; //useRef
+import { useRef, useState, useEffect, Suspense } from "react"; //useRef
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,7 @@ import { viewDocument } from "../../../utils/firebaseHelper.js";
 import { onAuthStateChanged } from "firebase/auth";
 import { PutBlobResult } from "@vercel/blob";
 
-export default function CreateGroup() {
+const CreateGroupPage = () => {
   const groupPicInputRef = useRef(null);
   const [groupPicture, setGroupPicture] = useState<File | null>(null);
   const [groupName, setGroupName] = useState("");
@@ -22,13 +22,14 @@ export default function CreateGroup() {
   const [userData, setUserData] = useState({ email: "", username: "" });
   const router = useRouter();
   const auth = getAuth(firebaseApp);
-  const userId = auth.currentUser?.uid;
+  const [userId, setUserId] = useState<string | null>(null);
   const [isPrivate, setIsPrivate] = useState(false); // Privacy toggle state
 
 
   useEffect(() => { // get username and email of owner
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        setUserId(user.uid);
         const userDoc = await viewDocument("Users", user.uid);
         if (userDoc) {
           setUserData({
@@ -196,5 +197,13 @@ export default function CreateGroup() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function CreateGroup() {
+  return (
+    <Suspense fallback={<div>Loading Past Workouts...</div>}>
+      <CreateGroupPage />
+    </Suspense>
   );
 }
