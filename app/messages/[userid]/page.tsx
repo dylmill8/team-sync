@@ -42,6 +42,8 @@ type Friend = {
 export default function ChatPage() {
   const router = useRouter()
   const { userid } = useParams() as { userid: string }
+  
+  const [markAsSpoiler, setMarkAsSpoiler] = useState(false)
 
   const [chatId, setChatId] = useState<string | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
@@ -429,24 +431,32 @@ export default function ChatPage() {
 
       <div className="flex space-x-2">
       <input
-          type="file"
-          accept="image/*"
-          onChange={handleFileUpload}
-          hidden
-          ref={fileInputRef}
-        />
-<Button
-  onClick={() => {
-    const spoiler = confirm("Mark this image as a spoiler?");
-    if (fileInputRef.current) {
-      fileInputRef.current.dataset.spoiler = spoiler ? "true" : "false";
-      fileInputRef.current.click();
-    }
-    
-  }}
->
-  Upload Image
-</Button>
+    type="file"
+    accept="image/*"
+    onChange={handleFileUpload}
+    hidden
+    ref={fileInputRef}
+    data-spoiler={markAsSpoiler ? "true" : "false"}
+  />
+  
+  <Button
+    onClick={() => {
+      if (fileInputRef.current) {
+        fileInputRef.current.click()
+      }
+    }}
+  >
+    Upload Image
+  </Button>
+
+  <label className="flex items-center space-x-1 text-sm">
+    <input
+      type="checkbox"
+      checked={markAsSpoiler}
+      onChange={(e) => setMarkAsSpoiler(e.target.checked)}
+    />
+    <span>Spoiler</span>
+  </label>
 
         <Input
           value={newMessage}
