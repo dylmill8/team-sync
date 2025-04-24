@@ -11,23 +11,23 @@ const NavBar = () => {
 
     return (
         <div className="navbar fixed bottom-0 left-0 w-full items-center shadow-md flex justify-around h-[10vh] border-t z-10 p-0">
-            <NavBarItem href="/search" icon="/nav_bar_icons/Search.png" isLightMode={isLightMode} />
-            <NavBarItem href="/groupslist" icon="/nav_bar_icons/Groups.png" isLightMode={isLightMode} />
-            <NavBarItem href="/calendar" icon="/nav_bar_icons/Calendar.png" isLightMode={isLightMode} />
-            <NavBarItem href="/settings" icon="/nav_bar_icons/Settings.png" isLightMode={isLightMode} />
-            <NavBarItem href="/profile" icon="/nav_bar_icons/Profile.png" isLightMode={isLightMode} />
+            <NavBarItem href="/search" icon="/nav_bar_icons/Search.png" isLightMode={isLightMode} active={false}/>
+            <NavBarItem href="/groupslist" icon="/nav_bar_icons/Groups.png" isLightMode={isLightMode} active={false} />
+            <NavBarItem href="/calendar" icon="/nav_bar_icons/Calendar.png" isLightMode={isLightMode} active={false} />
+            <NavBarItem href="/settings" icon="/nav_bar_icons/Settings.png" isLightMode={isLightMode} active={false} />
+            <NavBarItem href="/profile" icon="/nav_bar_icons/Profile.png" isLightMode={isLightMode} active={false} />
         </div>
     );
 };
 
-const NavBarItem = ({ href, icon, isLightMode }: { href: string; icon: string; isLightMode: boolean }) => {
+const NavBarItem = ({ href, icon, isLightMode, active }: { href: string; icon: string; isLightMode: boolean, active: boolean }) => {
     const router = useRouter();
     const iconSrc = isLightMode ? icon : icon.replace(".png", "-White.png");
 
     return (
         <Button
-            variant="ghost"
-            className="relative flex justify-center items-center aspect-square h-[40%]"
+            variant={active ? "default" : "ghost"}
+            className="button justify-center flex flex-col items-center w-[4vw] h-[4vh] max-w-[400] max-h-[400] relative"
             onClick={() => router.push(href)}
         >
             <Image

@@ -570,7 +570,10 @@ export default function Settings() {
               key={account.id ?? i}
             >
               <button
-                className="flex flex-col rounded-full border border-solid transition-colors items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 sm:min-w-44 mb-2"
+                className="text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 mb-2 text-left whitespace-nowrap overflow-hidden text-ellipsis rounded-full border border-solid transition-colors max-w-[40vw] min-w-[10vw]"
+                style={{
+                  display: "block",
+                }}
                 onClick={() =>
                   account.id ? router.push(`/profile/${account.id}`) : null
                 }
