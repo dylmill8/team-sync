@@ -1,5 +1,6 @@
 "use client";
 
+import PhotoGalleryPage from "../photogallery/[id]/page";
 import "./groups.css";
 
 import FullCalendar from "@fullcalendar/react";
@@ -138,7 +139,7 @@ const GroupsPage = () => {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingMessageText, setEditingMessageText] = useState<string>("");
   const [suppressEditAfterDelete, setSuppressEditAfterDelete] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<"announcements"|"chat"|"calendar">("chat");
+  const [activeTab, setActiveTab] = useState<"announcements"|"chat"|"calendar"|"gallery">("chat");
   const [memberPics, setMemberPics] = useState<Record<string, string>>({});
 
   const handleDeleteAnnouncement = async (announcementId: string) => {
@@ -646,7 +647,7 @@ const GroupsPage = () => {
         <Tabs
           defaultValue="chat"
           onValueChange={(value) => {
-            setActiveTab(value as "announcements" | "chat" | "calendar");
+            setActiveTab(value as "announcements" | "chat" | "calendar" | "gallery");
             if (value === "calendar") {
               handleCalendarTabClick();
             }
@@ -661,6 +662,9 @@ const GroupsPage = () => {
             </TabsTrigger>
             <TabsTrigger value="calendar" className="tabs-trigger">
               calendar
+            </TabsTrigger>
+            <TabsTrigger value="gallery" className="tabs-trigger">
+              gallery
             </TabsTrigger>
           </TabsList>
           <TabsContent value="announcements">
@@ -981,6 +985,9 @@ const GroupsPage = () => {
                 font-weight: bold;
               }
             `}</style>
+          </TabsContent>
+          <TabsContent value="gallery" className="tabs-content">
+            <PhotoGalleryPage groupId={docId} />
           </TabsContent>
         </Tabs>
       </div>
