@@ -10,6 +10,8 @@ import { db } from "@/utils/firebaseConfig.js";
 import NavBar from "@/components/ui/navigation-bar";
 import { setDocument, viewDocument, logout } from "../../utils/firebaseHelper.js";
 import NextImage from "next/image";
+import { PutBlobResult } from "@vercel/blob";
+
 
 type LooseAccount = {
   id?: string;
@@ -18,18 +20,33 @@ type LooseAccount = {
   [key: string]: unknown;
 };
 
+type FormData = {
+  email: string;
+  username: string;
+  isLightTheme: boolean;
+  profilePic: string | null;
+};
+
 export default function Settings() {
   const router = useRouter();
   const [userId, setUserId] = useState("");
-  const [formData, setFormData] = useState({ email: "", username: "", isLightTheme: false});
+  const [formData, setFormData] = useState<FormData>({ email: "", username: "", isLightTheme: false, profilePic: null});
+  const [saving, setSaving] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [image, setImage] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState("/uploads/default.png");
+  //const [preview, setPreview] = useState("/uploads/default.png");
   const [showAccounts, setShowAccounts] = useState(false);
   const [otherAccounts, setOtherAccounts] = useState<LooseAccount[]>([]);
-  const [avatarDims, setAvatarDims] = useState({ width: 0, height: 0 });
 
+  //const [avatarDims, setAvatarDims] = useState({ width: 0, height: 0 });
+  const [notificationEmail, setNotificationEmail] = useState("");
+  const [settings, setSettings] = useState({
+    emailNotifications: false,
+    //popupNotifications: false,
+    friendRequest: true,
+    announcement: true,
+  });
   //TODO: make this actually take state from database
   const [isLightMode, setIsLightMode] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -55,27 +72,50 @@ export default function Settings() {
             email: data.email || "",
             username: data.username || "",
             isLightTheme: data.isLightTheme || false,
+            profilePic: data.profilePic || null
           });
           setIsLightMode(!data.isLightTheme || false);
         }
       }
     };
 
-    const fetchProfileImage = async () => {
-      try {
-        const res = await fetch(`/api/getProfileImage?userId=${userId}`);
-        const data = await res.json();
-        if (res.ok && data.file) {
-          setPreview(`/uploads/${data.file}?timestamp=${Date.now()}`);
+    // const fetchProfileImage = async () => {
+    //   try {
+    //     const res = await fetch(`/api/getProfileImage?userId=${userId}`);
+    //     const data = await res.json();
+    //     if (res.ok && data.file) {
+    //       setPreview(`/uploads/${data.file}?timestamp=${Date.now()}`);
+    //     }
+    //   } catch {
+    //     setPreview("/uploads/testuser.png");
+    //   }
+    // };
+
+    const fetchSettings = async () => {
+      if (userId) {
+        const docRef = doc(db, "Users", userId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.notificationSettings) {
+            setSettings({
+              emailNotifications: data.notificationSettings.emailNotifications ?? false,
+              //popupNotifications: data.notificationSettings.popupNotifications ?? false,
+              friendRequest: data.notificationSettings.friendRequest ?? true,
+              announcement: data.notificationSettings.announcement ?? true,
+            });
+            setNotificationEmail(data.notificationSettings.notificationEmail || "");
+          }
         }
-      } catch {
-        setPreview("/uploads/testuser.png");
       }
     };
 
     if (userId) {
       fetchUserData();
-      fetchProfileImage();
+      //fetchProfileImage();
+
+      fetchSettings();
+
     }
   }, [userId]);
 
@@ -87,8 +127,19 @@ export default function Settings() {
     if (event.target.files && event.target.files.length > 0) {
       const file = event.target.files[0];
       setImage(file);
-      setPreview(URL.createObjectURL(file));
+      const previewUrl = URL.createObjectURL(file);
+      setFormData({
+        email: formData.email || "",
+        username: formData.username || "",
+        isLightTheme: formData.isLightTheme || false,
+        profilePic: previewUrl || null
+      });
     }
+  };
+
+  const validateEmail = (email: string) => {
+    const re = /\S+@\S+\.\S+/;
+    return re.test(email);
   };
 
   const handleUpload = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -101,26 +152,59 @@ export default function Settings() {
     setUploading(true);
     const formData = new FormData();
     formData.append("image", image);
-
     try {
-      const res = await fetch(`/api/upload?userId=${userId}`, {
+      /* console.log("groupPicture:", groupPicture);
+      console.log("type:", groupPicture.type);
+      console.log("name:", groupPicture.name);
+      console.log("size:", groupPicture.size); */
+      fetch("../api/blob/upload", {
         method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Upload failed");
-      }
-      alert("Upload successful!");
+        headers: {
+          "content-type": image?.type || "application/octet-stream",
+        },
+        body: image,
+      })
+        .then(async (result) => {
+          // Check if the result is successful
+          if (!result.ok) {
+            throw new Error("Failed to upload the picture");
+          }
+          const { url } = await result.json() as PutBlobResult;
+  
+          // Now update the group document with the picture URL and other data
+          await setDoc(doc(db, "Users", userId), {
+            profilePic: url,
+          }, { merge: true });
+        })
+        .catch((error) => {
+          console.error("Upload failed", error);
+        });
+        alert("Successfully uploaded profile picture.");
     } catch (error) {
-      if (error instanceof Error) {
-        alert(`Upload failed! ${error.message || "Unknown error"}`);
-      } else {
-        alert("Upload failed! Unknown error");
-      }
+      console.error("uppload failed", error);
     } finally {
       setUploading(false);
     }
+
+    // try {
+    //   const res = await fetch(`/api/upload?userId=${userId}`, {
+    //     method: "POST",
+    //     body: formData,
+    //   });
+    //   const data = await res.json();
+    //   if (!res.ok) {
+    //     throw new Error(data.error || "Upload failed");
+    //   }
+    //   alert("Upload successful!");
+    // } catch (error) {
+    //   if (error instanceof Error) {
+    //     alert(`Upload failed! ${error.message || "Unknown error"}`);
+    //   } else {
+    //     alert("Upload failed! Unknown error");
+    //   }
+    // } finally {
+    //   setUploading(false);
+    // }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -344,6 +428,33 @@ export default function Settings() {
     }
   };
 
+  const handleSave = async () => {
+    if (!userId) return;
+    // If email notifications are enabled, validate the email address
+    if (settings.emailNotifications && !validateEmail(notificationEmail)) {
+      alert("Please enter a valid email for notifications.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await setDoc(
+        doc(db, "Users", userId),
+        {
+          notificationSettings: {
+            ...settings,
+            notificationEmail,
+          },
+        },
+        { merge: true }
+      );
+      alert("Notification settings saved!");
+    } catch {
+      alert("Failed to save settings.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div
       style={{
@@ -357,20 +468,19 @@ export default function Settings() {
     >
       <h1 style={{ fontSize: "24px", marginBottom: "15px" }}>Settings</h1>
 
-      <div style={{ marginBottom: "20px" }}>
-        {preview && (
-          <NextImage
-            src={preview}
-            alt="User Avatar"
-            width={avatarDims.width || 100}
-            height={avatarDims.height || 100}
-            onLoadingComplete={({ naturalWidth, naturalHeight }) =>
-              setAvatarDims({ width: naturalWidth, height: naturalHeight })
-            }
-            style={{ border: "3px solid #0070f3" }}
-            className="w-32 h-32 rounded-full object-cover shadow-md block mx-auto"
-          />
-        )}
+      <div className="mb-5 flex justify-center">
+        <NextImage
+          src={formData?.profilePic || "https://ns6ela3qh5m1napj.public.blob.vercel-storage.com/88BqvzD.-sYOdx4LwT08Vjf9C4TxU17uTscYPjn.bin"}
+          alt="Profile"
+          width={150}
+          height={150}
+          className="rounded-full object-cover w-[150px] h-[150px]"
+          style={{ border: "3px solid #0070f3" }}
+          onError={(e) =>
+            (e.currentTarget.src =
+              "https://ns6ela3qh5m1napj.public.blob.vercel-storage.com/88BqvzD.-sYOdx4LwT08Vjf9C4TxU17uTscYPjn.bin")
+          }
+        />
       </div>
       <form onSubmit={handleUpload} style={{ marginBottom: "20px" }}>
         <input
@@ -457,9 +567,105 @@ export default function Settings() {
             width: "100%",
           }}
         >
-          {updating ? "Updating..." : "Save Changes"}
+          {updating ? "Updating..." : "Save Profile Settings"}
         </button>
       </form>
+<div style={{ marginTop: "10px" }}></div>
+      <h1 style={{ fontSize: "24px", marginBottom: "25px" }}>Notification Settings</h1>
+
+<div style={{ textAlign: "left", marginBottom: "25px" }}>
+  <h2 style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "10px" }}>
+    Notification Methods
+  </h2>
+  
+  <div className="flex items-center justify-between mb-4">
+    <label>Email Notifications</label>
+    <Switch
+      checked={settings.emailNotifications}
+      onCheckedChange={() =>
+        setSettings((prev) => ({
+          ...prev,
+          emailNotifications: !prev.emailNotifications,
+        }))
+      }
+    />
+  </div>
+
+  <input
+    type="email"
+    value={notificationEmail}
+    onChange={(e) => setNotificationEmail(e.target.value)}
+    placeholder="Enter email for notifications"
+    style={{
+      width: "100%",
+      padding: "10px",
+      borderRadius: "5px",
+      border: "1px solid #ccc",
+      color: "black",
+      marginBottom: "20px",
+    }}
+  />
+
+  {/*<div className="flex items-center justify-between mb-4">
+    <label>Pop-up Notifications</label>
+    <Switch
+      checked={settings.popupNotifications}
+      onCheckedChange={handlePopupToggle}
+    />
+  </div>*/}
+</div>
+
+<div style={{ textAlign: "left", marginBottom: "25px" }}>
+  <h2 style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "10px" }}>
+    Notification Items
+  </h2>
+
+  <div className="flex items-center justify-between mb-4">
+    <label>Friend Requests</label>
+    <Switch
+      checked={settings.friendRequest}
+      onCheckedChange={() =>
+        setSettings((prev) => ({
+          ...prev,
+          friendRequest: !prev.friendRequest,
+        }))
+      }
+    />
+  </div>
+
+  <div className="flex items-center justify-between mb-4">
+    <label>Announcements</label>
+    <Switch
+      checked={settings.announcement}
+      onCheckedChange={() =>
+        setSettings((prev) => ({
+          ...prev,
+          announcement: !prev.announcement,
+        }))
+      }
+    />
+  </div>
+</div>
+
+<button
+  onClick={handleSave}
+  disabled={saving}
+  style={{
+    padding: "10px 15px",
+    backgroundColor: saving ? "#ccc" : "#0070f3",
+    color: "#fff",
+    border: "none",
+    borderRadius: "5px",
+    cursor: saving ? "not-allowed" : "pointer",
+    width: "100%",
+  }}
+>
+  {saving ? "Saving..." : "Save Notification Settings"}
+</button>
+
+<div style={{ marginTop: "10px" }}></div>
+      <h1 style={{ fontSize: "24px", marginBottom: "25px" }}>Account Settings</h1>
+
 
       <form onSubmit={handleChangePassword}>
         <div style={{ marginBottom: "15px", textAlign: "left" }}>
@@ -575,6 +781,7 @@ export default function Settings() {
         </div>
       </div>
 
+
       <button
         onClick={() => router.push("/profile")}
         style={{
@@ -590,6 +797,7 @@ export default function Settings() {
       >
         Back to Profile
       </button>
+
 
       <button
         onClick={handleLogout}

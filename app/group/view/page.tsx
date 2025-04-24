@@ -287,7 +287,7 @@ const ViewGroupPage = () => {
             onLoadingComplete={({ naturalWidth, naturalHeight }) =>
               setGroupImgDims({ width: naturalWidth, height: naturalHeight })
             }
-            className="items-center w-80 h-40 object-cover mx-auto mb-4 rounded-lg"
+            className="object-contain items-center w-80 h-40 mx-auto mb-4 rounded-lg"
           />
         )}
         <CardHeader>

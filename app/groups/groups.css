@@ -105,7 +105,7 @@
 /* TABS LIST */
 .tabs-list {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   width: "full";
   margin: 0 auto;
 }
@@ -156,6 +156,10 @@
 
 /* When user cannot create announcements, reduce max-height */
 .announcements.no-create {
+  max-height: calc(90vh - 115px);
+}
+
+.gallery {
   max-height: calc(90vh - 115px);
 }
 

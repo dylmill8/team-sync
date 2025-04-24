@@ -8,11 +8,12 @@ import { doc, getDoc, updateDoc, collection, addDoc } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
 import { firebaseApp } from "@/utils/firebaseConfig";
 import { getAuth } from "firebase/auth";
+import WorkoutSurveyModal from "@/components/ui/workout-survey";
 
 interface Workout {
   id: string;
   name: string;
-  exercises: Exercise[]; 
+  exercises: Exercise[];
   Map: { [userId: string]: string };
   eventId: string;
   workoutDuration: string;
@@ -21,7 +22,7 @@ interface Workout {
 interface Exercise {
   name: string;
   duration: string;
-} 
+}
 
 const ModifyWorkoutPage = () => {
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -35,6 +36,8 @@ const ModifyWorkoutPage = () => {
 
   const [eventOwner, setEventOwner] = useState<string | null>(null); // State to store the event owner
 
+  const [showSurvey, setShowSurvey] = useState<boolean>(false);
+
   // Fetch the workout document
   useEffect(() => {
     const fetchWorkout = async () => {
@@ -43,7 +46,10 @@ const ModifyWorkoutPage = () => {
         const workoutDocSnap = await getDoc(workoutDocRef);
         if (workoutDocSnap.exists()) {
           const workoutData = workoutDocSnap.data();
-          const exerciseList = workoutData.exercises && Array.isArray(workoutData.exercises) ? workoutData.exercises : [];
+          const exerciseList =
+            workoutData.exercises && Array.isArray(workoutData.exercises)
+              ? workoutData.exercises
+              : [];
 
           // Manually set the fields of the workout object
           const workoutObject: Workout = {
@@ -51,11 +57,11 @@ const ModifyWorkoutPage = () => {
             name: workoutData.name || "",
             exercises: exerciseList.map((exercise) => ({
               name: exercise.name || "", // Ensure there's always a name, fallback to an empty string
-              duration: exercise.duration || "0" // Ensure there's always a duration, fallback to "0"
-          })),
+              duration: exercise.duration || "0", // Ensure there's always a duration, fallback to "0"
+            })),
             Map: workoutData.Map || {},
             eventId: workoutData.eventId || "",
-            workoutDuration: workoutData.workoutDuration
+            workoutDuration: workoutData.workoutDuration,
           };
           setWorkout(workoutObject); // Manually set the workout object
 
@@ -116,7 +122,7 @@ const ModifyWorkoutPage = () => {
   };
 
   // Save personal logs and update workout with map
-  const handleSaveLogs = async () => {
+  const handleSaveLogs = async ({satisfaction, intensity}: {satisfaction: number; intensity: number}) => {
     if (!userId) {
       alert("Error: Missing user ID.");
       return;
@@ -131,6 +137,8 @@ const ModifyWorkoutPage = () => {
       // Create log document
       const logsRef = await addDoc(collection(db, "Logs"), {
         descriptions: personalLogs,
+        satisfaction,
+        intensity,
       });
 
       // Update workout with the new Map field if it doesn't exist
@@ -178,12 +186,17 @@ const ModifyWorkoutPage = () => {
         <h2 className="text-2xl font-semibold mb-4">My Workout Log</h2>
         {workout ? (
           <>
-            <h2 className="text-2xl font-semibold mb-4">{workout.name || ""}</h2>
+            <h2 className="text-2xl font-semibold mb-4">
+              {workout.name || ""}
+            </h2>
 
             {/* Display the workout duration */}
             <div className="text-lg mb-4">
               <strong>Workout Duration: </strong>
-              {workout.workoutDuration === "" ? "0" : workout.workoutDuration || "0"} minutes
+              {workout.workoutDuration === ""
+                ? "0"
+                : workout.workoutDuration || "0"}{" "}
+              minutes
             </div>
           </>
         ) : (
@@ -195,7 +208,9 @@ const ModifyWorkoutPage = () => {
             <div className="flex items-center gap-2">
               <Input
                 type="text"
-                value={`${exercise.name}${exercise.duration ? ` (${exercise.duration} mins)` : ""}`}
+                value={`${exercise.name}${
+                  exercise.duration ? ` (${exercise.duration} mins)` : ""
+                }`}
                 readOnly
                 className="flex-grow bg-gray-100 p-2 rounded-md"
               />
@@ -217,31 +232,39 @@ const ModifyWorkoutPage = () => {
             Array.isArray(eventOwner) ? (
               eventOwner.includes(userId) ? (
                 <Button
-                  onClick={() => router.push(`/workout/settings?workoutId=${workoutId}`)}
+                  onClick={() =>
+                    router.push(`/workout/settings?workoutId=${workoutId}`)
+                  }
                   className="bg-green-500 text-white px-4 py-2 rounded mr-2" // Added mr-2 for spacing
                 >
                   Workout Settings
                 </Button>
               ) : null
-            ) : (
-              eventOwner === userId ? (
-                <Button
-                  onClick={() => router.push(`/workout/settings?workoutId=${workoutId}`)}
-                  className="bg-green-500 text-white px-4 py-2 rounded mr-2" // Added mr-2 for spacing
-                >
-                  Workout Settings
-                </Button>
-              ) : null
-            )
+            ) : eventOwner === userId ? (
+              <Button
+                onClick={() =>
+                  router.push(`/workout/settings?workoutId=${workoutId}`)
+                }
+                className="bg-green-500 text-white px-4 py-2 rounded mr-2" // Added mr-2 for spacing
+              >
+                Workout Settings
+              </Button>
+            ) : null
           ) : null}
           <Button
-            onClick={handleSaveLogs}
+            onClick={() => setShowSurvey(true)}
             className="bg-blue-600 text-white px-4 py-2 rounded"
           >
             Save Logs
           </Button>
         </div>
       </div>
+
+      <WorkoutSurveyModal
+        open={showSurvey}
+        onOpenChange={setShowSurvey}
+        onSubmit={handleSaveLogs}
+      ></WorkoutSurveyModal>
     </div>
   );
 };
