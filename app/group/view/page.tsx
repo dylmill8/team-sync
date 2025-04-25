@@ -225,7 +225,7 @@ const ViewGroupPage = () => {
       group: groupRef,
     });
 
-    const generatedLink = `localhost:3000/invite/${inviteRef.id}`;
+    const generatedLink = `http://teamsync-woad.vercel.app/invite/${inviteRef.id}`;
     setInviteLink(generatedLink);
     alert(`Your invite link has been generated!`);
   };

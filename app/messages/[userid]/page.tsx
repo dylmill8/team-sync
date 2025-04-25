@@ -6,6 +6,16 @@ import { setDocument, viewDocument } from "../../../utils/firebaseHelper.js"
 import { DocumentReference } from "firebase/firestore"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+
+import {
+  Sheet,
+  SheetTrigger,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import { Cog } from "lucide-react"
+import {  EyeOff } from "lucide-react"
 import NextImage from "next/image"
 import {
   onSnapshot,
@@ -55,15 +65,22 @@ export default function ChatPage() {
   const [newMessage, setNewMessage] = useState("")
   const [loadingMore, setLoadingMore] = useState(false)
   const [isGroupChat, setIsGroupChat] = useState(false)
-  const [imageDimsMap, setImageDimsMap] = useState<Record<string, { width: number; height: number }>>({})
+ // const [imageDimsMap, setImageDimsMap] = useState<Record<string, { width: number; height: number }>>({})
   const batchSize = 10
   const userCache = useRef<Record<string, string>>({})
+  const endOfMessagesRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (typeof userid === "string") {
       setChatId(userid)
     }
   }, [userid])
+
+
+  useEffect(() => {
+    endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -321,150 +338,169 @@ export default function ChatPage() {
 
 
   return (
-    <div className="p-4 max-w-xl mx-auto">
-      <Button
-        className="mb-4"
-        variant="outline"
-        onClick={() => router.push("/messages")}
-      >
-        ← Back to Messages
+    <div className="flex flex-col h-screen">
+      {/* ───────────── HEADER ───────────── */}
+      <header className="flex items-center justify-between px-4 py-3 border-b">
+        <Button variant="ghost" onClick={() => router.push("/messages")}>
+          ← Back
+        </Button>
+        <h1 className="text-lg font-semibold">{chatTitle}</h1>
+        {/* …group settings trigger here… */}
+        {isGroupChat && (
+          <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <Cog />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-80">
+            <SheetHeader>
+              <SheetTitle>Group Settings</SheetTitle>
+            </SheetHeader>
+             {/* Rename Group */}
+    <div className="flex space-x-2 mb-4">
+      <Input
+        value={groupName}
+        onChange={(e) => setGroupName(e.target.value)}
+        placeholder="Group name…"
+      />
+      <Button size="sm" onClick={handleChangeGroupName}>
+        Save
       </Button>
+    </div>
 
-      <h1 className="text-xl font-bold mb-4">{chatTitle}</h1>
+    <hr className="my-4 border-t border-gray-200 dark:border-gray-700" />
 
-      {isGroupChat && (
-        <div className="mb-4 space-y-4">
-          <div className="flex space-x-2">
-            <Input
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
-              placeholder="Group Name"
-            />
-            <Button onClick={handleChangeGroupName}>Update Name</Button>
-          </div>
-          <div>
-            <h2 className="font-semibold mb-2">Add Friends</h2>
-            {friendsData
-              .filter((f) => !messages.some((m: Message) => m.userId === f.id))
-              .map((friend: Friend) => (
-                <div key={friend.id} className="flex justify-between mb-1">
-                  <span>{friend.username || friend.id}</span>
-                  <Button size="sm" onClick={() => handleAddFriendToGroup(friend.id)}>
-                    Add to Group
-                  </Button>
-                </div>
-              ))}
-          </div>
+    {/* Add Friends */}
+    <h4 className="text-sm font-medium mb-2">Add Friends</h4>
+    <div className="space-y-2 max-h-40 overflow-y-auto">
+      {friendsData.map((f) => (
+        <Button
+          key={f.id}
+          size="sm"
+          variant="outline"
+          className="w-full"
+          onClick={() => handleAddFriendToGroup(f.id)}
+        >
+          {f.username}
+        </Button>
+      ))}
+    </div>
+          </SheetContent>
+        </Sheet>
+        )}
+      </header>
+
+      
+  
+      {/* ───────────── MESSAGES ───────────── */}
+      <main className="flex-1 flex flex-col overflow-y-auto px-4 py-2 space-y-4">
+        <div className="text-center">
+          <Button
+            variant="link"
+            size="sm"
+            onClick={loadMoreMessages}
+            disabled={loadingMore}
+          >
+            {loadingMore ? "Loading…" : "Load earlier messages"}
+          </Button>
         </div>
-      )}
-
-      <Button onClick={loadMoreMessages} disabled={loadingMore}>
-        {loadingMore ? "Loading..." : "Load Previous Messages"}
-      </Button>
-
-      <div className="space-y-2 mb-4 mt-4">
-      {messages.map((msg: Message) => (
-        <div key={msg.id} className="border rounded p-2 shadow-sm bg-white">
-          <div className="text-sm text-gray-500">
-            {msg.username} •{" "}
-            {msg.timestamp?.toDate?.().toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </div>
-          <div>
-          {msg.isImage ? (
+  
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={`max-w-md w-full p-2 rounded-lg shadow-sm ${
+              msg.userId === currentUserId
+                ? "bg-blue-50 self-end"
+                : "bg-white self-start"
+            }`}
+          >
+            <div className="text-xs text-gray-400 mb-1">
+              {msg.username} ·{" "}
+              {msg.timestamp?.toDate().toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </div>
+  
+            {msg.isImage ? (
               msg.spoiler ? (
                 <div
-                  className="relative max-w-full max-h-full mt-1 rounded cursor-pointer group"
+                  className="relative group w-full"
                   onClick={(e) => {
-                    const img = e.currentTarget.querySelector("img");
-                    if (img) img.classList.remove("blur");
-                    const overlay = e.currentTarget.querySelector(".spoiler-overlay");
-                    if (overlay) overlay.remove();
+                    const img = e.currentTarget.querySelector("img")
+                    img?.classList.remove("blur")
+                    e.currentTarget.querySelector(".overlay")?.remove()
                   }}
                 >
                   <NextImage
                     src={msg.text}
-                    alt="Spoiler Image"
-                    className="blur max-w-full max-h-full rounded transition duration-300"
-                    width={imageDimsMap[msg.id]?.width || 400}
-                    height={imageDimsMap[msg.id]?.height || 200}
-                    onLoadingComplete={({ naturalWidth, naturalHeight }) =>
-                      setImageDimsMap((prev) => ({
-                        ...prev,
-                        [msg.id]: { width: naturalWidth, height: naturalHeight },
-                      }))
-                    }
+                    alt="Spoiler"
+                    width={300}
+                    height={200}
+                    className="blur rounded-lg object-contain w-full max-h-80 transition"
                   />
-                  <div className="spoiler-overlay absolute inset-0 bg-black bg-opacity-70 text-white flex items-center justify-center text-sm font-semibold">
-                    Click to reveal spoiler
+                  <div className="overlay absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 text-white text-sm rounded-lg">
+                    Click to reveal
                   </div>
                 </div>
               ) : (
-                <NextImage
-                  src={msg.text}
-                  alt="Uploaded Image"
-                  className="max-w-full max-h-full mt-1 rounded"
-                  width={imageDimsMap[msg.id]?.width || 400}
-                  height={imageDimsMap[msg.id]?.height || 200}
-                  onLoadingComplete={({ naturalWidth, naturalHeight }) =>
-                    setImageDimsMap((prev) => ({
-                      ...prev,
-                      [msg.id]: { width: naturalWidth, height: naturalHeight },
-                    }))
-                  }
-                />
+                <div className="w-full">
+                  <NextImage
+                    src={msg.text}
+                    alt="Image"
+                    width={300}
+                    height={200}
+                    className="rounded-lg object-contain w-full max-h-80"
+                  />
+                </div>
               )
             ) : (
-              <div>{msg.text}</div>
+              <p>{msg.text}</p>
             )}
-
-
           </div>
-        </div>
-      ))}
+        ))}
 
-      </div>
+<div ref={endOfMessagesRef} />
 
-      
-
-      <div className="flex space-x-2">
-      <input
-    type="file"
-    accept="image/*"
-    onChange={handleFileUpload}
-    hidden
-    ref={fileInputRef}
-    data-spoiler={markAsSpoiler ? "true" : "false"}
-  />
+      </main>
   
-  <Button
-    onClick={() => {
-      if (fileInputRef.current) {
-        fileInputRef.current.click()
-      }
-    }}
-  >
-    Upload Image
-  </Button>
-
-  <label className="flex items-center space-x-1 text-sm">
-    <input
-      type="checkbox"
-      checked={markAsSpoiler}
-      onChange={(e) => setMarkAsSpoiler(e.target.checked)}
-    />
-    <span>Spoiler</span>
-  </label>
-
+      {/* ───────────── FOOTER ───────────── */}
+      <footer className="flex items-center gap-2 px-4 py-3 border-t">
+        <Button
+          onClick={() => fileInputRef.current?.click()}
+        >
+          Upload Image
+        </Button>
+        <label className="flex items-center gap-1 text-sm">
+          <input
+            type="checkbox"
+            checked={markAsSpoiler}
+            onChange={(e) => setMarkAsSpoiler(e.target.checked)}
+          />
+          <EyeOff size={14} />
+        </label>
+  
         <Input
+          className="flex-1"
+          placeholder="Type your message…"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Type a message"
+          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
         />
-<Button onClick={() => sendMessage()}>Send</Button>
-</div>
+  
+        <Button onClick={() => sendMessage()}>Send</Button>
+  
+        <input
+          type="file"
+          accept="image/*"
+          hidden
+          ref={fileInputRef}
+          data-spoiler={markAsSpoiler ? "true" : "false"}
+          onChange={handleFileUpload}
+        />
+      </footer>
     </div>
   )
+  
 }
