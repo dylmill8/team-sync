@@ -191,9 +191,11 @@ const GroupsPage = () => {
         );
   
       const eventStart = event.start ? new Date(event.start) : null;
+      const eventEnd = event.end ? new Date(event.end) : null;
+
       const matchesDate =
         (!startDate || (eventStart && eventStart >= startDate)) &&
-        (!endDate || (eventStart && eventStart <= endDate));
+        (!endDate || (eventEnd && eventEnd <= endDate));
         const yesCount = Object.values(event.RSVPMap || {}).filter(
           (val) => val.toLowerCase() === "yes"
         ).length;
@@ -276,9 +278,11 @@ const GroupsPage = () => {
             const userDocRef = doc(db, "Users", uid);
             const userDoc = await getDoc(userDocRef);
             if (userDoc.exists()) {
-              const userData = userDoc.data();
-              if (Array.isArray(userData.events)) {
-                const eventPromises = userData.events.map(async (eventRef) => {
+              const groupDocRef = doc(db, "Groups", docId);
+              const groupDoc = await getDoc(groupDocRef);
+              const groupData = groupDoc.data();
+              if (groupData && Array.isArray(groupData.events)) {
+                const eventPromises = groupData.events.map(async (eventRef: DocumentReference) => {
                   try {
                     const eventDoc = await getDoc(eventRef);
                     if (!eventDoc.exists()) return null;
@@ -1122,28 +1126,34 @@ const GroupsPage = () => {
                 }}
               />
               {showTagDropdown && (
-  <div className="absolute top-[58px] left-4 z-50 bg-white dark:bg-gray-800 p-4 rounded shadow border w-64">
-    <div className="mt-2 space-y-4">
-      {/* Date Range */}
-      <div className="p-2">
-        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300 ">Start Date</label>
-        <Input
-  type="date"
-  onChange={(e) =>
-    setDateRange(([, end]) => {
-      const val = e.target.value
-      const start = val
-        ? new Date(
-            parseInt(val.slice(0, 4)),         // year
-            parseInt(val.slice(5, 7)) - 1,     // month (0-based)
-            parseInt(val.slice(8, 10)),        // day
-            0, 0, 0                            // 00:00:00 local time
-          )
-        : null
-      return [start, end]
-    })
-  }
-/>
+                <div
+                  className="absolute top-[58px] left-4 z-50 bg-white dark:bg-gray-800 p-4 rounded shadow border w-64"
+                  style={{
+                    maxHeight: "400px",
+                    overflowY: "auto", 
+                  }}
+                > 
+                  <div className="mt-2 space-y-4">
+                    {/* Date Range */}
+                    <div className="p-2">
+                      <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300 ">Start Date</label>
+                      <Input
+                type="date"
+                onChange={(e) =>
+                  setDateRange(([, end]) => {
+                    const val = e.target.value
+                    const start = val
+                      ? new Date(
+                          parseInt(val.slice(0, 4)),         // year
+                          parseInt(val.slice(5, 7)) - 1,     // month (0-based)
+                          parseInt(val.slice(8, 10)),        // day
+                          0, 0, 0                            // 00:00:00 local time
+                        )
+                      : null
+                    return [start, end]
+                  })
+                }
+              />
 
       </div>
       <div className="p-1">
@@ -1157,7 +1167,7 @@ const GroupsPage = () => {
         ? new Date(
             parseInt(val.slice(0, 4)),
             parseInt(val.slice(5, 7)) - 1,
-            parseInt(val.slice(8, 10)),
+            parseInt(val.slice(8, 10)) + 1,
             0, 0, 0
           )
         : null
