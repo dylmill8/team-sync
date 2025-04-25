@@ -1,7 +1,7 @@
 "use client";
 
 import "./calendar.css";
-
+import { DocumentReference, DocumentData } from "firebase/firestore";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -15,6 +15,11 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useState, useEffect, useRef } from "react";
 //import { Button } from "@/components/ui/button";
+
+interface TaggedEventRef {
+  ref: DocumentReference<DocumentData>;
+  type: "personal" | "group";
+}
 
 interface EventData {
   name: string;
@@ -61,93 +66,104 @@ export default function Calendar() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const uid = user.uid;
+      if (!user) return console.error("User not signed in.");
+  
+      const uid = user.uid;
+      const userDocRef = doc(db, "Users", uid);
+      const userDocSnap = await getDoc(userDocRef);
+  
+      if (!userDocSnap.exists()) return console.error("User document not found.");
+  
+      const userData = userDocSnap.data();
 
-        if (uid) {
-          const userDocRef = doc(db, "Users", uid);
-          const userDoc = await getDoc(userDocRef);
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            if (Array.isArray(userData.events)) {
-              const eventPromises = userData.events.map(async (eventRef) => {
-                try {
-                  const eventDoc = await getDoc(eventRef);
-                  if (!eventDoc.exists()) return null;
-                  const eventData = eventDoc.data() as EventData;
-
-                  let userRSVPStatus = "None";
-                  for (const key in eventData.RSVP) {
-                    if (key === uid) {
-                      userRSVPStatus = eventData.RSVP[key];
-                      break;
-                    }
-                  }
-
-                  let workoutData = "None";
-                  if (eventData.workouts && eventData.workouts.length > 0) {
-                    const workoutDocRef = doc(
-                      db,
-                      "Workouts",
-                      eventData.workouts[0]
-                    );
-                    const workoutDoc = await getDoc(workoutDocRef);
-                    if (workoutDoc.exists()) {
-                      workoutData = workoutDoc.data().exercises[0];
-                    }
-                  }
-                  return {
-                    title: eventData.name,
-                    allDay: eventData.allDay,
-                    start:
-                      eventData.end == undefined
-                        ? undefined
-                        : eventData.start.seconds * 1000,
-                    end:
-                      eventData.end == undefined
-                        ? undefined
-                        : eventData.end.seconds * 1000,
-                    description: eventData.description,
-                    location: eventData.location,
-                    docID: eventDoc.id,
-                    owner: eventData.owner,
-                    RSVPStatus: userRSVPStatus,
-                    RSVPMap: eventData.RSVP,
-                    workout: workoutData,
-                    tags: eventData.tags || [],
-                  };
-                } catch (error) {
-                  console.error("Error fetching event:", error);
-                  return null;
-                }
-              });
-              const events = await Promise.all(eventPromises);
-              const validEvents = events.filter((e) => e !== null) as CalendarEvent[];
-              setEventList(validEvents);
-              setFilteredEvents(validEvents); // Initially show all events
-
-              // Extract unique tags from events
-              const tags = Array.from(
-                new Set(validEvents.flatMap((event) => event.tags))
-              ).sort();
-              setAvailableTags(tags);
-            }
-          } else {
-            console.error("No such document!");
-          }
-        } else {
-          console.error("Invalid UID.");
+      const eventRefs: TaggedEventRef[] = [];
+  
+      // Include personal events
+      if (Array.isArray(userData.events)) {
+        for (const ref of userData.events) {
+          eventRefs.push({ ref, type: "personal" });
         }
-      } else {
-        console.error("User is not signed in.");
       }
+      
+      if (Array.isArray(userData.groups)) {
+        for (const groupRef of userData.groups) {
+          if (typeof groupRef === "object" && groupRef !== null && "id" in groupRef) {
+            const groupDocSnap = await getDoc(groupRef as DocumentReference);
+            if (groupDocSnap.exists()) {
+              const groupData = groupDocSnap.data();
+              if (Array.isArray(groupData.events)) {
+                for (const ref of groupData.events) {
+                  eventRefs.push({ ref, type: "group" });
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      
+  
+      const eventPromises = eventRefs.map(async ({ ref, type }) => {
+        try {
+          const eventDoc = await getDoc(ref);
+          if (!eventDoc.exists()) return null;
+          const eventData = eventDoc.data() as EventData;
+      
+          let userRSVPStatus = "None";
+          if (eventData.RSVP && eventData.RSVP[uid]) {
+            userRSVPStatus = eventData.RSVP[uid];
+          }
+      
+          let workoutData = "None";
+          if (eventData.workouts?.length > 0) {
+            const workoutDocRef = doc(db, "Workouts", eventData.workouts[0]);
+            const workoutDoc = await getDoc(workoutDocRef);
+            if (workoutDoc.exists()) {
+              workoutData = workoutDoc.data().exercises[0];
+            }
+          }
+      
+          return {
+            title: eventData.name,
+            allDay: eventData.allDay,
+            start: eventData.start?.seconds ? eventData.start.seconds * 1000 : undefined,
+            end: eventData.end?.seconds ? eventData.end.seconds * 1000 : undefined,
+            description: eventData.description,
+            location: eventData.location,
+            docID: eventDoc.id,
+            owner: eventData.owner,
+            RSVPStatus: userRSVPStatus,
+            RSVPMap: eventData.RSVP,
+            workout: workoutData,
+            tags: eventData.tags || [],
+            color: type === "group" ? "#056ceb" : "#7b04db", // 
+          };
+        } catch (err) {
+          console.error("Error fetching event:", err);
+          return null;
+        }
+      });
+      
+      
+  
+      const events = await Promise.all(eventPromises);
+      const validEvents = events.filter(Boolean) as CalendarEvent[];
+      setEventList(validEvents);
+      setFilteredEvents(validEvents);
+  
+      // Extract and sort unique tags
+      const tags = Array.from(
+        new Set(validEvents.flatMap((e) => e.tags))
+      ).sort();
+      setAvailableTags(tags);
     });
+  
     return () => {
       unsubscribe();
-      const allTooltips = document.querySelectorAll(".my-event-tooltip");
-      allTooltips.forEach((tooltipEl) => tooltipEl.remove());
+      document.querySelectorAll(".my-event-tooltip").forEach((t) => t.remove());
     };
   }, [auth]);
+  
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prevTags) =>
@@ -160,39 +176,49 @@ export default function Calendar() {
   useEffect(() => {
     const [startDate, endDate] = dateRange;
   
+    // detect if any filter is applied
+    const filtersApplied =
+      selectedTags.length > 0 ||
+      !!startDate ||
+      !!endDate ||
+      minRSVP > 0;
+  
     const newFiltered = eventList.filter((event) => {
       const matchesTags =
         selectedTags.length === 0 ||
         selectedTags.every((tag) =>
-          event.tags.some((eventTag) => eventTag.toLowerCase() === tag.toLowerCase())
+          event.tags.some((t) => t.toLowerCase() === tag.toLowerCase())
         );
   
       const eventStart = event.start ? new Date(event.start) : null;
+      const eventEnd = event.end ? new Date(event.end) : null;
+
       const matchesDate =
         (!startDate || (eventStart && eventStart >= startDate)) &&
-        (!endDate || (eventStart && eventStart <= endDate));
+        (!endDate   || (eventEnd && eventEnd <= endDate));
   
-        const yesCount = Object.values(event.RSVPMap || {}).filter(
-          (val) => val.toLowerCase() === "yes"
-        ).length;
-        
-        const matchesRSVP = yesCount >= minRSVP;
-        
+      const yesCount = Object.values(event.RSVPMap || {}).filter(
+        (val) => val.toLowerCase() === "yes"
+      ).length;
+      const matchesRSVP = yesCount >= minRSVP;
   
       return matchesTags && matchesDate && matchesRSVP;
     });
   
+    // only pop the alert if filters are on AND there are no matches
+    if (filtersApplied && newFiltered.length === 0) {
+      alert("No events match your filters.");
+    }
+  
     setFilteredEvents(newFiltered);
-  }, [selectedTags, eventList, dateRange, minRSVP]);
+  }, [selectedTags, dateRange, minRSVP, eventList]);
+  
   
 
   return (
     <div className="calendar">
       <NavBar />
       <div className="relative">
-        {/* Dropdown Menu and Clear Tags Button */}
-       
-
         {/* FullCalendar */}
         <div
           style={{
@@ -259,6 +285,10 @@ export default function Calendar() {
                 } else {
                   desc = "None";
                 }
+                const tags = info.event.extendedProps.tags || [];
+                const tagsDisplay = (tags.length > 3)
+                  ? `${tags.slice(0, 3).join(", ")}, etc.` // Show up to 3 tags and add "etc." if there are more
+                  : tags.join(", ") || "None";
 
                 descEl.innerHTML = `
                   <strong>Location:</strong> ${
@@ -268,9 +298,8 @@ export default function Calendar() {
                   <strong>RSVP Status:</strong> ${
                     info.event.extendedProps.RSVPStatus
                   }<br/>
-                  <strong>Workout:</strong> ${info.event.extendedProps.workout}
-                  ... <strong>and more</strong>
-                  <br/>
+                  <strong>Workout:</strong> ${info.event.extendedProps.workout}<br/>
+                  <strong>Tags:</strong> ${tagsDisplay}<br/>
                   <em>Click for more details</em>
                   <br/>
                 `;
@@ -343,26 +372,55 @@ export default function Calendar() {
           />
         </div>
         {showTagDropdown && (
-  <div className="absolute top-[58px] left-4 z-50 bg-white dark:bg-gray-800 p-4 rounded shadow border w-64">
-    <div className="mt-2 space-y-4">
-      {/* Date Range */}
-      <div className="p-2">
-        <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300 ">Start Date</label>
-        <Input
+          <div
+            className="absolute top-[58px] left-4 z-50 bg-white dark:bg-gray-800 p-4 rounded shadow border w-64"
+            style={{
+              maxHeight: "400px",
+              overflowY: "auto", 
+            }}
+          >
+            <div className="mt-2 space-y-4">
+              {/* Date Range */}
+              <div className="p-2">
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300 ">Start Date</label>
+                <Input
           type="date"
           onChange={(e) =>
-            setDateRange(([, end]) => [e.target.value ? new Date(e.target.value) : null, end])
+            setDateRange(([, end]) => {
+              const val = e.target.value
+              const start = val
+                ? new Date(
+                    parseInt(val.slice(0, 4)),         // year
+                    parseInt(val.slice(5, 7)) - 1,     // month (0-based)
+                    parseInt(val.slice(8, 10)),        // day
+                    0, 0, 0                            // 00:00:00 local time
+                  )
+                : null
+              return [start, end]
+            })
           }
         />
+
       </div>
       <div className="p-1">
         <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">End Date</label>
         <Input
-          type="date"
-          onChange={(e) =>
-            setDateRange(([start, ]) => [start, e.target.value ? new Date(e.target.value) : null])
-          }
-        />
+  type="date"
+  onChange={(e) =>
+    setDateRange(([start, ]) => {
+      const val = e.target.value
+      const end = val
+        ? new Date(
+            parseInt(val.slice(0, 4)),
+            parseInt(val.slice(5, 7)) - 1,
+            parseInt(val.slice(8, 10)) + 1,
+            0, 0, 0
+          )
+        : null
+      return [start, end]
+    })
+  }
+/>
       </div>
 
       {/* Min RSVP Count */}
