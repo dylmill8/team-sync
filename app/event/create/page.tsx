@@ -29,7 +29,12 @@ import {
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { firebaseApp } from "@/utils/firebaseConfig";
 import { useSearchParams } from "next/navigation";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown";
 
 // interface EventData {
 //   name: string;
@@ -65,13 +70,25 @@ const CreateEventPage = () => {
 
   const [tags, setTags] = useState<string[]>([]); // State for selected tags
   // eslint-disable-next-line prefer-const
-  let [availableTags, setAvailableTags] = useState<string[]>(["Mandatory", "Match", "Tournament", "Exercise", "Workout", "Training", "Practice", "Meetup", "Hangout", "Wellness"]);
+  let [availableTags, setAvailableTags] = useState<string[]>([
+    "Mandatory",
+    "Match",
+    "Tournament",
+    "Exercise",
+    "Workout",
+    "Training",
+    "Practice",
+    "Meetup",
+    "Hangout",
+    "Wellness",
+  ]);
 
   const toggleTag = (tag: string) => {
-    setTags((prevTags) =>
-      prevTags.includes(tag)
-        ? prevTags.filter((t) => t !== tag) // Remove tag if already selected
-        : [...prevTags, tag] // Add tag if not selected
+    setTags(
+      (prevTags) =>
+        prevTags.includes(tag)
+          ? prevTags.filter((t) => t !== tag) // Remove tag if already selected
+          : [...prevTags, tag] // Add tag if not selected
     );
   };
 
@@ -303,7 +320,9 @@ const CreateEventPage = () => {
                         e.preventDefault(); // Prevent the dropdown from closing
                         toggleTag(tag); // Toggle the tag selection
                       }}
-                      className={tags.includes(tag) ? "bg-gray-200 dark:bg-gray-700" : ""}
+                      className={
+                        tags.includes(tag) ? "bg-gray-200 dark:bg-gray-700" : ""
+                      }
                     >
                       {tags.includes(tag) ? `✓ ${tag}` : tag}
                     </DropdownMenuItem>
@@ -319,13 +338,14 @@ const CreateEventPage = () => {
                         onKeyDown={(e) => {
                           e.stopPropagation(); // Prevent dropdown from moving away on type
                           if (e.key === "Enter") {
-                            e.preventDefault(); 
-                            const newTagInput = e.currentTarget as HTMLInputElement;
+                            e.preventDefault();
+                            const newTagInput =
+                              e.currentTarget as HTMLInputElement;
                             const newTag = newTagInput.value.trim();
                             if (newTag && !availableTags.includes(newTag)) {
                               setAvailableTags((prev) => [...prev, newTag]); // Add new tag to availableTags
-                              toggleTag(newTag); 
-                              newTagInput.value = ""; 
+                              toggleTag(newTag);
+                              newTagInput.value = "";
                             }
                           }
                         }}
@@ -352,7 +372,8 @@ const CreateEventPage = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
               <div className="mt-2">
-                <div className="text-sm font-medium mb-1"> Selected Tags:</div> {/* Ensure this stays on a separate line */}
+                <div className="text-sm font-medium mb-1"> Selected Tags:</div>{" "}
+                {/* Ensure this stays on a separate line */}
                 <div className="flex flex-wrap gap-2">
                   {tags.map((tag: string, index: number) => (
                     <span

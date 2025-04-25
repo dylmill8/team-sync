@@ -17,7 +17,14 @@ import NavBar from "@/components/ui/navigation-bar";
 import { DocumentReference } from "firebase/firestore";
 import Image from "next/image";
 import NextImage from "next/image";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import ActivityGrid from "@/components/ui/activity-grid";
 
+type DataItem = {
+  name: string;
+  value: number;
+};
 
 interface EventData {
   name: string;
@@ -61,13 +68,192 @@ export default function Profile() {
   ) as string;
   const [userId, setUserId] = useState("");
   const [profileId, setProfileId] = useState<string>("");
-  const [userData, setUserData] = useState({ email: "", username: "" , profilePic: null});
+  const [userData, setUserData] = useState({
+    email: "",
+    username: "",
+    profilePic: null,
+  });
   const [eventList, setEventList] = useState<CalendarEvent[]>([]);
   const [showEvents, setShowEvents] = useState(false);
   const [isFriend, setIsFriend] = useState(false);
   const [friendList, setFriendList] = useState<string[]>([]);
   const [groupList, setGroupList] = useState<GroupInfo[]>([]);
   const [showGroups, setShowGroups] = useState(false);
+
+  // stats overview variables
+  const [profileRSVP, setProfileRSVP] = useState<DataItem[]>([
+    { name: "yes", value: 0 },
+    { name: "maybe", value: 0 },
+    { name: "no", value: 0 },
+  ]);
+  const [profileWorkoutDates, setProfileWorkoutDates] = useState<{
+    [key: string]: number;
+  }>({});
+  const [statsVisible, setStatsVisible] = useState<boolean>(true);
+  const [visibleSetting, setVisibleSetting] = useState<string>("only me");
+  const [loadingOverview, setLoadingOverview] = useState<boolean>(true);
+
+  // stats overview related functions
+  useEffect(() => {
+    if (visibleSetting == "only me") {
+      if (userId == profileId) {
+        setStatsVisible(true);
+      } else {
+        setStatsVisible(false);
+      }
+    } else if (visibleSetting == "my friends") {
+      if (userId == profileId || isFriend) {
+        setStatsVisible(true);
+      } else {
+        setStatsVisible(false);
+      }
+    } else if (visibleSetting == "everyone") {
+      setStatsVisible(true);
+    }
+  }, [visibleSetting, profileId, userId, isFriend]);
+
+  useEffect(() => {
+    const fetchVisibility = async () => {
+      try {
+        const profileRef = doc(db, "Users", profileId);
+        const profileDoc = await getDoc(profileRef);
+
+        if (profileDoc.exists()) {
+          const profileData = profileDoc.data();
+          if (profileData.statVisibility) {
+            setVisibleSetting(profileData.statVisibility);
+          } else {
+            setVisibleSetting("only me");
+          }
+        } else {
+          setVisibleSetting("only me");
+        }
+      } catch (e) {
+        console.log("error", e);
+      }
+    };
+
+    fetchVisibility();
+  }, [profileId]);
+
+  useEffect(() => {
+    // calculate workouts
+    setLoadingOverview(true);
+    const fetchWorkouts = async () => {
+      const dateMap: { [key: string]: number } = {};
+
+      if (profileId) {
+        try {
+          const profileRef = doc(db, "Users", profileId);
+          const profileDoc = await getDoc(profileRef);
+
+          if (profileDoc.exists()) {
+            const profileData = profileDoc.data();
+            const profileWorkouts = profileData.workouts;
+
+            if (profileWorkouts) {
+              const workoutsPromise = profileWorkouts.map(
+                async (workoutId: string) => {
+                  const workoutRef = doc(db, "Workouts", workoutId);
+                  const workoutDoc = await getDoc(workoutRef);
+
+                  if (workoutDoc.exists()) {
+                    const workoutData = workoutDoc.data();
+                    const workoutLogs = workoutData.Map;
+                    const workoutEvent = workoutData.eventId;
+
+                    let workoutDateString = "";
+
+                    if (workoutEvent) {
+                      const eventRef = doc(db, "Event", workoutEvent);
+                      const eventDoc = await getDoc(eventRef);
+
+                      if (eventDoc.exists()) {
+                        const eventData = eventDoc.data();
+                        const eventDate = eventData.start;
+
+                        if (eventDate) {
+                          const date = eventDate.toDate();
+                          const formattedDate = date
+                            .toISOString()
+                            .split("T")[0]; // "YYYY-MM-DD"
+                          // if (formattedDate in dateMap) {
+                          //   dateMap[formattedDate] += 1;
+                          // } else {
+                          //   dateMap[formattedDate] = 1;
+                          // }
+
+                          workoutDateString = formattedDate;
+                        }
+                      }
+                    }
+
+                    if (workoutLogs) {
+                      const logRef = doc(db, "Logs", workoutLogs[profileId]);
+                      const logDoc = await getDoc(logRef);
+
+                      if (logDoc.exists()) {
+                        const logData = logDoc.data();
+                        const logDesc = logData.descriptions;
+
+                        for (const desc of logDesc) {
+                          if (desc != "") {
+                            if (workoutDateString in dateMap) {
+                              dateMap[workoutDateString] += 1;
+                            } else {
+                              dateMap[workoutDateString] = 1;
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              );
+
+              await Promise.all(workoutsPromise);
+            }
+          }
+        } catch (e) {
+          console.log("something went wrong", e);
+        }
+      }
+
+      setProfileWorkoutDates(dateMap);
+      setLoadingOverview(false);
+    };
+
+    fetchWorkouts();
+  }, [profileId]);
+  useEffect(() => {
+    // calculate RSVP
+    setLoadingOverview(true);
+    const fetchRSVPData = async () => {
+      const profileRSVPList: DataItem[] = [
+        { name: "yes", value: 0 },
+        { name: "maybe", value: 0 },
+        { name: "no", value: 0 },
+      ];
+
+      const rsvpPromise = eventList.map(async (event: CalendarEvent) => {
+        if (event.RSVPStatus) {
+          if (event.RSVPStatus == "yes") {
+            profileRSVPList[0].value += 1;
+          } else if (event.RSVPStatus == "maybe") {
+            profileRSVPList[1].value += 1;
+          } else if (event.RSVPStatus == "no") {
+            profileRSVPList[2].value += 1;
+          }
+        }
+      });
+
+      await Promise.all(rsvpPromise);
+      setProfileRSVP(profileRSVPList);
+      setLoadingOverview(false);
+    };
+
+    fetchRSVPData();
+  }, [profileId, eventList]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -113,75 +299,164 @@ export default function Profile() {
           setUserData({
             email: userData.email || "",
             username: userData.username || "",
-            profilePic: userData.profilePic || null
+            profilePic: userData.profilePic || null,
           });
+
+          let newEventList: CalendarEvent[] = [];
+
+          // Get the events for the user
           if (Array.isArray(userData.events)) {
-            const newEventList = [];
-
-            // Get the events for the user
-            for (let i = 0; i < userData.events.length; i++) {
-              const event = userData.events[i];
-
+            const eventListPromise = userData.events.map(async (event) => {
               let eventDoc;
               try {
                 eventDoc = await getDoc(event);
               } catch (error) {
                 console.error("Error getting document:", error);
               }
-              if (!eventDoc || !eventDoc.exists()) {
-                continue;
-              }
+              if (eventDoc && eventDoc.exists()) {
+                const eventData = eventDoc.data() as EventData;
 
-              const eventData = eventDoc.data() as EventData;
+                // get user RSVP status
+                let userRSVPStatus = "None";
+                for (const key in eventData.RSVP) {
+                  if (key === profileId) {
+                    userRSVPStatus = eventData.RSVP[key];
+                    break;
+                  }
+                }
 
-              // get user RSVP status
-              let userRSVPStatus = "None";
-              for (const key in eventData.RSVP) {
-                if (key === profileId) {
-                  userRSVPStatus = eventData.RSVP[key];
-                  break;
+                let workoutData = "None";
+                if (eventData.workouts && eventData.workouts.length > 0) {
+                  const workoutDocRef = doc(
+                    db,
+                    "Workouts",
+                    eventData.workouts[0]
+                  );
+                  const workoutDoc = await getDoc(workoutDocRef);
+                  if (workoutDoc.exists()) {
+                    workoutData = workoutDoc.data().exercises[0];
+                  }
+                }
+
+                if (
+                  eventData.end !== undefined &&
+                  eventData.end.seconds < Math.floor(Date.now() / 1000)
+                ) {
+                  return {
+                    title: eventData.name,
+                    allDay: eventData.allDay,
+                    start:
+                      eventData.start == undefined
+                        ? undefined
+                        : eventData.start.seconds * 1000,
+                    end:
+                      eventData.end == undefined
+                        ? undefined
+                        : eventData.end.seconds * 1000,
+                    description: eventData.description,
+                    location: eventData.location,
+                    docID: eventDoc.id,
+                    owner: eventData.owner,
+                    RSVPStatus: userRSVPStatus,
+                    workout: workoutData,
+                  };
                 }
               }
+            });
 
-              let workoutData = "None";
-              if (eventData.workouts && eventData.workouts.length > 0) {
-                const workoutDocRef = doc(
-                  db,
-                  "Workouts",
-                  eventData.workouts[0]
-                );
-                const workoutDoc = await getDoc(workoutDocRef);
-                if (workoutDoc.exists()) {
-                  workoutData = workoutDoc.data().exercises[0];
-                }
-              }
-
-              if (
-                eventData.end !== undefined &&
-                eventData.end.seconds < Math.floor(Date.now() / 1000)
-              ) {
-                newEventList.push({
-                  title: eventData.name,
-                  allDay: eventData.allDay,
-                  start:
-                    eventData.start == undefined
-                      ? undefined
-                      : eventData.start.seconds * 1000,
-                  end:
-                    eventData.end == undefined
-                      ? undefined
-                      : eventData.end.seconds * 1000,
-                  description: eventData.description,
-                  location: eventData.location,
-                  docID: eventDoc.id,
-                  owner: eventData.owner,
-                  RSVPStatus: userRSVPStatus,
-                  workout: workoutData,
-                });
-              }
-            }
-            setEventList(newEventList);
+            const list = await Promise.all(eventListPromise);
+            newEventList = list.filter((e) => e != null) as CalendarEvent[];
           }
+
+          // fetch user's group events
+          if (Array.isArray(userData.groups)) {
+            const groupListPromise = userData.groups.map(
+              async (groupRef: DocumentReference) => {
+                const groupDoc = await getDoc(groupRef);
+                if (groupDoc.exists()) {
+                  const eventList = groupDoc.data().events;
+                  if (eventList) {
+                    const events: CalendarEvent[] = [];
+                    for (const eventRef of eventList) {
+                      let eventDoc;
+                      try {
+                        eventDoc = await getDoc(eventRef);
+                      } catch (error) {
+                        console.error("Error getting document:", error);
+                      }
+                      if (eventDoc && eventDoc.exists()) {
+                        const eventData = eventDoc.data() as EventData;
+
+                        // get user RSVP status
+                        let userRSVPStatus = "None";
+                        for (const key in eventData.RSVP) {
+                          if (key === profileId) {
+                            userRSVPStatus = eventData.RSVP[key];
+                            break;
+                          }
+                        }
+
+                        let workoutData = "None";
+                        if (
+                          eventData.workouts &&
+                          eventData.workouts.length > 0
+                        ) {
+                          const workoutDocRef = doc(
+                            db,
+                            "Workouts",
+                            eventData.workouts[0]
+                          );
+                          const workoutDoc = await getDoc(workoutDocRef);
+                          if (workoutDoc.exists()) {
+                            workoutData = workoutDoc.data().exercises[0];
+                          }
+                        }
+
+                        if (
+                          eventData.end !== undefined &&
+                          eventData.end.seconds < Math.floor(Date.now() / 1000)
+                        ) {
+                          events.push({
+                            title: eventData.name,
+                            allDay: eventData.allDay,
+                            start:
+                              eventData.start == undefined
+                                ? undefined
+                                : eventData.start.seconds * 1000,
+                            end:
+                              eventData.end == undefined
+                                ? undefined
+                                : eventData.end.seconds * 1000,
+                            description: eventData.description,
+                            location: eventData.location,
+                            docID: eventDoc.id,
+                            owner: eventData.owner,
+                            RSVPStatus: userRSVPStatus,
+                            workout: workoutData,
+                          });
+                        }
+                      }
+                    }
+
+                    return events;
+                  }
+                }
+              }
+            );
+
+            const groupList = await Promise.all(groupListPromise);
+            const filteredGroupList = groupList
+              .flat()
+              .filter((e) => e != null) as CalendarEvent[];
+            newEventList = [...newEventList, ...filteredGroupList];
+
+            // for (let i = 0; i < userData.events.length; i++) {
+            //   const event = userData.events[i];
+
+            // }
+          }
+
+          setEventList(newEventList);
 
           // Fetch public groups in parallel
           if (Array.isArray(userData.groups)) {
@@ -288,14 +563,19 @@ export default function Profile() {
         }}
       >
         <NextImage
-          src={userData?.profilePic || "https://ns6ela3qh5m1napj.public.blob.vercel-storage.com/88BqvzD.-sYOdx4LwT08Vjf9C4TxU17uTscYPjn.bin"}
+          src={
+            userData?.profilePic ||
+            "https://ns6ela3qh5m1napj.public.blob.vercel-storage.com/88BqvzD.-sYOdx4LwT08Vjf9C4TxU17uTscYPjn.bin"
+          }
           alt="Profile"
           width={150}
           height={150}
           className="rounded-full object-cover w-[150px] h-[150px]"
-          onError={(e) => (e.currentTarget.src = "https://ns6ela3qh5m1napj.public.blob.vercel-storage.com/88BqvzD.-sYOdx4LwT08Vjf9C4TxU17uTscYPjn.bin")}
+          onError={(e) =>
+            (e.currentTarget.src =
+              "https://ns6ela3qh5m1napj.public.blob.vercel-storage.com/88BqvzD.-sYOdx4LwT08Vjf9C4TxU17uTscYPjn.bin")
+          }
         />
-
       </div>
       {/*<h2>User ID: {userId}</h2>*/}
       <p>
@@ -304,24 +584,27 @@ export default function Profile() {
       <p>
         <strong>Username:</strong> {userData.username}
       </p>
+
+      {statsVisible && (
+        <Card className="my-2 mx-10">
+          <CardHeader>
+            <CardTitle className="text-lg">Overview</CardTitle>
+          </CardHeader>
+
+          {loadingOverview && <p>Loading overview...</p>}
+          {!loadingOverview && (
+            <CardContent className="min-w-max flex flex-col justify-center items-center">
+              <Label className="mb-3 font-semibold">
+                Total Events Attended: {profileRSVP[0].value}
+              </Label>
+              <ActivityGrid workoutData={profileWorkoutDates}></ActivityGrid>
+            </CardContent>
+          )}
+        </Card>
+      )}
+
       {userId === profileId && (
         <>
-          <button
-            onClick={() => router.push("/settings")}
-            style={{
-              marginTop: "20px",
-              padding: "10px 20px",
-              backgroundColor: "#0070f3",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              width: "80%",
-            }}
-          >
-            Account Settings
-          </button>
-
           <button
             onClick={() => router.push("/statistics/view")}
             style={{
@@ -336,6 +619,22 @@ export default function Profile() {
             }}
           >
             View My Statistics
+          </button>
+
+          <button
+            onClick={() => router.push("/settings")}
+            style={{
+              marginTop: "20px",
+              padding: "10px 20px",
+              backgroundColor: "#0070f3",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              width: "80%",
+            }}
+          >
+            Account Settings
           </button>
 
           {/*<button
