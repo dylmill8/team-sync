@@ -191,9 +191,11 @@ const GroupsPage = () => {
         );
   
       const eventStart = event.start ? new Date(event.start) : null;
+      const eventEnd = event.end ? new Date(event.end) : null;
+
       const matchesDate =
         (!startDate || (eventStart && eventStart >= startDate)) &&
-        (!endDate || (eventStart && eventStart <= endDate));
+        (!endDate || (eventEnd && eventEnd <= endDate));
         const yesCount = Object.values(event.RSVPMap || {}).filter(
           (val) => val.toLowerCase() === "yes"
         ).length;
@@ -1165,7 +1167,7 @@ const GroupsPage = () => {
         ? new Date(
             parseInt(val.slice(0, 4)),
             parseInt(val.slice(5, 7)) - 1,
-            parseInt(val.slice(8, 10)),
+            parseInt(val.slice(8, 10)) + 1,
             0, 0, 0
           )
         : null
