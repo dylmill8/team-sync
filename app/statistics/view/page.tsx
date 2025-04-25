@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PieChartComponent from "@/components/ui/pie-chart";
+import ActivityGrid from "@/components/ui/activity-grid";
 
 // interface GroupData {
 //   announcements: DocumentReference[];
@@ -45,6 +46,7 @@ interface WorkoutData {
   eventId: string;
   exercises: string[];
   name: string;
+  workoutDuration: number;
 }
 
 export default function StatisticsPage() {
@@ -73,6 +75,10 @@ export default function StatisticsPage() {
   // workouts data
   const [totalWorkouts, setTotalWorkouts] = useState<number>(0);
   const [totalLogged, setTotalLogged] = useState<number>(0);
+  const [totalTime, setTotalTime] = useState<number>(0);
+  const [dateCounts, setDateCounts] = useState<{ [key: string]: number }>({});
+  const [averageSatisfaction, setAverageSatisfaction] = useState<number>(0);
+  const [averageIntensity, setAverageIntensity] = useState<number>(0);
 
   // listen for auth state change
   useEffect(() => {
@@ -183,6 +189,8 @@ export default function StatisticsPage() {
 
   // process and calculate event data
   useEffect(() => {
+    setLoadingEvents(true);
+
     let yesRSVP = 0;
     let maybeRSVP = 0;
     let noRSVP = 0;
@@ -228,49 +236,119 @@ export default function StatisticsPage() {
     setRSVPChartData(dataList);
     setUpcomingEvents(upcoming);
     setPastEvents(past);
+
+    setLoadingEvents(false);
   }, [eventsList, user]);
 
   // process and calculate workout data
   useEffect(() => {
+    setLoadingWorkouts(true);
     let logCount = 0;
+    let time = 0;
+    const dateMap: { [key: string]: number } = {};
+
+    let satisfactionTotal = 0;
+    let satisfactionCount = 0;
+    let intensityTotal = 0;
+    let intensityCount = 0;
 
     const readWorkoutData = async () => {
-      const workoutDataPromise = workoutList.map(async (workoutData: WorkoutData) => {
-        if (user && workoutData.Map) {
-          const userLogId = workoutData.Map[user.uid];
-          if (userLogId) {
-            try {
-              const userLogRef = doc(db, "Logs", userLogId);
-              const userLogDoc = await getDoc(userLogRef);
-              if (userLogDoc.exists()) {
-                const userLogData = userLogDoc.data();
-                
-                for (const log of userLogData.descriptions) {
+      const workoutDataPromise = workoutList.map(
+        async (workoutData: WorkoutData) => {
+          if (workoutData.workoutDuration) {
+            time += workoutData.workoutDuration;
+          }
+
+          let workoutDateString = "";
+          if (workoutData.eventId) {
+            const eventRef = doc(db, "Event", workoutData.eventId);
+            const eventDoc = await getDoc(eventRef);
+            if (eventDoc.exists()) {
+              const eventData = eventDoc.data();
+              const workoutDate = eventData.start;
+
+              if (workoutDate) {
+                const date = workoutDate.toDate();
+                const formattedDate = date.toISOString().split("T")[0]; // "YYYY-MM-DD"
+                // if (formattedDate in dateMap) {
+                //   dateMap[formattedDate] += 1;
+                // } else {
+                //   dateMap[formattedDate] = 1;
+                // }
+
+                workoutDateString = formattedDate;
+              }
+            }
+          }
+
+          if (workoutData.Map && user) {
+            const logId = workoutData.Map[user.uid];
+            if (logId) {
+              const logRef = doc(db, "Logs", logId);
+              const logDoc = await getDoc(logRef);
+              const logData = logDoc.data();
+
+              if (logData) {
+                for (const log of logData.descriptions) {
                   if (log != "") {
+                    if (workoutDateString) {
+                      if (workoutDateString in dateMap) {
+                        dateMap[workoutDateString] += 1;
+                      } else {
+                        dateMap[workoutDateString] = 1;
+                      }
+                    }
                     logCount += 1;
                   }
                 }
+
+                if (logData.satisfaction) {
+                  satisfactionCount += 1;
+                  satisfactionTotal += logData.satisfaction;
+                }
+
+                if (logData.intensity) {
+                  intensityTotal += logData.intensity;
+                  intensityCount += 1;
+                }
               }
-            } catch (e) {
-              console.log("error getting user log", e);
             }
           }
         }
-      });
+      );
       await Promise.all(workoutDataPromise);
+
+      setTotalLogged(logCount);
+      setTotalTime(time);
+      setDateCounts(dateMap);
+
+      if (satisfactionCount == 0) {
+        satisfactionCount = 1;
+        satisfactionTotal = 0;
+      }
+      if (intensityCount == 0) {
+        intensityCount = 1;
+        intensityTotal = 0;
+      }
+      setAverageSatisfaction(satisfactionTotal / satisfactionCount);
+      setAverageIntensity(intensityTotal / intensityCount);
+
+      setLoadingWorkouts(false);
     };
     readWorkoutData();
 
-    setTotalLogged(logCount);
+    setLoadingWorkouts(false);
   }, [workoutList, user]);
 
   return (
     <div className="m-2">
-      <p>
-        Disclaimer this page is very much not complete I know it looks
-        horrendous please don&apos;t judge it yet thanks
-      </p>
-      <Button onClick={() => router.push("/profile")}>back</Button>
+      <Button
+        className="my-2 mx-2 min-w-max max-w-min bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition-all"
+        onClick={() => router.push("/profile")}
+      >
+        Back
+      </Button>
+
       {user && (
         <div className="">
           <Label className="font-bold text-2xl p-1 m-1">
@@ -344,7 +422,7 @@ export default function StatisticsPage() {
               <div className="mt-2">
                 {loadingWorkouts && <p>Loading workouts...</p>}
                 {!loadingWorkouts && (
-                  <div>
+                  <div className="flex flex-wrap gap-4 w-full">
                     <Card className="min-w-max w-1/4">
                       <CardHeader>
                         <CardTitle>Overview</CardTitle>
@@ -357,6 +435,30 @@ export default function StatisticsPage() {
                         <Label className="mb-1">
                           Total exercises logged: {totalLogged}
                         </Label>
+                        <Label className="mb-1">
+                          Time spent working out: {totalTime} mins
+                        </Label>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="min-w-max w-1/4">
+                      <CardHeader>
+                        <CardTitle>Workout Surverys</CardTitle>
+                      </CardHeader>
+
+                      <CardContent className="flex flex-col">
+                        <Label>Average Satisfaction: {averageSatisfaction}</Label>
+                        <Label>Average Intensity: {averageIntensity}</Label>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="min-w-max w-1/4">
+                      <CardHeader>
+                        <CardTitle>Workout Activity</CardTitle>
+                      </CardHeader>
+
+                      <CardContent>
+                        <ActivityGrid workoutData={dateCounts}></ActivityGrid>
                       </CardContent>
                     </Card>
                   </div>

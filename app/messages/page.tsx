@@ -15,8 +15,10 @@ import {
 import { auth, db } from "@/utils/firebaseConfig"
 import { createChat } from "@/utils/chatHelper"
 import { useRouter } from "next/navigation"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 type Friend = {
   id: string
@@ -41,216 +43,220 @@ export default function FriendsChatsPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (!currentUser) {
-        router.push("/login")
-        return
-      }
-      setUser(currentUser)
-      await loadUserData(currentUser.uid)
-      listenToUserChats(currentUser.uid)
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (!u) return router.push("/login")
+      setUser(u)
+      await loadUserData(u.uid)
+      listenToUserChats(u.uid)
       setLoading(false)
     })
-
-    return () => unsubscribe()
+    return () => unsub()
   }, [router])
 
-  const loadUserData = async (userId: string) => {
-    const userDocRef = doc(db, "Users", userId)
-    const userSnap = await getDoc(userDocRef)
-
-    if (!userSnap.exists()) {
-      await setDoc(userDocRef, { friends: [], chats: [] })
-      setFriendsData([])
-      return
+  async function loadUserData(userId: string) {
+    const userRef = doc(db, "Users", userId)
+    const snap = await getDoc(userRef)
+    if (!snap.exists()) {
+      await setDoc(userRef, { friends: [], chats: [] })
+      return setFriendsData([])
     }
+    const data = snap.data()
+    if (!data.friends?.length) return setFriendsData([])
 
-    const userData = userSnap.data()
-    if (!userData.friends || userData.friends.length === 0) {
-      setFriendsData([])
-      return
-    }
-
-    const friendPromises = userData.friends.map(async (ref: DocumentReference | string) => {
-      const friendId = typeof ref === "string" ? ref : ref.id
-      const friendDocRef = doc(db, "Users", friendId)
-      const friendSnap = await getDoc(friendDocRef)
-      return friendSnap.exists()
-        ? { id: friendId, ...(friendSnap.data() as Omit<Friend, "id">) }
-        : { id: friendId, username: "Unknown" }
-    })
-
-    const resolvedFriends = await Promise.all(friendPromises)
-    setFriendsData(resolvedFriends)
+    const friends = await Promise.all(
+      data.friends.map(async (ref: DocumentReference | string) => {
+        const fid = typeof ref === "string" ? ref : ref.id
+        const fSnap = await getDoc(doc(db, "Users", fid))
+        return fSnap.exists()
+          ? { id: fid, ...(fSnap.data() as Omit<Friend, "id">) }
+          : { id: fid, username: "Unknown" }
+      })
+    )
+    setFriendsData(friends)
   }
 
-  const listenToUserChats = (userId: string) => {
-    const userDocRef = doc(db, "Users", userId)
-    return onSnapshot(userDocRef, async (snap) => {
+  function listenToUserChats(userId: string) {
+    const ref = doc(db, "Users", userId)
+    return onSnapshot(ref, async (snap) => {
       if (!snap.exists()) return
       const data = snap.data()
-      const chatIds = data.chats || []
-
-      const chatPromises = chatIds.map(async (chatId: string) => {
-        const chatSnap = await getDoc(doc(db, "Chats", chatId))
-        return chatSnap.exists()
-          ? { id: chatId, ...(chatSnap.data() as Omit<Chat, "id">) }
-          : null
-      })
-
-      const resolvedChats = (await Promise.all(chatPromises)).filter(Boolean) as Chat[]
-      setUserChats(resolvedChats)
+      const chats: Chat[] = await Promise.all(
+        (data.chats || []).map(async (chatId: string) => {
+          const cSnap = await getDoc(doc(db, "Chats", chatId))
+          return cSnap.exists()
+            ? ({ id: chatId, ...(cSnap.data() as Omit<Chat, "id">) })
+            : null
+        })
+      ).then(arr => arr.filter(Boolean) as Chat[])
+      setUserChats(chats)
     })
   }
 
-  const handleFriendChat = async (friendId: string) => {
+  async function handleFriendChat(friendId: string) {
     if (!user) return
-
-    const sortedIds = [user.uid, friendId].sort()
-    const chatId = sortedIds.join("_")
+    const ids = [user.uid, friendId].sort()
+    const chatId = ids.join("_")
     const chatRef = doc(db, "Chats", chatId)
-
     const chatSnap = await getDoc(chatRef)
-    if (!chatSnap.exists()) {
-      await setDoc(chatRef, {
-        participants: sortedIds,
-        createdAt: new Date(),
-        type: "private",
-      })
 
+    if (!chatSnap.exists()) {
+      await setDoc(chatRef, { participants: ids, createdAt: new Date(), type: "private" })
       await Promise.all(
-        sortedIds.map(async (uid) => {
-          const userDocRef = doc(db, "Users", uid)
-          const userSnap = await getDoc(userDocRef)
-          if (userSnap.exists()) {
-            await updateDoc(userDocRef, {
-              chats: arrayUnion(chatId),
-            })
+        ids.map(async (uid) => {
+          const uRef = doc(db, "Users", uid)
+          const uSnap = await getDoc(uRef)
+          if (uSnap.exists()) {
+            await updateDoc(uRef, { chats: arrayUnion(chatId) })
           } else {
-            await setDoc(userDocRef, { chats: [chatId] })
+            await setDoc(uRef, { chats: [chatId] })
           }
         })
       )
     }
-
     router.push(`/messages/${chatId}`)
   }
 
-  const handleCreateGroupChat = async () => {
-    if (!user || selectedFriends.length === 0) return
+  async function handleCreateGroupChat() {
+    if (!user || !selectedFriends.length) return
     const participants = [user.uid, ...selectedFriends]
     const chatId = await createChat(participants, {
       type: "group",
       name: groupName || "New Group Chat",
     })
-    setSelectedFriends([])
     setGroupName("")
+    setSelectedFriends([])
     router.push(`/messages/${chatId}`)
   }
 
-  const handleRemoveGroupChat = async (chatId: string) => {
+  async function handleLeaveGroup(chatId: string) {
     if (!user) return
-    const userDocRef = doc(db, "Users", user.uid)
-    await updateDoc(userDocRef, {
-      chats: arrayRemove(chatId),
-    })
+    await updateDoc(doc(db, "Users", user.uid), { chats: arrayRemove(chatId) })
   }
 
-  const toggleFriendSelection = (friendId: string) => {
-    setSelectedFriends((prev) =>
-      prev.includes(friendId)
-        ? prev.filter((id) => id !== friendId)
-        : [...prev, friendId]
-    )
-  }
+  //const privateChats = userChats.filter((c) => c.type === "private")
+  const groupChats   = userChats.filter((c) => c.type === "group")
 
-  if (loading) return <div>Loading...</div>
+  if (loading) return <div className="p-4">Loading…</div>
 
   return (
-    <div className="p-4 max-w-xl mx-auto">
-      <Button
-        className="mb-4"
-        variant="outline"
-        onClick={() => router.push("/profile")}
-      >
+    <div className="p-6 max-w-2xl mx-auto space-y-10">
+      <Button variant="outline" onClick={() => router.push("/profile")}>
         ← Back to Profile
       </Button>
 
-      <h1 className="text-xl font-bold mb-4">My Chats</h1>
+      {/* ── EXISTING CHATS ── */}
+      <section className="space-y-6">
+        <h1 className="text-2xl font-bold">My Chats</h1>
 
-      {userChats.length === 0 ? (
-        <p>No chats yet.</p>
-      ) : (
-        <ul className="space-y-4 mb-6">
-          {userChats.map((chat) => (
-            <li key={chat.id} className="flex items-center justify-between">
-              <button
-                onClick={() => router.push(`/messages/${chat.id}`)}
-                className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-              >
-                {chat.type === "private"
-                  ? "Private Chat"
-                  : chat.name || `Group Chat (${chat.participants.length})`}
-              </button>
-              {chat.type === "group" && (
-                <button
-                  onClick={() => handleRemoveGroupChat(chat.id)}
-                  className="ml-2 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                >
-                  Leave
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+        {userChats.length === 0 && <p>You haven’t joined any chats yet.</p>}
 
-      <h2 className="text-lg font-semibold mb-2">Start New Private Chat</h2>
-      {friendsData.length === 0 ? (
-        <p>You have no friends yet.</p>
-      ) : (
-        <ul className="space-y-3 mb-6">
-          {friendsData.map((friend) => (
-            <li key={friend.id} className="flex items-center space-x-2">
-              <span>{friend.username || friend.id}</span>
-              <Button
-                onClick={() => handleFriendChat(friend.id)}
-                className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Private Chat
-              </Button>
-            </li>
-          ))}
-        </ul>
-      )}
+        {/*privateChats.length > 0 && (
+          <div>
+            <h2 className="text-xl font-semibold mb-2">Private Chats</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {privateChats.map((chat) => (
+                <Card key={chat.id} className="hover:shadow-md">
+                  <CardHeader>
+                    <CardTitle>Chat: {chat.participants.find((id) => id !== user?.uid)}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex justify-end">
+                    <Button size="sm" onClick={() => router.push(`/messages/${chat.id}`)}>
+                      Open
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )*/}
 
-      <h2 className="text-lg font-semibold mb-2">Create Group Chat</h2>
-      <Input
-        className="mb-2"
-        placeholder="Group Name"
-        value={groupName}
-        onChange={(e) => setGroupName(e.target.value)}
-      />
-      <ul className="space-y-2 mb-3">
-        {friendsData.map((friend) => (
-          <li key={friend.id} className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={selectedFriends.includes(friend.id)}
-              onChange={() => toggleFriendSelection(friend.id)}
-              className="w-4 h-4"
-            />
-            <span>{friend.username || friend.id}</span>
-          </li>
-        ))}
-      </ul>
-      <Button
-        onClick={handleCreateGroupChat}
-        disabled={selectedFriends.length === 0}
-        className="bg-purple-600 text-white hover:bg-purple-700"
-      >
-        Create Group Chat
-      </Button>
+        {groupChats.length > 0 && (
+          <div>
+            <h2 className="text-xl font-semibold mb-2">Group Chats</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {groupChats.map((chat) => (
+                <Card key={chat.id} className="hover:shadow-md">
+                  <CardHeader>
+                    <CardTitle>{chat.name}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex justify-between">
+                    <Button size="sm" onClick={() => router.push(`/messages/${chat.id}`)}>
+                      Open
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleLeaveGroup(chat.id)}
+                    >
+                      Leave
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ── START PRIVATE CHAT ── */}
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold">Start New Private Chat</h2>
+        {friendsData.length === 0 ? (
+          <p className="text-gray-500">You have no friends yet.</p>
+        ) : (
+          <ul className="space-y-2">
+            {friendsData.map((f) => (
+              <li key={f.id} className="flex items-center justify-between">
+                <span>{f.username}</span>
+                <Button size="sm" onClick={() => handleFriendChat(f.id)}>
+                  Chat
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* ── CREATE GROUP CHAT ── */}
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold">Create Group Chat</h2>
+        <Input
+          placeholder="Group Name"
+          value={groupName}
+          onChange={(e) => setGroupName(e.target.value)}
+        />
+
+        {friendsData.length === 0 ? (
+          <p className="text-gray-500">Add friends before creating a group.</p>
+        ) : (
+          <ul className="grid grid-cols-2 gap-2">
+            {friendsData.map((f) => (
+              <li key={f.id} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={selectedFriends.includes(f.id)}
+                  onChange={() =>
+                    setSelectedFriends((prev) =>
+                      prev.includes(f.id)
+                        ? prev.filter((id) => id !== f.id)
+                        : [...prev, f.id]
+                    )
+                  }
+                  className="h-4 w-4"
+                />
+                <label>{f.username}</label>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <Button
+          onClick={handleCreateGroupChat}
+          disabled={selectedFriends.length === 0}
+        >
+          Create Group Chat
+        </Button>
+      </section>
     </div>
   )
 }
