@@ -173,7 +173,7 @@ const HomePage = () => {
     >
       <main className="flex flex-col gap-8 row-start-2 items-center">
         <h1 className="text-black text-center text-5xl underline text-bold">
-          Team Sync!
+          Team Sync
         </h1>
 
         <ul className="list-inside text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
