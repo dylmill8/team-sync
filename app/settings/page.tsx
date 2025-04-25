@@ -11,6 +11,13 @@ import NavBar from "@/components/ui/navigation-bar";
 import { setDocument, viewDocument, logout } from "../../utils/firebaseHelper.js";
 import NextImage from "next/image";
 import { PutBlobResult } from "@vercel/blob";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 
 type LooseAccount = {
@@ -25,12 +32,13 @@ type FormData = {
   username: string;
   isLightTheme: boolean;
   profilePic: string | null;
+  statVisibility: string;
 };
 
 export default function Settings() {
   const router = useRouter();
   const [userId, setUserId] = useState("");
-  const [formData, setFormData] = useState<FormData>({ email: "", username: "", isLightTheme: false, profilePic: null});
+  const [formData, setFormData] = useState<FormData>({ email: "", username: "", isLightTheme: false, profilePic: null, statVisibility: "only me"});
   const [saving, setSaving] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [image, setImage] = useState<File | null>(null);
@@ -50,6 +58,8 @@ export default function Settings() {
   //TODO: make this actually take state from database
   const [isLightMode, setIsLightMode] = useState(false);
   const [newPassword, setNewPassword] = useState("");
+
+  const [statVisibility, setStatVisibility] = useState<string>("only me");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -72,9 +82,11 @@ export default function Settings() {
             email: data.email || "",
             username: data.username || "",
             isLightTheme: data.isLightTheme || false,
-            profilePic: data.profilePic || null
+            profilePic: data.profilePic || null,
+            statVisibility: data.statVisibility || "only me",
           });
           setIsLightMode(!data.isLightTheme || false);
+          setStatVisibility(data.statVisibility || "only me");
         }
       }
     };
@@ -132,7 +144,8 @@ export default function Settings() {
         email: formData.email || "",
         username: formData.username || "",
         isLightTheme: formData.isLightTheme || false,
-        profilePic: previewUrl || null
+        profilePic: previewUrl || null,
+        statVisibility: formData.statVisibility || "only me",
       });
     }
   };
@@ -212,6 +225,7 @@ export default function Settings() {
     setUpdating(true);
     try {
       formData.isLightTheme = isLightMode;
+      formData.statVisibility = statVisibility;
       await setDocument("Users", userId, formData);
       alert("Profile updated successfully!");
     } catch {
@@ -551,6 +565,23 @@ export default function Settings() {
               onCheckedChange={toggleTheme}
             />
             <span className="text-m">{isLightMode ? "Dark Mode" : "Light Mode"}</span>
+          </div>
+        </div>
+
+        <div className="flex flex-col">
+          <div className="flex items-left space-x-6 mb-4">
+            <label style={{ fontWeight: "bold", display: "block" }}>Overview Visibility:</label>
+            <Select value={statVisibility} onValueChange={setStatVisibility}>
+              <SelectTrigger id="visibility">
+                <SelectValue placeholder="Select Visibility"></SelectValue>
+              </SelectTrigger>
+
+              <SelectContent>
+                <SelectItem value="only me">Only Me</SelectItem>
+                <SelectItem value="my friends">My Friends</SelectItem>
+                <SelectItem value="everyone">Everyone</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

@@ -44,7 +44,7 @@ const ActivityGrid: React.FC<ActivityGridProps> = ({ workoutData }) => {
 
   return (
     <div className="overflow-x-auto px-4">
-      <h2 className="font-semibold mb-4">Last 3 Months</h2>
+      <h2 className="font-semibold mb-2">Last 3 Months</h2>
       <TooltipProvider>
         <div className="flex gap-[4px]">
           {columns.map((week, colIdx) => (
