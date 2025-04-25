@@ -166,8 +166,6 @@ export function PhotoGallery({ groupId }: PhotoGalleryProps) {
         .catch((error) => {
           console.error("Upload failed", error);
         });
-        alert("Successfully uploaded profile picture.");
-
        
     } catch (err) {
       alert("Upload error");
