@@ -276,9 +276,11 @@ const GroupsPage = () => {
             const userDocRef = doc(db, "Users", uid);
             const userDoc = await getDoc(userDocRef);
             if (userDoc.exists()) {
-              const userData = userDoc.data();
-              if (Array.isArray(userData.events)) {
-                const eventPromises = userData.events.map(async (eventRef) => {
+              const groupDocRef = doc(db, "Groups", docId);
+              const groupDoc = await getDoc(groupDocRef);
+              const groupData = groupDoc.data();
+              if (groupData && Array.isArray(groupData.events)) {
+                const eventPromises = groupData.events.map(async (eventRef: DocumentReference) => {
                   try {
                     const eventDoc = await getDoc(eventRef);
                     if (!eventDoc.exists()) return null;
