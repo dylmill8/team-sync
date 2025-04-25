@@ -219,9 +219,6 @@ export default function Calendar() {
     <div className="calendar">
       <NavBar />
       <div className="relative">
-        {/* Dropdown Menu and Clear Tags Button */}
-       
-
         {/* FullCalendar */}
         <div
           style={{
@@ -288,6 +285,10 @@ export default function Calendar() {
                 } else {
                   desc = "None";
                 }
+                const tags = info.event.extendedProps.tags || [];
+                const tagsDisplay = (tags.length > 3)
+                  ? `${tags.slice(0, 3).join(", ")}, etc.` // Show up to 3 tags and add "etc." if there are more
+                  : tags.join(", ") || "None";
 
                 descEl.innerHTML = `
                   <strong>Location:</strong> ${
@@ -297,9 +298,8 @@ export default function Calendar() {
                   <strong>RSVP Status:</strong> ${
                     info.event.extendedProps.RSVPStatus
                   }<br/>
-                  <strong>Workout:</strong> ${info.event.extendedProps.workout}
-                  ... <strong>and more</strong>
-                  <br/>
+                  <strong>Workout:</strong> ${info.event.extendedProps.workout}<br/>
+                  <strong>Tags:</strong> ${tagsDisplay}<br/>
                   <em>Click for more details</em>
                   <br/>
                 `;

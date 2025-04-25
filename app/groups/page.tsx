@@ -1014,6 +1014,11 @@ const GroupsPage = () => {
                       desc = "None";
                     }
 
+                    const tags = info.event.extendedProps.tags || [];
+                    const tagsDisplay = (tags.length > 3)
+                      ? `${tags.slice(0, 3).join(", ")}, etc.` // Show up to 3 tags and add "etc." if there are more
+                      : tags.join(", ") || "None";
+
                     descEl.innerHTML = `
                       <strong>Location:</strong> ${
                         info.event.extendedProps.location || "N/A"
@@ -1024,7 +1029,8 @@ const GroupsPage = () => {
                       }<br/>
                       <strong>Workout:</strong> ${
                         info.event.extendedProps.workout
-                      }
+                      }<br/>
+                      <strong>Tags:</strong> ${tagsDisplay}<br/>
                       <em>Click for more details</em>
                       <br/>
                     `;
