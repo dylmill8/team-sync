@@ -30,6 +30,7 @@ const ModifyWorkoutPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const workoutId = searchParams?.get("workoutId") ?? ""; // Get workoutId from query params
+  const fromPastWorkoutsPage = searchParams?.get('fromPastWorkoutsPage');
   const auth = getAuth(firebaseApp);
   const userId = auth.currentUser?.uid; // Get userId from query params
 
@@ -162,7 +163,9 @@ const ModifyWorkoutPage = () => {
       const eventId = workout.eventId;
 
       // Route to the event view page with the event's docId or past workouts
-      if (eventOwner) {
+      if (fromPastWorkoutsPage === 'true') {
+        router.push('/profile/pastworkouts');
+      } else if (eventOwner) {
         router.push(`/event/view?docId=${eventId}`);
       } else {
         router.push("/profile/pastworkouts");
