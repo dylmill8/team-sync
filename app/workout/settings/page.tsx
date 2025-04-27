@@ -52,7 +52,18 @@ const WorkoutSettingsPage = () => {
   };
 
   const handleWorkoutDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setWorkoutDuration(Number(e.target.value));
+    const value = e.target.value;
+  
+    // If input is empty, maybe treat it as 0
+    if (value === "") {
+      setWorkoutDuration(0);
+      return;
+    }
+  
+    const numberValue = Number(value);
+    if (!isNaN(numberValue) && numberValue >= 0) {
+      setWorkoutDuration(numberValue);
+    }
   };
 
   const handleExerciseNameChange = (index: number, value: string) => {
@@ -117,7 +128,7 @@ const WorkoutSettingsPage = () => {
             Workout Duration (minutes):
           </label>
           <input
-            type="number"
+            type="text"
             value={workoutDuration ?? 0}
             onChange={handleWorkoutDurationChange}
             className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
