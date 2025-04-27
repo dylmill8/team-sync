@@ -256,7 +256,10 @@ export default function StatisticsPage() {
       const workoutDataPromise = workoutList.map(
         async (workoutData: WorkoutData) => {
           if (workoutData.workoutDuration) {
-            time += workoutData.workoutDuration;
+            const duration = typeof workoutData.workoutDuration === 'string' 
+              ? parseInt(workoutData.workoutDuration, 10)
+              : workoutData.workoutDuration;
+            time += duration;
           }
 
           let workoutDateString = "";
