@@ -16,7 +16,7 @@ interface Workout {
   exercises: Exercise[];
   Map: { [userId: string]: string };
   eventId: string;
-  workoutDuration: string;
+  workoutDuration: number;
 }
 
 interface Exercise {
@@ -196,9 +196,9 @@ const ModifyWorkoutPage = () => {
             {/* Display the workout duration */}
             <div className="text-lg mb-4">
               <strong>Workout Duration: </strong>
-              {workout.workoutDuration === ""
-                ? "0"
-                : workout.workoutDuration || "0"}{" "}
+              {typeof workout.workoutDuration === 'number'
+                ? workout.workoutDuration
+                : 0}{" "}
               minutes
             </div>
           </>
