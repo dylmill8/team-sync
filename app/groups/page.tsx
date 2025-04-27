@@ -182,7 +182,11 @@ const GroupsPage = () => {
 
   useEffect(() => {
     const [startDate, endDate] = dateRange;
-  
+    const filtersApplied =
+    selectedTags.length > 0 ||
+    !!startDate ||
+    !!endDate ||
+    minRSVP > 0;
     const newFiltered = eventList.filter((event) => {
       const matchesTags =
         selectedTags.length === 0 ||
@@ -204,6 +208,9 @@ const GroupsPage = () => {
       return matchesTags && matchesDate && matchesRSVP;
     });
   
+    if (filtersApplied && newFiltered.length === 0) {
+      alert("No events match your filters.");
+    }
     setFilteredEvents(newFiltered);
   }, [selectedTags, eventList, dateRange, minRSVP]);
   
