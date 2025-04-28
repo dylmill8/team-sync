@@ -224,7 +224,7 @@ export default function Settings() {
     e.preventDefault();
     setUpdating(true);
     try {
-      formData.isLightTheme = isLightMode;
+      formData.isLightTheme = !isLightMode;
       formData.statVisibility = statVisibility;
       await setDocument("Users", userId, formData);
       alert("Profile updated successfully!");
