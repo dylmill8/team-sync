@@ -16,7 +16,7 @@ import {
 
 const WorkoutPage = () => {
   const [workoutName, setWorkoutName] = useState("");
-  const [workoutDuration, setWorkoutDuration] = useState(0);
+  const [workoutDuration, setWorkoutDuration] = useState<string>(""); // "" instead of 0
   const [exercises, setExercises] = useState<
     { name: string; duration: string }[]
   >([{ name: "", duration: "" }]);
@@ -31,11 +31,12 @@ const WorkoutPage = () => {
       return;
     }
     try {
+      const durationNumber = Number(workoutDuration) || 0;
       const workoutRef = await addDoc(collection(db, "Workouts"), {
         name: workoutName,
         exercises: exercises.filter((ex) => ex.name.trim() !== ""), // changed this btw
         eventId: docId, // Include the event's docId
-        workoutDuration: workoutDuration
+        workoutDuration: durationNumber
       });
 
       alert("Workout saved successfully!");
@@ -97,16 +98,16 @@ const WorkoutPage = () => {
               Workout Duration (minutes)
             </label>
             <div className="w-20">
-              <Input
-                id="workoutDuration"
-                type="number"
-                placeholder="Workout duration"
-                min={0}
-                step={30}
-                value={workoutDuration}
-                onChange={(e) => setWorkoutDuration(Number(e.target.value))}
-                className="w-full"
-              />
+            <Input
+              id="workoutDuration"
+              type="number"
+              placeholder="Workout duration"
+              min={0}
+              step={30}
+              value={workoutDuration}
+              onChange={(e) => setWorkoutDuration(e.target.value)}
+              className="w-full"
+            />
             </div>
           </div>
 

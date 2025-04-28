@@ -124,7 +124,9 @@ const PastWorkoutsPage = () => {
   }, [uid]); // Fetch workouts when uid changes
 
   const handleWorkoutClick = (workoutId: string) => {
-    router.push(`/workout/modify?workoutId=${workoutId}`);
+
+    // Add conditional search pram
+    router.push(`/workout/modify?workoutId=${workoutId}&fromPastWorkoutsPage=true`);
   };
 
   const formatDate = (timestamp: string | undefined): string => {
