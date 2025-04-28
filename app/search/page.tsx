@@ -477,8 +477,8 @@ export default function GroupSearch() {
               <Card
                 key={event.id}
                 className="cursor-pointer hover:shadow-md transition"
-                onClick={() => router.push(`/event/view?docId=${event.id}`)}
-              >
+                onClick={() => router.push(`/event/view?docId=${event.id}&fromSearch=true`)}
+                >
                 <CardHeader style={{ padding: 16, paddingBottom: 0 }}>
                   <CardTitle className="text-lg">{event.name}</CardTitle>
                   <div className="flex flex-wrap">

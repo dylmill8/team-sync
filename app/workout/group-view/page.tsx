@@ -47,12 +47,19 @@ const GroupLogsPage = () => {
         const workoutRef = doc(db, "Workouts", workoutId);
         const workoutDoc = await getDoc(workoutRef);
         if (workoutDoc.exists()) {
-          setWorkoutData(workoutDoc.data());
-
-          setUserMap(workoutDoc.data().Map);
-          setExerciseList(workoutDoc.data().exercises);
-
-          const eventId = workoutDoc.data().eventId;
+          const workoutData = workoutDoc.data();
+          setWorkoutData(workoutData);
+  
+          setUserMap(workoutData.Map);
+  
+          // Extract just the names from the exercises
+          const exercises = workoutData.exercises;
+          const exerciseNames = (exercises as { duration: string; name: string }[]).map(
+            (exercise) => exercise.name
+          );
+          setExerciseList(exerciseNames);
+  
+          const eventId = workoutData.eventId;
           if (eventId) {
             const eventRef = doc(db, "Event", eventId);
             const eventDoc = await getDoc(eventRef);
@@ -65,7 +72,7 @@ const GroupLogsPage = () => {
         console.error("error fetching workout", e);
       }
     };
-
+  
     fetchWorkoutData();
   }, [workoutId]);
 

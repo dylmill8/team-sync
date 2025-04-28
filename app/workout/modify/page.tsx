@@ -16,7 +16,7 @@ interface Workout {
   exercises: Exercise[];
   Map: { [userId: string]: string };
   eventId: string;
-  workoutDuration: string;
+  workoutDuration: number;
 }
 
 interface Exercise {
@@ -31,6 +31,7 @@ const ModifyWorkoutPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const workoutId = searchParams?.get("workoutId") ?? ""; // Get workoutId from query params
+  const fromPastWorkoutsPage = searchParams?.get('fromPastWorkoutsPage');
   const auth = getAuth(firebaseApp);
   const userId = auth.currentUser?.uid; // Get userId from query params
 
@@ -170,7 +171,9 @@ const ModifyWorkoutPage = () => {
       const eventId = workout.eventId;
 
       // Route to the event view page with the event's docId or past workouts
-      if (eventOwner) {
+      if (fromPastWorkoutsPage === 'true') {
+        router.push('/profile/pastworkouts');
+      } else if (eventOwner) {
         router.push(`/event/view?docId=${eventId}`);
       } else {
         router.push("/profile/pastworkouts");
@@ -193,9 +196,9 @@ const ModifyWorkoutPage = () => {
             {/* Display the workout duration */}
             <div className="text-lg mb-4">
               <strong>Workout Duration: </strong>
-              {workout.workoutDuration === ""
-                ? "0"
-                : workout.workoutDuration || "0"}{" "}
+              {typeof workout.workoutDuration === 'number'
+                ? workout.workoutDuration
+                : 0}{" "}
               minutes
             </div>
           </>

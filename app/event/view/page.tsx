@@ -127,6 +127,8 @@ const ViewEventPage = () => {
 
   // button navigations
   const router = useRouter();
+  const fromSearch = useSearchParams()?.get('fromSearch');
+
 
   const toWorkout = async (workoutName: string) => {
     const workoutId = workoutDict[workoutName];
@@ -160,7 +162,9 @@ const ViewEventPage = () => {
   };
 
   const handleBack = () => {
-    if (data?.ownerType == "group") {
+    if (fromSearch === 'true') {
+      router.push('/search');
+    } else if (data?.ownerType == "group") {
       router.push(`/groups?docId=${data?.owner}`);
     } else {
       router.push("/calendar");

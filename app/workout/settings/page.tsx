@@ -16,12 +16,12 @@ interface Workout {
   id?: string;
   name: string;
   exercises: Exercise[];
-  workoutDuration: string;
+  workoutDuration: number;
 }
 
 const WorkoutSettingsPage = () => {
   const [workoutName, setWorkoutName] = useState("");
-  const [workoutDuration, setWorkoutDuration] = useState("");
+  const [workoutDuration, setWorkoutDuration] = useState<number>(0);
   const [exercises, setExercises] = useState<Exercise[]>([{ name: "", duration: "" }]);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -52,7 +52,18 @@ const WorkoutSettingsPage = () => {
   };
 
   const handleWorkoutDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setWorkoutDuration(e.target.value);
+    const value = e.target.value;
+  
+    // If input is empty, maybe treat it as 0
+    if (value === "") {
+      setWorkoutDuration(0);
+      return;
+    }
+  
+    const numberValue = Number(value);
+    if (!isNaN(numberValue) && numberValue >= 0) {
+      setWorkoutDuration(numberValue);
+    }
   };
 
   const handleExerciseNameChange = (index: number, value: string) => {
@@ -116,11 +127,9 @@ const WorkoutSettingsPage = () => {
           <label htmlFor="workoutDuration" className="block text-gray-700 text-sm font-bold mb-2">
             Workout Duration (minutes):
           </label>
-          <Input
-            type="number"
-            id="workoutDuration"
-            value={workoutDuration}
-            min={0}
+          <input
+            type="text"
+            value={workoutDuration ?? 0}
             onChange={handleWorkoutDurationChange}
             className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
           />

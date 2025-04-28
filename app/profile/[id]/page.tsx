@@ -586,22 +586,25 @@ export default function Profile() {
       </p>
 
       {statsVisible && (
-        <Card className="my-2 mx-10">
-          <CardHeader>
-            <CardTitle className="text-lg">Overview</CardTitle>
-          </CardHeader>
+  <Card className="my-2 mx-10 max-h-[80vh] overflow-y-auto">
+    <CardHeader>
+      <CardTitle className="text-lg">Overview</CardTitle>
+    </CardHeader>
 
-          {loadingOverview && <p>Loading overview...</p>}
-          {!loadingOverview && (
-            <CardContent className="min-w-max flex flex-col justify-center items-center">
-              <Label className="mb-3 font-semibold">
-                Total Events Attended: {profileRSVP[0].value}
-              </Label>
-              <ActivityGrid workoutData={profileWorkoutDates}></ActivityGrid>
-            </CardContent>
-          )}
-        </Card>
-      )}
+    {loadingOverview && <p>Loading overview...</p>}
+    {!loadingOverview && (
+      <CardContent className="min-w-max flex flex-col justify-center items-center">
+        <Label className="mb-3 font-semibold">
+          Total Events Attended: {profileRSVP[0].value}
+        </Label>
+        <div className="overflow-y-auto max-h-[60vh]">
+          <ActivityGrid workoutData={profileWorkoutDates} />
+        </div>
+      </CardContent>
+    )}
+  </Card>
+)}
+
 
       {userId === profileId && (
         <>
