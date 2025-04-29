@@ -312,7 +312,8 @@ const GroupsPage = () => {
                       );
                       const workoutDoc = await getDoc(workoutDocRef);
                       if (workoutDoc.exists()) {
-                        workoutData = workoutDoc.data().exercises[0];
+                        //workoutData = workoutDoc.data().exercises[0].name;
+                        workoutData = workoutDoc.data().name;
                       }
                     }
                     return {
@@ -552,7 +553,7 @@ const GroupsPage = () => {
             owner: eventData.owner,
             RSVPStatus: userRSVPStatus,
             RSVPMap: eventData.RSVP,
-            workout: eventData.workouts,
+            workout: "none",
             tags: eventData.tags || [],
           };
         })

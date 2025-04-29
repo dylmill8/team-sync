@@ -119,7 +119,8 @@ export default function Calendar() {
             const workoutDocRef = doc(db, "Workouts", eventData.workouts[0]);
             const workoutDoc = await getDoc(workoutDocRef);
             if (workoutDoc.exists()) {
-              workoutData = workoutDoc.data().exercises[0];
+              //workoutData = workoutDoc.data().exercises[0];
+              workoutData = workoutDoc.data().name;
             }
           }
       
