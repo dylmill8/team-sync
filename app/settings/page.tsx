@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { onAuthStateChanged, updatePassword, deleteUser, signOut, signInWithEmailAndPassword} from "firebase/auth";
+import { onAuthStateChanged, updatePassword, deleteUser, signOut, signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../utils/firebaseConfig.js";
 import { Switch } from "@/components/ui/switch";
-import { doc, setDoc, getDoc } from "@firebase/firestore";
+import { doc, setDoc, getDoc, updateDoc, DocumentReference } from "@firebase/firestore";
 import { db } from "@/utils/firebaseConfig.js";
 import NavBar from "@/components/ui/navigation-bar";
 import { setDocument, viewDocument, logout } from "../../utils/firebaseHelper.js";
@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 
 type LooseAccount = {
   id?: string;
@@ -38,27 +37,21 @@ type FormData = {
 export default function Settings() {
   const router = useRouter();
   const [userId, setUserId] = useState("");
-  const [formData, setFormData] = useState<FormData>({ email: "", username: "", isLightTheme: false, profilePic: null, statVisibility: "only me"});
+  const [formData, setFormData] = useState<FormData>({ email: "", username: "", isLightTheme: false, profilePic: null, statVisibility: "only me" });
   const [saving, setSaving] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [image, setImage] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  //const [preview, setPreview] = useState("/uploads/default.png");
   const [showAccounts, setShowAccounts] = useState(false);
   const [otherAccounts, setOtherAccounts] = useState<LooseAccount[]>([]);
-
-  //const [avatarDims, setAvatarDims] = useState({ width: 0, height: 0 });
   const [notificationEmail, setNotificationEmail] = useState("");
   const [settings, setSettings] = useState({
     emailNotifications: false,
-    //popupNotifications: false,
     friendRequest: true,
     announcement: true,
   });
-  //TODO: make this actually take state from database
   const [isLightMode, setIsLightMode] = useState(false);
   const [newPassword, setNewPassword] = useState("");
-
   const [statVisibility, setStatVisibility] = useState<string>("only me");
 
   useEffect(() => {
@@ -91,18 +84,6 @@ export default function Settings() {
       }
     };
 
-    // const fetchProfileImage = async () => {
-    //   try {
-    //     const res = await fetch(`/api/getProfileImage?userId=${userId}`);
-    //     const data = await res.json();
-    //     if (res.ok && data.file) {
-    //       setPreview(`/uploads/${data.file}?timestamp=${Date.now()}`);
-    //     }
-    //   } catch {
-    //     setPreview("/uploads/testuser.png");
-    //   }
-    // };
-
     const fetchSettings = async () => {
       if (userId) {
         const docRef = doc(db, "Users", userId);
@@ -112,7 +93,6 @@ export default function Settings() {
           if (data.notificationSettings) {
             setSettings({
               emailNotifications: data.notificationSettings.emailNotifications ?? false,
-              //popupNotifications: data.notificationSettings.popupNotifications ?? false,
               friendRequest: data.notificationSettings.friendRequest ?? true,
               announcement: data.notificationSettings.announcement ?? true,
             });
@@ -124,10 +104,7 @@ export default function Settings() {
 
     if (userId) {
       fetchUserData();
-      //fetchProfileImage();
-
       fetchSettings();
-
     }
   }, [userId]);
 
@@ -166,10 +143,6 @@ export default function Settings() {
     const formData = new FormData();
     formData.append("image", image);
     try {
-      /* console.log("groupPicture:", groupPicture);
-      console.log("type:", groupPicture.type);
-      console.log("name:", groupPicture.name);
-      console.log("size:", groupPicture.size); */
       fetch("../api/blob/upload", {
         method: "POST",
         headers: {
@@ -178,13 +151,11 @@ export default function Settings() {
         body: image,
       })
         .then(async (result) => {
-          // Check if the result is successful
           if (!result.ok) {
             throw new Error("Failed to upload the picture");
           }
           const { url } = await result.json() as PutBlobResult;
-  
-          // Now update the group document with the picture URL and other data
+
           await setDoc(doc(db, "Users", userId), {
             profilePic: url,
           }, { merge: true });
@@ -192,32 +163,12 @@ export default function Settings() {
         .catch((error) => {
           console.error("Upload failed", error);
         });
-        alert("Successfully uploaded profile picture.");
+      alert("Successfully uploaded profile picture.");
     } catch (error) {
-      console.error("uppload failed", error);
+      console.error("upload failed", error);
     } finally {
       setUploading(false);
     }
-
-    // try {
-    //   const res = await fetch(`/api/upload?userId=${userId}`, {
-    //     method: "POST",
-    //     body: formData,
-    //   });
-    //   const data = await res.json();
-    //   if (!res.ok) {
-    //     throw new Error(data.error || "Upload failed");
-    //   }
-    //   alert("Upload successful!");
-    // } catch (error) {
-    //   if (error instanceof Error) {
-    //     alert(`Upload failed! ${error.message || "Unknown error"}`);
-    //   } else {
-    //     alert("Upload failed! Unknown error");
-    //   }
-    // } finally {
-    //   setUploading(false);
-    // }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -226,44 +177,54 @@ export default function Settings() {
     try {
       formData.isLightTheme = !isLightMode;
       formData.statVisibility = statVisibility;
+      // 1) update own user document
       await setDocument("Users", userId, formData);
-      alert("Profile updated successfully!");
+
+      // 2) propagate new username to all groups
+      const userSnap = await getDoc(doc(db, "Users", userId));
+      const groups = (userSnap.data()?.groups as DocumentReference[] | undefined) || [];
+      for (const groupRef of groups) {
+        const grpSnap = await getDoc(groupRef);
+        if (!grpSnap.exists()) continue;
+        const members = grpSnap.data().members as Record<string, [string, string]>;
+        const role = members[userId][1];
+        await updateDoc(groupRef, {
+          [`members.${userId}`]: [formData.username, role],
+        });
+      }
+
+      alert("Profile and all group member records updated!");
     } catch {
       alert("Error updating profile.");
     } finally {
       setUpdating(false);
     }
   };
-  
+
   const switchAccount = async (newUserId: string) => {
     try {
-      // Fetch new user's email
       const userDocRef = doc(db, "Users", newUserId);
       const userDocSnap = await getDoc(userDocRef);
-      
+
       if (!userDocSnap.exists()) {
         throw new Error("No user document found for this account.");
       }
 
-      const { email } = userDocSnap.data(); // Get the email
+      const { email } = userDocSnap.data();
 
-      // Fetch stored password
       const passwordRef = doc(db, "UserPasswords", newUserId);
       const passwordSnap = await getDoc(passwordRef);
-      
+
       if (!passwordSnap.exists()) {
         throw new Error("No password found for this account.");
       }
 
-      const { password } = passwordSnap.data(); // Get the password
+      const { password } = passwordSnap.data();
 
-      // Sign out current user
       await signOut(auth);
 
-      // Sign in as new user
       await signInWithEmailAndPassword(auth, email, password);
-      //console.log("Switched to user:", newUserCredential.user.uid);
-      
+
       router.push(`/settings/`);
 
     } catch (error) {
@@ -290,7 +251,6 @@ export default function Settings() {
       const userData = userDocSnap.data();
       const otherUserData = otherUserDocSnap.data();
 
-      // Remove newUserId from current user's otherAccounts
       if (userData.otherAccounts && Array.isArray(userData.otherAccounts)) {
         const updatedOtherAccounts = userData.otherAccounts.filter(
           (accountRef: { id: string }) => accountRef.id !== newUserId
@@ -298,7 +258,6 @@ export default function Settings() {
         await setDoc(userDocRef, { otherAccounts: updatedOtherAccounts }, { merge: true });
       }
 
-      // Remove userId from the other user's otherAccounts
       if (otherUserData.otherAccounts && Array.isArray(otherUserData.otherAccounts)) {
         const updatedOtherAccounts = otherUserData.otherAccounts.filter(
           (accountRef: { id: string }) => accountRef.id !== userId
@@ -307,8 +266,7 @@ export default function Settings() {
       }
 
       alert("Account unlinked successfully!");
- 
-      // Re-fetch other accounts to update the UI
+
       const updatedUserDocSnap = await getDoc(userDocRef);
       if (updatedUserDocSnap.exists()) {
         const updatedUserData = updatedUserDocSnap.data();
@@ -336,39 +294,37 @@ export default function Settings() {
       }
     }
   };
-  
+
   useEffect(() => {
     const fetchOtherAccounts = async () => {
       if (!userId) return;
-  
+
       try {
         const userDocRef = doc(db, "Users", userId);
         const userDocSnap = await getDoc(userDocRef);
-  
+
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
-  
+
           if (userData.otherAccounts && Array.isArray(userData.otherAccounts)) {
-            // Convert Firestore document references into actual user data
             const accountPromises = userData.otherAccounts.map(async (accountRef) => {
-              const accountDoc = await getDoc(accountRef); // Resolve reference
+              const accountDoc = await getDoc(accountRef);
               return accountDoc.exists()
                 ? { id: accountDoc.id, ...(accountDoc.data() as object) }
                 : null;
             });
-  
-            // Wait for all references to resolve & filter out nulls using a type predicate
+
             const accountData = (await Promise.all(accountPromises)).filter((account): account is Omit<LooseAccount, "id"> & { id: string } => account !== null && typeof account.id === "string");
             setOtherAccounts(accountData);
           } else {
-            setOtherAccounts([]); // Ensure it's always an array
+            setOtherAccounts([]);
           }
         }
       } catch (error) {
         console.error("Error fetching other accounts:", error);
       }
     };
-  
+
     fetchOtherAccounts();
   }, [userId]);
 
@@ -386,7 +342,6 @@ export default function Settings() {
         document.body.classList.remove("light-mode");
         document.body.classList.add("dark-mode");
       }
-      //console.log("Theme updated!");
     }
 
     setTimeout(() => {
@@ -399,7 +354,6 @@ export default function Settings() {
       logout();
       router.push("/");
     } catch {
-
       alert("Error logging out.");
     }
   };
@@ -426,14 +380,13 @@ export default function Settings() {
     try {
       const user = auth.currentUser;
       if (user) {
-        // Update password without old password
         await updatePassword(user, newPassword);
         await setDoc(doc(db, "UserPasswords", user.uid), {
           password: newPassword,
-        });  
+        });
         alert("Password updated successfully!");
       }
-    } catch (error ) {
+    } catch (error) {
       if (error instanceof Error) {
         alert(`Error updating password! ${error.message || "Unknown error"}`);
       } else {
@@ -444,7 +397,6 @@ export default function Settings() {
 
   const handleSave = async () => {
     if (!userId) return;
-    // If email notifications are enabled, validate the email address
     if (settings.emailNotifications && !validateEmail(notificationEmail)) {
       alert("Please enter a valid email for notifications.");
       return;
@@ -601,102 +553,94 @@ export default function Settings() {
           {updating ? "Updating..." : "Save Profile Settings"}
         </button>
       </form>
-<div style={{ marginTop: "10px" }}></div>
+
+      <div style={{ marginTop: "10px" }}></div>
       <h1 style={{ fontSize: "24px", marginBottom: "25px" }}>Notification Settings</h1>
 
-<div style={{ textAlign: "left", marginBottom: "25px" }}>
-  <h2 style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "10px" }}>
-    Notification Methods
-  </h2>
-  
-  <div className="flex items-center justify-between mb-4">
-    <label>Email Notifications</label>
-    <Switch
-      checked={settings.emailNotifications}
-      onCheckedChange={() =>
-        setSettings((prev) => ({
-          ...prev,
-          emailNotifications: !prev.emailNotifications,
-        }))
-      }
-    />
-  </div>
+      <div style={{ textAlign: "left", marginBottom: "25px" }}>
+        <h2 style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "10px" }}>
+          Notification Methods
+        </h2>
 
-  <input
-    type="email"
-    value={notificationEmail}
-    onChange={(e) => setNotificationEmail(e.target.value)}
-    placeholder="Enter email for notifications"
-    style={{
-      width: "100%",
-      padding: "10px",
-      borderRadius: "5px",
-      border: "1px solid #ccc",
-      color: "black",
-      marginBottom: "20px",
-    }}
-  />
+        <div className="flex items-center justify-between mb-4">
+          <label>Email Notifications</label>
+          <Switch
+            checked={settings.emailNotifications}
+            onCheckedChange={() =>
+              setSettings((prev) => ({
+                ...prev,
+                emailNotifications: !prev.emailNotifications,
+              }))
+            }
+          />
+        </div>
 
-  {/*<div className="flex items-center justify-between mb-4">
-    <label>Pop-up Notifications</label>
-    <Switch
-      checked={settings.popupNotifications}
-      onCheckedChange={handlePopupToggle}
-    />
-  </div>*/}
-</div>
+        <input
+          type="email"
+          value={notificationEmail}
+          onChange={(e) => setNotificationEmail(e.target.value)}
+          placeholder="Enter email for notifications"
+          style={{
+            width: "100%",
+            padding: "10px",
+            borderRadius: "5px",
+            border: "1px solid #ccc",
+            color: "black",
+            marginBottom: "20px",
+          }}
+        />
+      </div>
 
-<div style={{ textAlign: "left", marginBottom: "25px" }}>
-  <h2 style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "10px" }}>
-    Notification Items
-  </h2>
+      <div style={{ textAlign: "left", marginBottom: "25px" }}>
+        <h2 style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "10px" }}>
+          Notification Items
+        </h2>
 
-  <div className="flex items-center justify-between mb-4">
-    <label>Friend Requests</label>
-    <Switch
-      checked={settings.friendRequest}
-      onCheckedChange={() =>
-        setSettings((prev) => ({
-          ...prev,
-          friendRequest: !prev.friendRequest,
-        }))
-      }
-    />
-  </div>
+        <div className="flex items-center justify-between mb-4">
+          <label>Friend Requests</label>
+          <Switch
+            checked={settings.friendRequest}
+            onCheckedChange={() =>
+              setSettings((prev) => ({
+                ...prev,
+                friendRequest: !prev.friendRequest,
+              }))
+            }
+          />
+        </div>
 
-  <div className="flex items-center justify-between mb-4">
-    <label>Announcements</label>
-    <Switch
-      checked={settings.announcement}
-      onCheckedChange={() =>
-        setSettings((prev) => ({
-          ...prev,
-          announcement: !prev.announcement,
-        }))
-      }
-    />
-  </div>
-</div>
+        <div className="flex items-center justify-between mb-4">
+          <label>Announcements</label>
+          <Switch
+            checked={settings.announcement}
+            onCheckedChange={() =>
+              setSettings((prev) => ({
+                ...prev,
+                announcement: !prev.announcement,
+              }))
+            }
+          />
+        </div>
+      </div>
 
-<button
-  onClick={handleSave}
-  disabled={saving}
-  style={{
-    padding: "10px 15px",
-    backgroundColor: saving ? "#ccc" : "#0070f3",
-    color: "#fff",
-    border: "none",
-    borderRadius: "5px",
-    cursor: saving ? "not-allowed" : "pointer",
-    width: "100%",
-  }}
->
-  {saving ? "Saving..." : "Save Notification Settings"}
-</button>
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        style={{
+          padding: "10px 15px",
+          backgroundColor: saving ? "#ccc" : "#0070f3",
+          color: "#fff",
+          border: "none",
+          borderRadius: "5px",
+          cursor: saving ? "not-allowed" : "pointer",
+          width: "100%",
+        }}
+      >
+        {saving ? "Saving..." : "Save Notification Settings"}
+      </button>
 
-<div style={{ marginTop: "10px" }}></div>
+      <div style={{ marginTop: "10px" }}></div>
       <h1 style={{ fontSize: "24px", marginBottom: "25px" }}>Account Settings</h1>
-
 
       <form onSubmit={handleChangePassword}>
         <div style={{ marginBottom: "15px", textAlign: "left" }}>
@@ -731,87 +675,85 @@ export default function Settings() {
           Change Password
         </button>
       </form>
-        
+
       <div className="mt-[15px] justify-center flex flex-col p-4 border border-gray-300 rounded-lg shadow-md flex flex-col items-center">
         <button
-            type="submit"
-            onClick={() => setShowAccounts(!showAccounts)}
-            style={{
-              padding: "10px",
-              backgroundColor: "#0070f3",
-              color: "#fff",
-              border: "none",
-              borderRadius: "5px",
-              cursor: "pointer",
-              width: "100%",
-            }}
+          type="submit"
+          onClick={() => setShowAccounts(!showAccounts)}
+          style={{
+            padding: "10px",
+            backgroundColor: "#0070f3",
+            color: "#fff",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+            width: "100%",
+          }}
         >
-            {showAccounts ? "Hide Other Accounts ▲" : "Show Other Accounts ▼"}
+          {showAccounts ? "Hide Other Accounts ▲" : "Show Other Accounts ▼"}
         </button>
 
         <div className="flex flex-col items-center justify-center">
-        {showAccounts ? (
-  <div className="flex flex-col w-full">
-    <div className="w-full">
-      <p className="text-center mb-4 mt-4">
-        You can view, switch to, and add other accounts here.
-      </p>
-      {otherAccounts.length > 0 ? (
-        <ul className="flex flex-col gap-y-4 mt-4">
-          {(otherAccounts as LooseAccount[]).map((account, i) => (
-            <div
-              className="flex flex-row items-center justify-center gap-x-4 w-full"
-              key={account.id ?? i}
-            >
-              <button
-                className="text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 mb-2 text-left whitespace-nowrap overflow-hidden text-ellipsis rounded-full border border-solid transition-colors max-w-[40vw] min-w-[10vw]"
-                style={{
-                  display: "block",
-                }}
-                onClick={() =>
-                  account.id ? router.push(`/profile/${account.id}`) : null
-                }
-              >
-                {account.username ?? "Unnamed"} ({account.email ?? "No email"})
-              </button>
-              <button
-                className="flex flex-col rounded-full border border-solid transition-colors items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 mb-2"
-                onClick={() =>
-                  account.id ? switchAccount(account.id) : null
-                }
-              >
-                Switch
-              </button>
-              <button
-                className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 mb-2"
-                onClick={() =>
-                  unlinkAccount(account.id ?? "")
-                }
-              >
-                ❌
-              </button>
+          {showAccounts ? (
+            <div className="flex flex-col w-full">
+              <div className="w-full">
+                <p className="text-center mb-4 mt-4">
+                  You can view, switch to, and add other accounts here.
+                </p>
+                {otherAccounts.length > 0 ? (
+                  <ul className="flex flex-col gap-y-4 mt-4">
+                    {(otherAccounts as LooseAccount[]).map((account, i) => (
+                      <div
+                        className="flex flex-row items-center justify-center gap-x-4 w-full"
+                        key={account.id ?? i}
+                      >
+                        <button
+                          className="text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 mb-2 text-left whitespace-nowrap overflow-hidden text-ellipsis rounded-full border border-solid transition-colors max-w-[40vw] min-w-[10vw]"
+                          style={{
+                            display: "block",
+                          }}
+                          onClick={() =>
+                            account.id ? router.push(`/profile/${account.id}`) : null
+                          }
+                        >
+                          {account.username ?? "Unnamed"} ({account.email ?? "No email"})
+                        </button>
+                        <button
+                          className="flex flex-col rounded-full border border-solid transition-colors items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 mb-2"
+                          onClick={() =>
+                            account.id ? switchAccount(account.id) : null
+                          }
+                        >
+                          Switch
+                        </button>
+                        <button
+                          className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 mb-2"
+                          onClick={() =>
+                            unlinkAccount(account.id ?? "")
+                          }
+                        >
+                          ❌
+                        </button>
+                      </div>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No other accounts found.</p>
+                )}
+              </div>
+              <div className="border-t border-gray-300 justify-center mt-4"></div>
+              <div className="w-full flex justify-center mt-4">
+                <button
+                  className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 sm:min-w-30"
+                  onClick={() => router.push(`/?addAccount=true`)}
+                >
+                  Add Account
+                </button>
+              </div>
             </div>
-          ))}
-        </ul>
-      ) : (
-        <p>No other accounts found.</p>
-      )}
-    </div>
-    <div className="border-t border-gray-300 justify-center mt-4"></div>
-    <div className="w-full flex justify-center mt-4">
-      <button
-        className="rounded-full border border-solid transition-colors flex items-center justify-center text-sm sm:text-base h-8 sm:h-10 px-4 sm:px-5 sm:min-w-30"
-        onClick={() => router.push(`/?addAccount=true`)}
-      >
-        Add Account
-      </button>
-    </div>
-  </div>
-) : null}
-
+          ) : null}
         </div>
       </div>
-
 
       <button
         onClick={() => router.push("/profile")}
@@ -828,7 +770,6 @@ export default function Settings() {
       >
         Back to Profile
       </button>
-
 
       <button
         onClick={handleLogout}

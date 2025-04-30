@@ -367,7 +367,7 @@ const GroupsPage = () => {
         const allTooltips = document.querySelectorAll(".my-event-tooltip");
         allTooltips.forEach((tooltipEl) => tooltipEl.remove());
       };
-    }, [auth]);
+    }, [auth, docId]);
 
   useEffect(() => {
     if (groupData?.members) {
