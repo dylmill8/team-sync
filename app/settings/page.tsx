@@ -175,7 +175,7 @@ export default function Settings() {
     e.preventDefault();
     setUpdating(true);
     try {
-      formData.isLightTheme = isLightMode;
+      formData.isLightTheme = !isLightMode;
       formData.statVisibility = statVisibility;
       // 1) update own user document
       await setDocument("Users", userId, formData);
