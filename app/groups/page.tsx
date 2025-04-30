@@ -367,7 +367,7 @@ const GroupsPage = () => {
         const allTooltips = document.querySelectorAll(".my-event-tooltip");
         allTooltips.forEach((tooltipEl) => tooltipEl.remove());
       };
-    }, [auth]);
+    }, [auth, docId]);
 
   useEffect(() => {
     if (groupData?.members) {
@@ -541,6 +541,17 @@ const GroupsPage = () => {
               break;
             }
           }
+
+          let workoutData = "None";
+          if (eventData.workouts?.length > 0) {
+            const workoutDocRef = doc(db, "Workouts", eventData.workouts[0]);
+            const workoutDoc = await getDoc(workoutDocRef);
+            if (workoutDoc.exists()) {
+              //workoutData = workoutDoc.data().exercises[0];
+              workoutData = workoutDoc.data().name;
+            }
+          }
+
           return {
             title: eventData.name,
             start: eventData.start ? eventData.start.seconds * 1000 : undefined,
@@ -553,7 +564,7 @@ const GroupsPage = () => {
             owner: eventData.owner,
             RSVPStatus: userRSVPStatus,
             RSVPMap: eventData.RSVP,
-            workout: "none",
+            workout: workoutData,
             tags: eventData.tags || [],
           };
         })
@@ -1077,7 +1088,7 @@ const GroupsPage = () => {
                       ? `${tags.slice(0, 3).join(", ")}, etc.` // Show up to 3 tags and add "etc." if there are more
                       : tags.join(", ") || "None";
 
-                    tooltipEl.innerHTML = `
+                      tooltipEl.innerHTML = `
                       <strong>Location:</strong> ${
                         info.event.extendedProps.location || "N/A"
                       }<br/>
@@ -1085,15 +1096,9 @@ const GroupsPage = () => {
                       <strong>RSVP Status:</strong> ${
                         info.event.extendedProps.RSVPStatus
                       }<br/>
-                      <strong>Workout:</strong> ${
-                        info.event.extendedProps.workout
-                      }
-                      ... <strong>and more</strong>
-                      <br/>
+                      <strong>Workout:</strong> ${info.event.extendedProps.workout}<br/>
                       <strong>Tags:</strong> ${tagsDisplay}<br/>
-                      <br/>
                       <em>Click for more details</em>
-                      <br/>
                     `;
                     tooltipEl.style.position = "fixed";
                     tooltipEl.style.color = "black";
@@ -1135,7 +1140,7 @@ const GroupsPage = () => {
               />
               {showTagDropdown && (
                 <div
-                  className="absolute top-[58px] left-4 z-50 bg-white dark:bg-gray-800 p-4 rounded shadow border w-64"
+                  className="absolute top-[98px] left-4 z-50 bg-white dark:bg-gray-800 p-4 rounded shadow border w-64"
                   style={{
                     maxHeight: "400px",
                     overflowY: "auto", 
