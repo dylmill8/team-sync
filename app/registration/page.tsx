@@ -101,7 +101,7 @@ const RegisterPage = () => {
         const formData = new FormData();
         formData.append("image", profilePicture);
         try {
-          fetch("/api/blob/upload", {
+          await fetch("/api/blob/upload", {
             method: "POST",
             headers: {
               "content-type": profilePicture?.type || "application/octet-stream",
