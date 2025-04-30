@@ -1140,7 +1140,7 @@ const GroupsPage = () => {
               />
               {showTagDropdown && (
                 <div
-                  className="absolute top-[58px] left-4 z-50 bg-white dark:bg-gray-800 p-4 rounded shadow border w-64"
+                  className="absolute top-[98px] left-4 z-50 bg-white dark:bg-gray-800 p-4 rounded shadow border w-64"
                   style={{
                     maxHeight: "400px",
                     overflowY: "auto", 
